@@ -1,0 +1,39 @@
+README.md
+  s_d58794dec92dc7::t_877cbb87a852fd 156
+receipts/reviews/round-2/architecture-and-performance.md
+  s_d58794dec92dc7::t_3895ffbeba82ab 1-59
+receipts/reviews/round-2/oss-readiness.md
+  s_d58794dec92dc7::t_b125fabe3d0c12 1-76
+src/browser.ts
+  s_d58794dec92dc7::t_2382f7aadce2ef 71-72,162-163,273-275,277-280,282-285,287
+src/index.ts
+  s_d58794dec92dc7::t_4a6d209e7f0982 179
+src/terminal.ts
+  s_d58794dec92dc7::t_369a55017c8c1a 2,70,83-84,95-102,113-115
+src/thread.ts
+  s_d58794dec92dc7::t_e71e6518ef7169 11,31,173-187,274-276,492-493,567,578-582,596-597,600-601,639-646,654-655,834-839,847-873,885,906,924-925
+src/ui/client.ts
+  s_d58794dec92dc7::t_21124cd54708a7 1-2,202-208,286
+test/flow.test.ts
+  s_d58794dec92dc7::t_3e54c476616a1e 1-53
+test/thread.test.ts
+  s_d58794dec92dc7::t_77d2392a4b8205 87-89
+test/worker/index.ts
+  s_d58794dec92dc7::t_22584d4cb9c285 236-248,263-267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "32eeea2bc65755605f0b733dca37816db1785e5e",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
