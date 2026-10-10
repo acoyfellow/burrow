@@ -178,6 +178,7 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 - **You cannot pause while the agent is working.** Pause returns 409 until the turn ends, so a snapshot never catches a command halfway.
 - **Snapshots are kept.** Every pause, compaction, fork, child, and warm base keeps its disk snapshot in your account; coil does not delete old ones yet, because the container binding has no delete call.
 - **Commands from the API and MCP stop after 10 minutes**, and any command's output is cut at 256 KB (the History notes the full size).
+- **The browser cannot use your passkeys or security keys.** It runs headless in the thread's computer, so a login that needs WebAuthn (passkeys, hardware keys, many SSO flows) waits forever. Do not sign the agent's browser in to accounts you would not give the agent: it can read the page.
 - **It does not restore running processes.** A resumed computer gets its disk back, not its memory. Terminal tabs reopen as new shells in the same folders, and the browser starts on a blank page.
 - **It does not work offline.** The PWA caches the app shell so it opens instantly and shows your last view, but threads, terminals, and the browser need the network.
 - **Terminals have no mouse support.** Scroll back with tmux keys, not the wheel.
