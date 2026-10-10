@@ -75,10 +75,6 @@ export class TestThread extends Thread {
     return scripted();
   }
 
-  protected override settings() {
-    return { compaction: { keepRecentTokens: 1 } };
-  }
-
   protected override computer(): Computer {
     return memoryComputer(this.ctx.id.toString());
   }

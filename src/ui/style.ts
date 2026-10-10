@@ -115,20 +115,26 @@ dialog h3{margin:0;font-size:16px}
 dialog label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--dim)}
 dialog .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 
+.actions{display:flex;gap:2px;align-items:center}
+.actions .panel-toggle{display:none}
+.more{display:none!important}
 .narrow{display:none!important}
 @media (max-width:1100px){
   .app{grid-template-columns:240px minmax(0,1fr)}
   .panel{display:none}
   .app.show-panel .panel{display:flex;position:fixed;inset:0 0 0 auto;width:min(480px,100vw);z-index:10;box-shadow:-20px 0 40px rgba(0,0,0,.45)}
-  .narrow.panel-toggle{display:inline-flex!important}
+  .actions .panel-toggle{display:inline-flex}
 }
 @media (max-width:720px){
   .app{grid-template-columns:100%}
   .side{display:none}
   .app.show-side .side{display:flex;position:fixed;inset:0;z-index:15}
   .narrow{display:inline-flex!important}
-  .bar{padding:8px 10px;gap:4px}
-  .bar .ghost{padding:6px 8px}
+  .bar{padding:8px 10px;gap:6px;position:relative}
+  .more{display:inline-flex!important}
+  .actions{display:none;position:absolute;top:calc(100% + 4px);right:8px;flex-direction:column;align-items:stretch;background:var(--raise);border:1px solid var(--line2);border-radius:8px;padding:4px;z-index:12;min-width:160px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+  .actions.open{display:flex}
+  .actions button{justify-content:flex-start}
   .feed{padding:14px 10px 6px}
   .composer{padding:10px}
 }

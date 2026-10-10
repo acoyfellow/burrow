@@ -62,11 +62,12 @@ function renderBar() {
   bar.append(h('span', { class: 'chip ' + phaseOf(v), id: 'phase' }, v.busy ? spinner() : null, phaseLabel(v)));
   const locked = !!S.action || v.busy;
   const button = (key, label, onclick, extra) => h('button', { class: 'ghost', id: 'act-' + key, disabled: locked || extra, onclick }, S.action === key ? spinner() : null, label);
-  bar.append(
+  const actions = h('div', { class: 'actions', id: 'actions' },
     button('compact', 'Compact', () => act('compact', 'Compacting: summarising and saving the disk…', 'Compacted. Summary and disk saved together.')),
     button('pause', 'Pause', () => act('pause', 'Pausing: saving the disk…', 'Paused. The disk is saved and the computer is off.'), v.phase === 'paused' || v.phase === 'new'),
     button('fork', 'Fork', fork),
-    h('button', { class: 'ghost narrow panel-toggle', onclick: () => $('.app').classList.add('show-panel') }, 'Computer'));
+    h('button', { class: 'ghost panel-toggle', onclick: () => { $('.app').classList.add('show-panel'); actions.classList.remove('open'); } }, 'Computer'));
+  bar.append(h('button', { class: 'ghost more', 'aria-label': 'Actions', onclick: () => actions.classList.toggle('open') }, '⋯'), actions);
 }
 
 function toolEl(name, args, output, running) {
@@ -85,7 +86,7 @@ function richText(text) {
 }
 
 function messageEl(m) {
-  if (m.role === 'tool') return toolEl(m.tool.name, m.tool.args, null, false);
+  if (m.role === 'tool') { const el = toolEl(m.tool.name, m.tool.args, null, false); el.dataset.call = m.tool.id; return el; }
   if (m.kind === 'pi.compaction') return h('div', { class: 'msg summary' }, h('div', { class: 'label' }, 'Compaction summary'), h('div', { class: 'body' }, m.text));
   if (m.role !== 'user' && m.role !== 'assistant') return null;
   if (!m.text) return null;
@@ -109,8 +110,8 @@ function renderFeed() {
   const items = [];
   for (const m of S.view.messages) {
     if (m.role === 'toolResult') {
-      const last = [...items].reverse().find((el) => el.matches('details.tool') && !el.dataset.filled);
-      if (last) { last.dataset.filled = '1'; last.querySelector('pre').textContent = m.text || '(no output)'; const exit = /^exit (\d+)/.exec(m.text || ''); if (exit && exit[1] !== '0') last.classList.add('failed'); }
+      const target = items.find((el) => el.dataset.call && el.dataset.call === m.toolCallId);
+      if (target) { target.querySelector('pre').textContent = m.text || '(no output)'; const exit = /^exit (\d+)/.exec(m.text || ''); if (exit && exit[1] !== '0') target.classList.add('failed'); }
       continue;
     }
     const el = messageEl(m);

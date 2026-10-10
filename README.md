@@ -2,34 +2,54 @@
 
 **One thread, one agent, one computer. On Cloudflare, compacted together.**
 
+![burrow on a desktop: threads on the left, the agent's work in the middle, the thread's history on the right](receipts/shots/desktop.png)
+
 An agent that works on code needs two things that last: its conversation and its disk. Most setups keep them in two places. The chat is in a database, the files are in a VM or a shared volume, and nothing ties them together. Kill the process and the chat comes back without its files. Run two threads and they edit the same folder. Pause a thread and you pay for an idle machine, or you lose what was on it.
 
 burrow puts both in one [Durable Object](https://developers.cloudflare.com/durable-objects/) per thread:
 
 - the agent is a [Pi Durable](https://earendil.com/posts/pi-durable/) harness on the object's SQLite;
-- the computer is a [Cloudflare Container](https://developers.cloudflare.com/containers/) attached to the same object, with its own git checkout in `/workspace`;
+- the computer is a [Cloudflare Container](https://developers.cloudflare.com/containers/) attached to the same object, driven through the [Sandbox SDK](https://developers.cloudflare.com/sandbox/), with its own git checkout in `/workspace`;
+- the image is [nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof)'s Nix build, so every computer has a patched git that cannot force-push;
 - a small ledger in the same SQLite records each pause and each compaction as a **pair**: the transcript summary and the disk snapshot that match it.
 
 ```text
-                 Worker (Access-gated): web UI · HTTP API · MCP
-                                   │  getByName(thread)
-             ┌─────────────────────▼─────────────────────┐
-             │       Thread Durable Object (one per thread)   │
-             │                                               │
-             │   Pi Durable harness ──── SQLite ──── ledger   │
-             │        │ tools: run, write_file      (pairs,   │
-             │        ▼                              execs)   │
-             │   ctx.container ── /workspace (git)            │
-             │        │  pause: snapshotContainer → destroy   │
-             │        │  resume: start({ containerSnapshot }) │
-             └────────┼──────────────────────────────────────┘
-                      ▼
-               a Linux computer only this thread can see
+            Worker (Access-gated): web UI · HTTP API + SSE · MCP
+                 │ getByName(thread)              │ getByName("all")
+   ┌─────────────▼──────────────────────┐   ┌─────▼──────────────┐
+   │ Thread Durable Object (per thread) │   │ Directory DO       │
+   │                                    │──▶│ thread list, warm  │
+   │ Pi Durable ── SQLite ── ledger     │   │ bases per repo     │
+   │   │ run · write_file · read_file   │   └────────────────────┘
+   │   │ start_child · wait_child       │
+   │   ▼                                │
+   │ ctx.container (nix image) /workspace
+   │   pause:  snapshotContainer → destroy
+   │   resume: start({ containerSnapshot })
+   │   fork / child / warm: start from another snapshot
+   └────────────────────────────────────┘
 ```
+
+## What you can do
+
+| | |
+| --- | --- |
+| **Start a thread** | Optional git repo. If a warm base exists for that repo, the computer starts from it instead of cloning. |
+| **Watch it work** | Tool calls, their output, and the agent's replies stream into the page as they happen. Leave and come back; the turn keeps going. |
+| **Use its computer** | A terminal and a file browser on the same `/workspace` the agent uses. |
+| **Pause** | The disk is saved and the computer is turned off. The next message, command, or file read resumes it. |
+| **Compact** | The transcript is summarised and the disk is saved, recorded together. |
+| **Fork** | A new thread starts from this thread's current disk and a summary of its conversation. |
+| **Child threads** | The agent can hand a side task to a child thread with its own computer, then wait for its answer. |
+| **Warm bases** | `POST /api/bases {repo, setup}` clones a repo, runs setup once, and snapshots it. |
+
+The phone layout keeps the transcript and composer, with actions behind a menu:
+
+<img src="receipts/shots/phone.png" width="260" alt="burrow on a phone"> <img src="receipts/shots/phone-menu.png" width="260" alt="burrow on a phone, actions menu open">
 
 ## Run it
 
-You need Bun, Docker (or colima), and a Cloudflare account with Containers (Workers Paid).
+You need Bun, Docker (or colima), and a Cloudflare account with Containers (Workers Paid). The image is based on the nix-cf-proof image in your account's registry; change `NIX_IMAGE` in [`computer/Dockerfile`](computer/Dockerfile) to your own build.
 
 ```sh
 git clone https://github.com/acoyfellow/burrow && cd burrow
@@ -38,88 +58,90 @@ bun run check                                     # typecheck, lint, offline tes
 npx wrangler dev --var LOCAL_DEV_WITHOUT_ACCESS:1 # real containers in Docker, real Workers AI
 ```
 
-Then, from another terminal:
+Open `http://localhost:8787/`, or use the API:
 
 ```sh
 curl -s -X POST localhost:8787/api/threads -H 'content-type: application/json' -d '{"name":"demo"}'
 curl -s -X POST localhost:8787/api/threads/demo/messages \
   -H 'content-type: application/json' -H 'idempotency-key: turn-1' \
-  -d '{"text":"Create hello.py that prints hi, run it, and commit it."}'
-curl -s -X POST localhost:8787/api/threads/demo/pause     # snapshot the disk, stop the computer
-curl -s -X POST localhost:8787/api/threads/demo/exec \
-  -H 'content-type: application/json' -d '{"command":"git log --oneline; python3 hello.py"}'   # resumes from the snapshot
+  -d '{"text":"Write hello.sh that prints hi, run it, and commit it.","wait":true}'
+curl -sN localhost:8787/api/threads/demo/events          # live events while a turn runs
+curl -s -X POST localhost:8787/api/threads/demo/pause    # save the disk, stop the computer
+curl -s -X POST localhost:8787/api/threads/demo/fork     # new thread from this disk
 ```
-
-Or open `http://localhost:8787/` for the web UI: threads on the left, the transcript in the middle, a terminal and the compaction pairs on the right.
 
 ## For agents
 
-The same actions are tools on `POST /mcp` (JSON-RPC, streamable HTTP):
+The same actions are tools on `POST /mcp` (JSON-RPC):
 
 | Tool | Does |
 | --- | --- |
-| `thread_create` | New thread: its own agent and its own computer. Optional `repo` to clone. |
-| `thread_send` | One agent turn. Pass the same `requestId` to retry without running the turn twice. |
+| `thread_list` | All threads, newest activity first. |
+| `thread_create` | New thread: its own agent and its own computer. Optional `repo`. |
+| `thread_send` | One agent turn; returns the answer. The same `requestId` does not run the turn twice. |
 | `thread_exec` | A shell command in the thread's `/workspace`. |
 | `thread_read_file` | Read a file from the thread's computer. |
 | `thread_compact` | Compact the transcript and snapshot the disk as one pair. |
-| `thread_pause` | Snapshot the disk and stop the computer. The next call resumes it. |
+| `thread_pause` | Snapshot the disk and stop the computer. |
+| `thread_fork` | New thread from this thread's disk and a summary of its conversation. |
 | `thread_status` | Phase, transcript, pairs, and recent commands. |
-
-Over HTTP, `POST /api/threads/:name/messages` takes an `Idempotency-Key` header and passes it to Pi Durable as the request ID.
-
-## The compaction story
-
-There are two things to compact, and burrow does them together.
-
-1. **The transcript.** Pi Durable compacts on its own when the context fills up (threshold or overflow), and on request (`thread_compact`). It writes a `pi.compaction` summary entry and keeps recent turns as they were.
-2. **The disk.** On `thread_compact` and on `thread_pause`, the thread snapshots its container with `snapshotContainer()` and records `{ reason, snapshot, summaryEntry }` in the ledger.
-
-A pause also destroys the container, so an idle thread costs storage and nothing else. The next message, command, or file read starts the container from the latest snapshot. Because summary and snapshot are recorded together, the conversation the agent resumes with and the disk it finds always come from the same moment.
+| `base_prepare` | Clone a repo, run setup once, snapshot it for warm starts. |
 
 ## How do I know it works?
 
-`bun run check` runs three tests in workerd, offline. They use the real `Thread` Durable Object and the real Pi Durable harness, with a scripted model and an in-memory computer swapped in ([`test/worker/index.ts`](test/worker/index.ts)):
+`bun run check` runs 13 tests offline: four in workerd against the real `Thread` and `Directory` Durable Objects and the real Pi Durable harness, with a scripted model and an in-memory computer ([`test/worker/index.ts`](test/worker/index.ts)), and nine against the Access verifier ([`test/access.test.ts`](test/access.test.ts)).
 
 | Test | Proves |
 | --- | --- |
-| Isolation | A file one thread's agent writes is not visible to another thread, and reading it from the other thread fails |
-| Kill and resume | A thread killed with `ctx.abort()` mid-turn comes back, finishes the same request, and the file exists. The user turn is recorded once |
-| Compaction pairs | Two turns, `compact`, `pause`, `ctx.abort()`, then resume: the disk has exactly the earlier files, the transcript has the summary, the ledger has `[compaction, pause]`, and the agent finishes a third turn |
+| Isolation | A file one thread's agent writes is not visible to another thread |
+| Kill and resume | A thread killed with `ctx.abort()` mid-turn finishes the same request, once |
+| Compaction pairs | Compact, pause, kill, resume: the disk and the summary come back together, and the recorded summary entry is the real one |
+| Directory and fork | Threads made over MCP and the web are both listed; a fork reads the parent's file |
+| Access | A missing, malformed, expired, wrong-issuer, wrong-audience, wrong-key, or unknown-key token is refused |
 
-[`receipts/live-e2e.json`](receipts/live-e2e.json) is a run on the deployed Worker, behind Access, on Cloudflare Containers: create a thread, run a command, the agent writes and commits a file (19 s), pause (3.6 s snapshot), and the next command resumes from the snapshot with the commit intact (1.2 s).
+[`receipts/live-ui.json`](receipts/live-ui.json) is a run on the deployed Worker, behind Access, on Cloudflare Containers with the Nix image:
 
-[`receipts/local-e2e.json`](receipts/local-e2e.json) is a run against `wrangler dev` with a real Docker container per thread and real Workers AI. The agent wrote `hello.py`, ran it, and committed it. The pause snapshot was 130 MB. Resuming took 0.3 s, and the commit was still there. A second thread had a different hostname and an empty repo.
+| Step | Result |
+| --- | --- |
+| Create | Patched git 2.55.0; a forced push is refused |
+| Live stream | 18+ events reached the page before the turn finished |
+| Pause, resume | The agent's file and commit were there after resume |
+| Compact | A summary entry was recorded with the disk snapshot, and the agent kept working |
+| Fork | The fork read the parent's file on a different machine |
+| Child | The agent started a child thread and reported its answer |
+| Warm start | A prepared base for this repo; a new thread started from it in about 1 s |
+| Isolation | A file written in one thread's computer was absent in another's; different hosts |
+| Thread list | A fresh browser listed threads made by the script and over MCP |
+
+`scripts/gate.sh` fails unless all of that holds, the repo is pushed, and the URL redirects to Access.
 
 ## What it does not do
 
-- **It does not restore running processes.** A resumed computer gets its disk back, not its memory. Dev servers have to start again.
-- **It is not multi-user.** One owner per deploy, behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/). The Worker checks the Access token itself and fails closed if Access is not configured.
-- **It is not a security boundary for hostile code on its own.** The container has internet access so the agent can install packages and clone repos. Restrict egress with `interceptOutboundHttp` if you need to.
-- **`run` is `replay: "unsafe"`.** If a thread dies while a shell command is running, Pi Durable does not run it again. `write_file` is `replay: "safe"`.
+- **It does not restore running processes.** A resumed computer gets its disk back, not its memory.
+- **It is not multi-user.** One owner per deploy, behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/). The Worker verifies the Access token itself and returns 503 if Access is not configured.
+- **It is not a security boundary for hostile code on its own.** Computers have internet access.
+- **Replies arrive whole, not token by token.** The Workers AI bridge returns complete messages; tool calls and their output stream live.
+- **`run` and `start_child` are `replay: "unsafe"`.** If a thread dies mid-command, Pi Durable does not run the command again.
+- **There is no diff review view.** Use the terminal or the file browser.
 
 ## Where to change behavior
 
 | File | What |
 | --- | --- |
 | [`src/agent.ts`](src/agent.ts) | The prompt and the tools the agent gets |
-| [`src/thread.ts`](src/thread.ts) | Lifecycle: boot, pause, compact, resume |
-| [`src/computer.ts`](src/computer.ts) | How the container starts, its size, and its inactivity timeout |
-| [`computer/Dockerfile`](computer/Dockerfile) | What is installed in each computer |
-| [`wrangler.jsonc`](wrangler.jsonc) | The model and bindings |
+| [`src/thread.ts`](src/thread.ts) | Lifecycle: boot, pause, compact, fork context, children, live events |
+| [`src/service.ts`](src/service.ts) | Create, fork, and warm bases across threads |
+| [`src/directory.ts`](src/directory.ts) | The thread list and warm bases |
+| [`src/computer.ts`](src/computer.ts) | The Sandbox SDK computer: start, exec, files, snapshots |
+| [`src/ui/`](src/ui) | The web UI |
+| [`computer/Dockerfile`](computer/Dockerfile) | The image: nix-cf-proof plus the sandbox shim and busybox |
 
 ## Prior art it builds on
 
-- **[armada](https://github.com/AshishKumar4/armada)** proved that a prepared container can be snapshotted and started again in about 2.5 s. burrow uses the same `snapshotContainer` and `containerSnapshot` calls, per thread.
-- **[tardigrade](https://github.com/acoyfellow/tardigrade)** showed that Pi Durable in a Durable Object comes back after `ctx.abort()`, along with the offline kill test shape.
-- **[terrarium](https://github.com/acoyfellow/terrarium)** keeps one Durable Object as the only source of truth for a run, and logs output with a byte count and hash. burrow's exec log does the same.
-- **[nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof)** builds a container image from one `devenv.nix` on Cloudflare, with a git that cannot force-push. That is the next image for burrow's computers (see [SPEC.md](SPEC.md)).
-
-## What this makes possible next
-
-- **Fork a thread** from any pair: a new Durable Object starts from that summary and that snapshot. The ledger already stores both.
-- **Per-repo warm starts.** Prepare a repo once, snapshot it, and start every new thread on that repo from the snapshot, the way armada prepares environments.
-- **Crash testing.** Every pair is a known-good resume point, which makes the kill-at-every-step testing in [killjoy](https://github.com/acoyfellow/killjoy) straightforward to point at a burrow.
+- **[armada](https://github.com/AshishKumar4/armada)**: a prepared container can be snapshotted and started again in seconds. burrow uses the same calls for pause, fork, children, and warm bases.
+- **[tardigrade](https://github.com/acoyfellow/tardigrade)**: Pi Durable in a Durable Object comes back after `ctx.abort()`; the offline kill test shape.
+- **[terrarium](https://github.com/acoyfellow/terrarium)**: one Durable Object as the source of truth for a run; output logged with a byte count and hash.
+- **[nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof)**: the image, and the git that cannot force-push.
 
 ## License
 

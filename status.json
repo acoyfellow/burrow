@@ -1,72 +1,82 @@
 {
  "state": "live",
- "iteration": 3,
+ "iteration": 4,
  "northStar": "One thread, one agent, one computer, on pure Cloudflare: a Pi Durable harness and a container in the same Durable Object, compacted together.",
- "constraint": "Pure Cloudflare primitives plus pi-durable. No external database or VM provider.",
- "falsifiable": "A thread's transcript and its computer's disk can be paused, killed, and resumed together from one Durable Object, so that after resume the agent's view and the disk agree.",
+ "falsifiable": "A thread's transcript and its computer's disk can be paused, compacted, forked, and resumed from one Durable Object, through a UI a person can use on desktop and phone.",
  "steps": [
   {
-   "id": "scaffold",
+   "id": "access-tests",
    "done": true
   },
   {
-   "id": "thread-do-pi-durable",
+   "id": "gate-script",
    "done": true
   },
   {
-   "id": "container-exec-files",
+   "id": "directory-do-thread-list",
    "done": true
   },
   {
-   "id": "paired-compaction-pause-resume",
+   "id": "sandbox-sdk-computer",
    "done": true
   },
   {
-   "id": "offline-tests-isolation-kill-compaction",
+   "id": "nix-image",
    "done": true
   },
   {
-   "id": "http-api-and-mcp",
+   "id": "streaming-events",
    "done": true
   },
   {
-   "id": "web-ui",
+   "id": "ui-rewrite",
    "done": true
   },
   {
-   "id": "readme-repo-shape",
+   "id": "warm-setup",
    "done": true
   },
   {
-   "id": "deploy-access",
+   "id": "fork",
    "done": true
   },
   {
-   "id": "live-e2e-receipt",
+   "id": "child-threads",
    "done": true
   },
   {
-   "id": "public-repo",
+   "id": "live-compaction",
    "done": true
   },
   {
-   "id": "notify",
+   "id": "live-ui-receipt-with-screenshots",
    "done": true
+  },
+  {
+   "id": "real-isolation-receipt",
+   "done": true
+  },
+  {
+   "id": "owner-review",
+   "done": false
   }
  ],
  "proven": [
-  "pi-durable runs per thread in a Durable Object that also owns a container (offline test + receipts/local-e2e.json)",
-  "pausing snapshots the disk and resuming restores it, with the transcript intact (offline test; local Docker: 130 MB snapshot, 0.3 s resume, commit intact)",
-  "a compaction summary and a disk snapshot are recorded as one pair (offline test)",
-  "a thread killed with ctx.abort() mid-turn finishes the same request once (offline test)",
-  "deployed on Cloudflare Containers behind Access: create, exec, agent commits a file, pause snapshot, resume with the commit intact (receipts/live-e2e.json)"
+  "Sandbox SDK computer on the nix-cf-proof image, live; forced push refused (receipts/live-ui.json)",
+  "server-side thread list shows web-, script-, and MCP-created threads in a fresh browser",
+  "live events stream to the page during a turn",
+  "pause and resume keep the agent's file and commit",
+  "manual compaction records a real summary entry with a disk snapshot, live",
+  "fork reads the parent's file on a different machine",
+  "child thread started by the agent returns an answer",
+  "warm base for a repo; new thread starts from it in about 1 s",
+  "two live containers are isolated",
+  "Access verifier refuses bad tokens (9 tests)"
  ],
  "unproven": [
-  "forking a new thread from a pair"
+  "token-by-token streaming of replies (Workers AI bridge returns whole messages)"
  ],
- "disproven": [],
- "openQuestions": [
-  "Does ctx.container.snapshotContainer work on the account's plan?",
-  "Does wrangler dev run containers locally with colima?"
+ "blocked": [
+  "owner-review: Jordan reviews receipts/shots and writes receipts/owner-ok"
  ]
 }

@@ -72,6 +72,10 @@ const DIRECTORY = 'all';
 
 const IDLE_CHECK_MS = 1000;
 
+const MANUAL_KEEP_TOKENS = 200;
+
+const AUTO_KEEP_TOKENS = 20_000;
+
 export const childName = (parent: string, index: number) =>
   `${parent.slice(0, 50)}-c${index}`.replace(/-+/g, '-');
 
@@ -128,7 +132,13 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected settings(): HarnessSettings {
-    return { compaction: { keepRecentTokens: 2000 } };
+    const ledger = this.ledger;
+
+    return {
+      get compaction() {
+        return { keepRecentTokens: ledger.compacting ? MANUAL_KEEP_TOKENS : AUTO_KEEP_TOKENS };
+      },
+    };
   }
 
   protected computer(): Computer {
@@ -178,9 +188,23 @@ export class Thread extends DurableObject<Env> {
 
         await box.boot(from);
 
-        if (from === undefined && this.ledger.repo !== null)
-          await box.exec(['git', 'clone', '--depth', '50', this.ledger.repo, WORKSPACE], '/');
-        else if (from === undefined)
+        if (from === undefined && this.ledger.repo !== null) {
+          const cloned = await box.exec(
+            [
+              'bash',
+              '-c',
+              `cd ${WORKSPACE} && git clone --depth 50 "$1" .`,
+              'clone',
+              this.ledger.repo,
+            ],
+            '/',
+          );
+
+          if (cloned.exitCode !== 0)
+            throw new Error(
+              `Could not clone ${this.ledger.repo}: ${cloned.stderr.trim().slice(-300)}`,
+            );
+        } else if (from === undefined)
           await box.exec(
             ['bash', '-c', `mkdir -p ${WORKSPACE} && cd ${WORKSPACE} && git init -q`],
             '/',
@@ -352,7 +376,12 @@ export class Thread extends DurableObject<Env> {
 
   async compact(instructions?: string): Promise<Pair> {
     const agent = await this.open();
-    const summaryEntry = await agent.compact(instructions);
+
+    this.ledger.compacting = true;
+
+    const summaryEntry = await agent.compact(instructions).finally(() => {
+      this.ledger.compacting = false;
+    });
     const box = await this.awake();
     const pair: Pair = {
       at: Date.now(),

@@ -14,6 +14,7 @@ ENV PATH=/sandbox/bin:/opt/busybox:/usr/local/bin \
     GIT_AUTHOR_EMAIL=burrow@users.noreply.github.com \
     GIT_COMMITTER_NAME=burrow \
     GIT_COMMITTER_EMAIL=burrow@users.noreply.github.com \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
+    SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
+    GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt
 WORKDIR /workspace
 CMD ["/sandbox/bin/sleep", "infinity"]

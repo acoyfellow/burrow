@@ -63,6 +63,7 @@ if (ui !== null) {
   for (const shot of ['receipts/shots/desktop.png', 'receipts/shots/phone.png'])
     need(existsSync(shot), `${shot} missing`);
 
+  need(ui.warmStart?.ok === true && ui.warmStart?.startedFromBase === true, 'warm start not proven');
   need(ui.computer === 'sandbox-sdk', 'computer is not the Sandbox SDK');
   need(typeof ui.image === 'string' && ui.image.includes('nix'), 'image is not the nix image');
 }

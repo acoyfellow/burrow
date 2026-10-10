@@ -1,0 +1,140 @@
+{
+  "kind": "burrow.live-ui",
+  "observed": true,
+  "when": "2026-10-10T12:04:14.934534Z",
+  "url": "https://burrow.coey.dev/",
+  "driver": "same-origin fetch and EventSource from a browser signed in through Cloudflare Access (email OTP); each run in a fresh tab",
+  "computer": "sandbox-sdk",
+  "image": "nix-cf-proof patched git git version 2.55.0",
+  "forcePushRefused": true,
+  "run": "mv2caglw",
+  "scriptCreatedThread": "live-mv2caglw",
+  "mcpCreatedThread": "mcp-mv2caglw",
+  "freshBrowserThreadList": [
+    "iso-b-mv2caglw",
+    "iso-a-mv2caglw",
+    "mcp-mv2caglw",
+    "live-mv2caglw",
+    "live-mv2caglw-c1",
+    "live-mv2caglw-fork",
+    "live-mv2blqfd",
+    "iso-b-mv2bch7e",
+    "iso-a-mv2bch7e",
+    "mcp-mv2bch7e",
+    "live-mv2bch7e",
+    "live-mv2bch7e-c1",
+    "live-mv2bch7e-fork",
+    "live-mv2a7j13",
+    "live-mv2a7j13-c1",
+    "live-mv2akgq6",
+    "probe-mv2aj8eo",
+    "iso-b-mv2a7j13",
+    "iso-a-mv2a7j13",
+    "mcp-mv2a7j13",
+    "live-mv2a7j13-fork",
+    "live-mv29dw0r",
+    "live-mv29dw0r-c1",
+    "live-mv29dw0r-fork",
+    "iso-b-mv297gxn",
+    "iso-a-mv297gxn",
+    "mcp-mv297gxn",
+    "live-mv297gxn",
+    "live-mv297gxn-c1",
+    "live-mv297gxn-fork",
+    "live-mv28hway"
+  ],
+  "isolation": {
+    "aHasFile": true,
+    "bHasFile": false,
+    "hostnamesDiffer": true,
+    "aHost": "c8c10f54272e",
+    "bHost": "9a7c153c7520"
+  },
+  "steps": [
+    {
+      "step": "create",
+      "ok": true,
+      "at": 1791633439787,
+      "ms": 1431,
+      "gitVersion": "git version 2.55.0",
+      "hostname": "94911fb06ee7"
+    },
+    {
+      "step": "live-stream",
+      "ok": true,
+      "at": 1791633458691,
+      "ms": 18801,
+      "eventsBeforeDone": 18,
+      "eventTypes": [
+        "hello",
+        "state",
+        "tool_start",
+        "tool_end",
+        "turn_end",
+        "text"
+      ]
+    },
+    {
+      "step": "pause",
+      "ok": true,
+      "at": 1791633468738,
+      "ms": 9967,
+      "snapshotBytes": 77510
+    },
+    {
+      "step": "resume",
+      "ok": true,
+      "at": 1791633469277,
+      "ms": 539,
+      "fileSurvived": true,
+      "log": "1. Parse CLI args to get an optional file path (default to stdin).\n2. Split input on whitespace and count the resulting words.\n3. Print the count to stdout and exit 0.\n7d3869f Add plan for word-count CLI\n"
+    },
+    {
+      "step": "compact",
+      "ok": true,
+      "at": 1791633539512,
+      "ms": 70235,
+      "summaryEntry": "41",
+      "summaryShown": true,
+      "answerAfter": "Confirmed: `README.md` at the root and `notes/plan.md` in the notes directory."
+    },
+    {
+      "step": "fork",
+      "ok": true,
+      "at": 1791633559420,
+      "ms": 19908,
+      "forkSawParentFile": true,
+      "forkHostname": "b14e05e5fe2c"
+    },
+    {
+      "step": "child",
+      "ok": true,
+      "at": 1791633660377,
+      "ms": 100957,
+      "child": "live-mv2caglw-c1",
+      "childResult": "32",
+      "parentAnswer": "The child answered **32**."
+    }
+  ],
+  "screenshots": {
+    "desktop": "receipts/shots/desktop.png",
+    "phone": "receipts/shots/phone.png",
+    "phoneMenu": "receipts/shots/phone-menu.png"
+  },
+  "notes": [
+    "Text deltas: the Workers AI bridge returns whole messages, so \"text\" events arrive once per assistant message rather than token by token. Tool start/end, turn and state events stream as they happen.",
+    "Earlier runs in this session failed the compact step because the summary was placed through a submission the code did not wait for, and because keepRecentTokens left nothing to cut. Both were fixed (src/agent.ts, src/thread.ts) before this run.",
+    "Durable Objects with a running container kept serving code from before a deploy until paused; threads created after a deploy run the new code.",
+    "Cloning over HTTPS failed until GIT_SSL_CAINFO was passed on every exec; containers started before that deploy kept the old environment."
+  ],
+  "warmStart": {
+    "repo": "https://github.com/acoyfellow/burrow",
+    "setup": "git log --oneline -1 > .warm-marker && date -u >> .warm-marker",
+    "prepareMs": 7569,
+    "warmStartMs": 972,
+    "thread": "burrow-84f9e5",
+    "startedFromBase": true,
+    "markerFromSetup": "b25a3d7 Live receipt: deployed thread on Cloudflare Containers behind Access",
+    "ok": true
+  }
+}

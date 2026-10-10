@@ -34,7 +34,8 @@ export type Message = {
   readonly kind: string;
   readonly role: string;
   readonly text: string;
-  readonly tool?: { readonly name: string; readonly args: string };
+  readonly tool?: { readonly id: string; readonly name: string; readonly args: string };
+  readonly toolCallId?: string;
 };
 
 export type Children = {
@@ -132,10 +133,16 @@ const textOf = (content: unknown): string => {
 const toolCallsOf = (content: unknown) =>
   Array.isArray(content)
     ? content.flatMap((part) => {
-        const typed = part as { type?: string; name?: string; arguments?: unknown };
+        const typed = part as { type?: string; id?: string; name?: string; arguments?: unknown };
 
         return typed.type === 'toolCall'
-          ? [{ name: typed.name ?? '?', args: JSON.stringify(typed.arguments ?? {}) }]
+          ? [
+              {
+                id: typed.id ?? '',
+                name: typed.name ?? '?',
+                args: JSON.stringify(typed.arguments ?? {}),
+              },
+            ]
           : [];
       })
     : [];
@@ -202,7 +209,13 @@ export const openAgent = async (
     return [...page.items].reverse().flatMap((entry) =>
       (entry.model ?? []).flatMap((message) => {
         const content = (message as { content?: unknown }).content;
-        const base = { id: String(entry.id), kind: entry.kind, role: message.role };
+        const callId = (message as { toolCallId?: string }).toolCallId;
+        const base = {
+          id: String(entry.id),
+          kind: entry.kind,
+          role: message.role,
+          ...(callId === undefined ? {} : { toolCallId: callId }),
+        };
         const calls = message.role === 'assistant' ? toolCallsOf(content) : [];
         const said = textOf(content);
 

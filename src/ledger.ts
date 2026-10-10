@@ -110,6 +110,14 @@ export class Ledger {
     this.put('busy', next ? '1' : '0');
   }
 
+  get compacting(): boolean {
+    return this.get('compacting') === '1';
+  }
+
+  set compacting(next: boolean) {
+    this.put('compacting', next ? '1' : '0');
+  }
+
   get titled(): boolean {
     return this.get('titled') === '1';
   }

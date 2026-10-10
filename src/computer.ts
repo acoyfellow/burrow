@@ -32,6 +32,17 @@ export const inWorkspace = (path: string) =>
 
 const INACTIVITY_MS = 10 * 60 * 1000;
 
+const SHELL_ENV: Record<string, string> = {
+  PATH: '/sandbox/bin:/opt/busybox:/usr/local/bin',
+  HOME: '/root',
+  SSL_CERT_FILE: '/etc/ssl/certs/ca-bundle.crt',
+  GIT_SSL_CAINFO: '/etc/ssl/certs/ca-bundle.crt',
+  GIT_AUTHOR_NAME: 'burrow',
+  GIT_AUTHOR_EMAIL: 'burrow@users.noreply.github.com',
+  GIT_COMMITTER_NAME: 'burrow',
+  GIT_COMMITTER_EMAIL: 'burrow@users.noreply.github.com',
+};
+
 const LOST_LAUNCHES_BEFORE_GIVING_UP = 3;
 
 const decode = (bytes: ArrayBuffer | Uint8Array | string | undefined): string =>
@@ -45,7 +56,7 @@ export const sandboxComputer = (container: Container, image: string): Computer =
 
     for (;;) {
       try {
-        const process = await container.exec([...argv], { cwd });
+        const process = await container.exec([...argv], { cwd, env: SHELL_ENV });
         const output = await process.output();
 
         return {
