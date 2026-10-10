@@ -10,7 +10,7 @@ step "lint and format"
 npx biome check .
 
 step "offline tests in workerd: isolation, kill and resume, compaction pairs"
-npx vitest run
+npx vitest run --reporter=verbose
 
 step "wrangler configs keep public URLs off"
 for config in $(git ls-files '*wrangler.jsonc'); do
