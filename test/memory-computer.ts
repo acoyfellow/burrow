@@ -1,4 +1,4 @@
-import type { Computer, ExecResult, Snapshot } from '../src/computer';
+import { type Computer, type ExecResult, inWorkspace, type Snapshot } from '../src/computer';
 
 type Disk = Map<string, string>;
 
@@ -8,40 +8,19 @@ const running = new Map<string, Disk>();
 
 const ok = (stdout = ''): ExecResult => ({ exitCode: 0, stdout, stderr: '' });
 
-const fail = (stderr: string): ExecResult => ({ exitCode: 1, stdout: '', stderr });
+const live = (owner: string): Disk => {
+  const disk = running.get(owner);
 
-const resolvePath = (path: string) => (path.startsWith('/') ? path : `/workspace/${path}`);
+  if (disk === undefined) throw new Error('computer is not running');
 
-const shell = (disk: Disk, script: string): ExecResult => {
-  const write = /^printf %s '([^']*)' > (\S+)$/.exec(script);
-
-  if (write !== null && write[1] !== undefined && write[2] !== undefined) {
-    disk.set(resolvePath(write[2]), write[1]);
-
-    return ok();
-  }
-
-  const cat = /^cat (\S+)$/.exec(script);
-
-  if (cat !== null && cat[1] !== undefined) {
-    const value = disk.get(resolvePath(cat[1]));
-
-    return value === undefined ? fail(`cat: ${cat[1]}: No such file`) : ok(value);
-  }
-
-  if (script === 'ls')
-    return ok(
-      [...disk.keys()]
-        .map((path) => path.replace('/workspace/', ''))
-        .sort()
-        .join('\n'),
-    );
-
-  if (script === 'hostname')
-    return ok([...running.entries()].find(([, value]) => value === disk)?.[0] ?? '?');
-
-  return ok();
+  return disk;
 };
+
+const listing = (disk: Disk) =>
+  [...disk.keys()]
+    .map((path) => path.replace('/workspace/', ''))
+    .sort()
+    .join('\n');
 
 export const memoryComputer = (owner: string): Computer => ({
   running: () => running.has(owner),
@@ -51,36 +30,32 @@ export const memoryComputer = (owner: string): Computer => ({
     running.set(owner, new Map(from === undefined ? [] : (snapshots.get(from.id) ?? [])));
   },
   exec: async (argv) => {
-    const disk = running.get(owner);
+    const disk = live(owner);
+    const script = argv[0] === 'bash' || argv[0] === 'sh' ? argv[2] : undefined;
 
-    if (disk === undefined) throw new Error('computer is not running');
+    if (script === 'ls') return ok(listing(disk));
 
-    if (argv[0] === 'cat' && argv[1] !== undefined) return shell(disk, `cat ${argv[1]}`);
-
-    if (
-      argv[0] === 'sh' &&
-      argv[1] === '-c' &&
-      argv[3] === 'write' &&
-      argv[4] !== undefined &&
-      argv[5] !== undefined
-    ) {
-      disk.set(
-        argv[4],
-        new TextDecoder().decode(Uint8Array.from(atob(argv[5]), (c) => c.charCodeAt(0))),
-      );
-
-      return ok();
-    }
-
-    if (argv[0] === 'sh' && argv[2] !== undefined) return shell(disk, argv[2]);
+    if (script === 'hostname') return ok(owner);
 
     return ok();
   },
+  readFile: async (path) => {
+    const value = live(owner).get(inWorkspace(path));
+
+    if (value === undefined) throw new Error(`No such file: ${path}`);
+
+    return value;
+  },
+  writeFile: async (path, content) => {
+    live(owner).set(inWorkspace(path), content);
+  },
+  list: async () =>
+    [...live(owner).keys()].map((path) => ({
+      name: path.replace('/workspace/', ''),
+      type: 'file',
+    })),
   snapshot: async (name): Promise<Snapshot> => {
-    const disk = running.get(owner);
-
-    if (disk === undefined) throw new Error('computer is not running');
-
+    const disk = live(owner);
     const id = `${name}-${crypto.randomUUID()}`;
 
     snapshots.set(id, new Map(disk));

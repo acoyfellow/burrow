@@ -16,6 +16,14 @@
       "images": { "computer": { "dockerfile": "./computer/Dockerfile" } }
     }
   ],
-  "durable_objects": { "bindings": [{ "name": "THREAD", "class_name": "Thread" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Thread"] }]
+  "durable_objects": {
+    "bindings": [
+      { "name": "THREAD", "class_name": "Thread" },
+      { "name": "DIRECTORY", "class_name": "Directory" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Thread"] },
+    { "tag": "v2", "new_sqlite_classes": ["Directory"] }
+  ]
 }

@@ -42,7 +42,8 @@ test('a thread killed with ctx.abort() mid-turn comes back and finishes the same
   const out = await get('/kill');
 
   expect(out.killed).toBe('aborted');
-  expect(out.done).toBe(true);
+  expect(out.answer).toBe('Done.');
+  expect(out.busy).toBe(false);
   expect(out.file).toBe('survived');
   expect(out.turns).toBe(1);
 });
@@ -62,4 +63,18 @@ test('compact, pause, kill, resume: the summary and the disk come back together 
   expect(out.hasSummary).toBe(true);
   expect(out.lastAnswer).toBe('Done.');
   expect(out.finalFiles.split('\n')).toEqual(['a.txt', 'b.txt', 'c.txt']);
+});
+
+test('the directory lists threads from any creator, and a fork starts from the parent disk', {
+  timeout: 60_000,
+}, async () => {
+  const out = await get('/directory-fork-child');
+
+  expect(out.listed.map((t: { createdBy: string }) => t.createdBy).sort()).toEqual(['mcp', 'web']);
+  expect(
+    out.listed.find((t: { forkedFrom: string | null }) => t.forkedFrom !== null),
+  ).toBeDefined();
+  expect(out.forkSees).toBe('the plan');
+  expect(out.forkSeeded).toBe(true);
+  expect(out.unknown).toMatch(/unknown thread/);
 });

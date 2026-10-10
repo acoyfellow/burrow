@@ -17,6 +17,14 @@ export type ExecRecord = {
   readonly bytes: number;
   readonly sha256: string;
   readonly output: string;
+  readonly by: 'agent' | 'human';
+};
+
+export type Origin = {
+  readonly parent: string | null;
+  readonly forkedFrom: string | null;
+  readonly base: string | null;
+  readonly seed: string | null;
 };
 
 const OUTPUT_KEPT = 16 * 1024;
@@ -34,7 +42,7 @@ export class Ledger {
       `CREATE TABLE IF NOT EXISTS burrow_pairs (at INTEGER NOT NULL, reason TEXT NOT NULL, snapshot_id TEXT NOT NULL, snapshot_size INTEGER NOT NULL, summary_entry TEXT)`,
     );
     sql.exec(
-      `CREATE TABLE IF NOT EXISTS burrow_exec (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, argv TEXT NOT NULL, exit_code INTEGER NOT NULL, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL, output TEXT NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS burrow_exec (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, argv TEXT NOT NULL, exit_code INTEGER NOT NULL, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL, output TEXT NOT NULL, by TEXT NOT NULL DEFAULT 'human')`,
     );
   }
 
@@ -80,6 +88,54 @@ export class Ledger {
     if (url !== null) this.put('repo', url);
   }
 
+  get origin(): Origin {
+    return {
+      parent: this.get('parent'),
+      forkedFrom: this.get('forkedFrom'),
+      base: this.get('base'),
+      seed: this.get('seed'),
+    };
+  }
+
+  set origin(next: Partial<Origin>) {
+    for (const [key, value] of Object.entries(next))
+      if (typeof value === 'string') this.put(key, value);
+  }
+
+  get busy(): boolean {
+    return this.get('busy') === '1';
+  }
+
+  set busy(next: boolean) {
+    this.put('busy', next ? '1' : '0');
+  }
+
+  get titled(): boolean {
+    return this.get('titled') === '1';
+  }
+
+  set titled(next: boolean) {
+    this.put('titled', next ? '1' : '0');
+  }
+
+  nextChild(): number {
+    const next = Number(this.get('children') ?? '0') + 1;
+
+    this.put('children', String(next));
+
+    return next;
+  }
+
+  bootSnapshot(): Snapshot | undefined {
+    const latest = this.latest()?.snapshot;
+
+    if (latest !== undefined) return latest;
+
+    const base = this.get('base');
+
+    return base === null ? undefined : { id: base, size: 0 };
+  }
+
   record(pair: Pair) {
     this.sql.exec(
       'INSERT INTO burrow_pairs (at, reason, snapshot_id, snapshot_size, summary_entry) VALUES (?, ?, ?, ?, ?)',
@@ -115,7 +171,12 @@ export class Ledger {
     return this.pairs().at(-1);
   }
 
-  async logExec(argv: readonly string[], exitCode: number, output: string): Promise<ExecRecord> {
+  async logExec(
+    argv: readonly string[],
+    exitCode: number,
+    output: string,
+    by: 'agent' | 'human' = 'human',
+  ): Promise<ExecRecord> {
     const at = Date.now();
     const bytes = new TextEncoder().encode(output).length;
     const hash = await sha256(output);
@@ -125,17 +186,18 @@ export class Ledger {
         : output;
     const row = this.sql
       .exec<{ seq: number }>(
-        'INSERT INTO burrow_exec (at, argv, exit_code, bytes, sha256, output) VALUES (?, ?, ?, ?, ?, ?) RETURNING seq',
+        'INSERT INTO burrow_exec (at, argv, exit_code, bytes, sha256, output, by) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING seq',
         at,
         JSON.stringify(argv),
         exitCode,
         bytes,
         hash,
         kept,
+        by,
       )
       .one();
 
-    return { seq: row.seq, at, argv, exitCode, bytes, sha256: hash, output: kept };
+    return { seq: row.seq, at, argv, exitCode, bytes, sha256: hash, output: kept, by };
   }
 
   execs(limit = 50): ExecRecord[] {
@@ -148,8 +210,9 @@ export class Ledger {
         bytes: number;
         sha256: string;
         output: string;
+        by: string;
       }>(
-        'SELECT seq, at, argv, exit_code, bytes, sha256, output FROM burrow_exec ORDER BY seq DESC LIMIT ?',
+        'SELECT seq, at, argv, exit_code, bytes, sha256, output, by FROM burrow_exec ORDER BY seq DESC LIMIT ?',
         limit,
       )
       .toArray()
@@ -162,6 +225,7 @@ export class Ledger {
         bytes: row.bytes,
         sha256: row.sha256,
         output: row.output,
+        by: row.by === 'agent' ? 'agent' : 'human',
       }));
   }
 }

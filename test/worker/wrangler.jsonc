@@ -5,6 +5,11 @@
   "preview_urls": false,
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
-  "durable_objects": { "bindings": [{ "name": "THREAD", "class_name": "TestThread" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TestThread"] }]
+  "durable_objects": {
+    "bindings": [
+      { "name": "THREAD", "class_name": "TestThread" },
+      { "name": "DIRECTORY", "class_name": "Directory" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TestThread", "Directory"] }]
 }

@@ -6,20 +6,18 @@ import {
 } from '@earendil-works/pi-ai/providers/faux';
 import type { ModelChoice } from '../../src/agent';
 import type { Computer } from '../../src/computer';
-import { Thread } from '../../src/thread';
+import { burrow } from '../../src/service';
+import { type Env, Thread } from '../../src/thread';
 import { memoryComputer } from '../memory-computer';
 
+export { Directory } from '../../src/directory';
+
 type Context = {
-  readonly messages: ReadonlyArray<{
-    readonly role: string;
-    readonly toolName?: string;
-    readonly content?: unknown;
-  }>;
+  readonly messages: ReadonlyArray<{ readonly role: string; readonly content?: unknown }>;
 };
 
 const asked = (context: Context): string => {
-  const last = [...context.messages].reverse().find((message) => message.role === 'user');
-  const content = last?.content;
+  const content = [...context.messages].reverse().find((m) => m.role === 'user')?.content;
 
   if (typeof content === 'string') return content;
 
@@ -35,10 +33,10 @@ const asked = (context: Context): string => {
 
 const toolRan = (context: Context) => context.messages.at(-1)?.role === 'toolResult';
 
-const fileFrom = (request: string): { path: string; content: string } | null => {
+const fileFrom = (request: string) => {
   const match = /write (\S+) containing (.+)$/.exec(request);
 
-  return match === null || match[1] === undefined || match[2] === undefined
+  return match?.[1] === undefined || match[2] === undefined
     ? null
     : { path: match[1], content: match[2] };
 };
@@ -47,7 +45,7 @@ const scripted = (): ModelChoice => {
   const faux = fauxProvider({ tokensPerSecond: 200 });
 
   faux.setResponses(
-    Array.from({ length: 200 }, () => (context: Context) => {
+    Array.from({ length: 400 }, () => (context: Context) => {
       const request = asked(context);
 
       if (request.includes('Summarize') || request.includes('summary'))
@@ -60,7 +58,9 @@ const scripted = (): ModelChoice => {
       if (file !== null && !toolRan(context))
         return fauxAssistantMessage(
           [fauxText('Writing it now. '.repeat(40)), fauxToolCall('write_file', file)],
-          { stopReason: 'toolUse' },
+          {
+            stopReason: 'toolUse',
+          },
         );
 
       return fauxAssistantMessage(fauxText('Done.'));
@@ -84,13 +84,12 @@ export class TestThread extends Thread {
   }
 }
 
-type Env = { readonly THREAD: DurableObjectNamespace<TestThread> };
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const api = burrow(env);
     const stub = (name: string) => env.THREAD.getByName(name);
     const run = url.searchParams.get('run') ?? crypto.randomUUID().slice(0, 8);
 
@@ -98,18 +97,16 @@ export default {
       const a = `a-${run}`;
       const b = `b-${run}`;
 
-      await stub(a).create(a, null);
-      await stub(b).create(b, null);
-      await stub(a).send('r1', 'write secret.txt containing only-in-a');
+      await api.create({ name: a, createdBy: 'test' });
+      await api.create({ name: b, createdBy: 'test' });
+      await api.send(a, 'r1', 'write secret.txt containing only-in-a');
 
-      const inA = await stub(a).exec(['sh', '-lc', 'ls']);
-      const inB = await stub(b).exec(['sh', '-lc', 'ls']);
-      const bRead = await stub(b)
-        .readFile('secret.txt')
-        .then(
-          () => 'read',
-          (error: Error) => `refused: ${error.message.slice(0, 40)}`,
-        );
+      const inA = await api.exec(a, ['bash', '-lc', 'ls']);
+      const inB = await api.exec(b, ['bash', '-lc', 'ls']);
+      const bRead = await api.read(b, 'secret.txt').then(
+        () => 'read',
+        (error: Error) => `refused: ${error.message.slice(0, 40)}`,
+      );
 
       return Response.json({ inA: inA.stdout, inB: inB.stdout, bRead });
     }
@@ -117,12 +114,8 @@ export default {
     if (url.pathname === '/kill') {
       const name = `k-${run}`;
 
-      await stub(name).create(name, null);
-
-      const sending = stub(name)
-        .send('req-1', 'write note.txt containing survived')
-        .catch((error: Error) => `dropped: ${error.message.slice(0, 30)}`);
-
+      await api.create({ name, createdBy: 'test' });
+      await stub(name).start('req-1', 'write note.txt containing survived');
       await sleep(150);
 
       const killed = await stub(name)
@@ -133,49 +126,41 @@ export default {
             String(error).includes('killed by the test') ? 'aborted' : String(error),
         );
 
-      await sending;
+      const answer = await stub(name).waitForAnswer();
+      const view = await stub(name).view();
+      const file = await stub(name)
+        .readFile('note.txt')
+        .catch(() => null);
 
-      for (let i = 0; i < 80; i += 1) {
-        const view = await stub(name).view();
-        const answered = view.messages.some(
-          (message) => message.role === 'assistant' && message.text === 'Done.',
-        );
-
-        if (answered) {
-          const file = await stub(name)
-            .readFile('note.txt')
-            .catch(() => null);
-          const turns = view.messages.filter((message) => message.role === 'user').length;
-
-          return Response.json({ killed, file, turns, done: true });
-        }
-
-        await sleep(150);
-      }
-
-      return Response.json({ killed, done: false }, { status: 500 });
+      return Response.json({
+        killed,
+        answer,
+        file,
+        busy: view.busy,
+        turns: view.messages.filter((m) => m.role === 'user').length,
+      });
     }
 
     if (url.pathname === '/compact') {
       const name = `c-${run}`;
 
-      await stub(name).create(name, null);
-      await stub(name).send('r1', 'write a.txt containing first');
-      await stub(name).send('r2', 'write b.txt containing second');
+      await api.create({ name, createdBy: 'test' });
+      await api.send(name, 'r1', 'write a.txt containing first');
+      await api.send(name, 'r2', 'write b.txt containing second');
 
-      const pair = await stub(name).compact();
-      const paused = await stub(name).pause();
-      const afterPause = await stub(name).view();
+      const pair = await api.compact(name);
+      const paused = await api.pause(name);
+      const afterPause = await api.view(name);
 
       await stub(name)
         .kill('killed after compaction')
         .catch(() => undefined);
 
-      const resumedFiles = await stub(name).exec(['sh', '-lc', 'ls']);
+      const resumedFiles = await api.exec(name, ['bash', '-lc', 'ls']);
 
-      await stub(name).send('r3', 'write c.txt containing third');
+      await api.send(name, 'r3', 'write c.txt containing third');
 
-      const view = await stub(name).view();
+      const view = await api.view(name);
 
       return Response.json({
         pairReason: pair.reason,
@@ -185,10 +170,41 @@ export default {
         runningAfterPause: afterPause.running,
         resumedFiles: resumedFiles.stdout,
         pairs: view.pairs.map((p) => p.reason),
-        hasSummary: view.messages.some((message) => message.kind === 'pi.compaction'),
+        hasSummary: view.messages.some((m) => m.kind === 'pi.compaction'),
         lastAnswer:
-          view.messages.filter((message) => message.role === 'assistant').at(-1)?.text ?? null,
-        finalFiles: (await stub(name).exec(['sh', '-lc', 'ls'])).stdout,
+          view.messages.filter((m) => m.role === 'assistant' && m.text !== '').at(-1)?.text ?? null,
+        finalFiles: (await api.exec(name, ['bash', '-lc', 'ls'])).stdout,
+      });
+    }
+
+    if (url.pathname === '/directory-fork-child') {
+      const name = `d-${run}`;
+
+      await api.create({ name, createdBy: 'mcp', title: 'parent' });
+      await api.send(name, 'r1', 'write plan.txt containing the plan');
+
+      const forked = await api.fork(name, `${name}-f`, 'web');
+      const forkSees = await api.read(forked.name, 'plan.txt').catch(() => null);
+
+      await api.exec(forked.name, ['bash', '-lc', 'true']);
+      await stub(forked.name).readFile('plan.txt');
+
+      const list = await api.list();
+      const mine = list.filter((t) => t.name.startsWith(name));
+
+      return Response.json({
+        listed: mine.map((t) => ({
+          name: t.name,
+          createdBy: t.createdBy,
+          forkedFrom: t.forkedFrom,
+        })),
+        forkSees,
+        forkOrigin: forked.origin,
+        forkSeeded: forked.origin.forkedFrom === name,
+        unknown: await api.view('nope-nope').then(
+          () => 'found',
+          (error: Error) => error.message,
+        ),
       });
     }
 
