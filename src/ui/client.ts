@@ -1,3 +1,5 @@
+import { TERMINAL_ACK_EVERY_BYTES } from '../flow';
+
 export const CLIENT = String.raw`
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, attrs = {}, ...kids) => {
@@ -197,7 +199,13 @@ function terminalSurface(thread, id) {
     ws.binaryType = 'arraybuffer';
     entry.ws = ws;
     ws.onopen = () => { entry.retry = 0; status.replaceChildren(); status.hidden = true; if (t.cols >= 2 && t.rows >= 2) ws.send(JSON.stringify({ resize: [t.cols, t.rows] })); t.focus(); window.__coilTerm = (window.__coilTerm || 0) + 1; };
-    ws.onmessage = (m) => { window.__coilBytes = (window.__coilBytes || 0) + m.data.byteLength; t.write(new Uint8Array(m.data)); };
+    let unacked = 0;
+    ws.onmessage = (m) => {
+      window.__coilBytes = (window.__coilBytes || 0) + m.data.byteLength;
+      t.write(new Uint8Array(m.data));
+      unacked += m.data.byteLength;
+      if (unacked >= ${TERMINAL_ACK_EVERY_BYTES}) { const n = unacked; unacked = 0; requestAnimationFrame(() => { if (ws.readyState === 1) ws.send(JSON.stringify({ ack: n })); }); }
+    };
     ws.onclose = (e) => {
       entry.ws = null;
       if (entry.closed) return;
@@ -275,6 +283,7 @@ function browserSurface(thread, id) {
       if (lastFrame) lastFrame.close();
       lastFrame = bitmap;
       paint();
+      if (ws.readyState === 1) ws.send(JSON.stringify({ seen: true }));
       entry.frames += 1; window.__coilFrames = (window.__coilFrames || 0) + 1;
       status.hidden = true;
     };

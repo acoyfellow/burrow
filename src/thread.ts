@@ -8,7 +8,7 @@ import {
   type ModelChoice,
   openAgent,
 } from './agent';
-import { Browser, type Frame, type PageState, SLOW_VIEWER_BYTES } from './browser';
+import { Browser, type Frame, type PageState } from './browser';
 import {
   type Computer,
   type Entry,
@@ -28,7 +28,7 @@ import {
 } from './ledger';
 import { workersAI } from './model';
 import { bounded, HUMAN_LIMIT_SECONDS } from './shell';
-import { bridge, bufferedBytes, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
+import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
 
 export type ThreadView = {
   readonly name: string;
@@ -170,6 +170,21 @@ export class Thread extends DurableObject<Env> {
 
   private viewers = 0;
 
+  private inFlight = 0;
+
+  private pausing: Promise<unknown> | undefined;
+
+  private async using<T>(work: () => Promise<T>): Promise<T> {
+    this.inFlight += 1;
+
+    try {
+      return await work();
+    } finally {
+      this.inFlight -= 1;
+      await this.touch();
+    }
+  }
+
   private watched(socket: WebSocket) {
     this.viewers += 1;
 
@@ -256,7 +271,9 @@ export class Thread extends DurableObject<Env> {
     });
   }
 
-  private awake(): Promise<Computer> {
+  private async awake(): Promise<Computer> {
+    while (this.pausing !== undefined) await this.pausing.catch(() => undefined);
+
     this.booting ??= (async () => {
       const box = this.computer();
 
@@ -472,6 +489,8 @@ export class Thread extends DurableObject<Env> {
   }
 
   async start(requestId: string, input: string): Promise<{ requestId: string }> {
+    while (this.pausing !== undefined) await this.pausing.catch(() => undefined);
+
     const agent = await this.open();
 
     await agent.submit(requestId, input);
@@ -545,7 +564,7 @@ export class Thread extends DurableObject<Env> {
 
     const idleFor = Date.now() - this.ledger.lastActivity;
 
-    if (idleFor < AUTO_PAUSE_AFTER_MS || this.viewers > 0) {
+    if (idleFor < AUTO_PAUSE_AFTER_MS || this.viewers > 0 || this.inFlight > 0) {
       await this.ctx.storage.setAlarm(
         Date.now() + Math.max(IDLE_CHECK_MS, AUTO_PAUSE_AFTER_MS - idleFor),
       );
@@ -556,11 +575,13 @@ export class Thread extends DurableObject<Env> {
     if (this.computer().running()) await this.pause();
   }
 
-  async exec(argv: string[]): Promise<ExecResult & { seq: number }> {
+  exec(argv: string[]): Promise<ExecResult & { seq: number }> {
+    return this.using(() => this.execNow(argv));
+  }
+
+  private async execNow(argv: string[]): Promise<ExecResult & { seq: number }> {
     const box = await this.awake();
     const result = await box.exec(bounded(argv, HUMAN_LIMIT_SECONDS));
-
-    await this.touch();
     const record = await this.ledger.logExec(
       argv,
       result.exitCode,
@@ -572,12 +593,12 @@ export class Thread extends DurableObject<Env> {
     return { ...result, seq: record.seq };
   }
 
-  async readFile(path: string): Promise<string> {
-    return (await this.awake()).readFile(path);
+  readFile(path: string): Promise<string> {
+    return this.using(async () => (await this.awake()).readFile(path));
   }
 
-  async list(path: string): Promise<Entry[]> {
-    return (await this.awake()).list(path);
+  list(path: string): Promise<Entry[]> {
+    return this.using(async () => (await this.awake()).list(path));
   }
 
   compact(instructions?: string): Promise<Pair> {
@@ -615,13 +636,22 @@ export class Thread extends DurableObject<Env> {
   }
 
   pause(): Promise<Pair | null> {
-    return this.serialized(() => this.pauseNow());
+    const run = this.serialized(() => this.pauseNow());
+    const settled = run.finally(() => {
+      if (this.pausing === settled) this.pausing = undefined;
+    });
+
+    this.pausing = settled;
+
+    return settled;
   }
 
   private async pauseNow(): Promise<Pair | null> {
     if (this.booting !== undefined) await this.booting.catch(() => undefined);
 
     if (this.ledger.busy) throw new ThreadBusy('The agent is working. Pause after the turn ends.');
+
+    if (this.inFlight > 0) throw new ThreadBusy('A command is running. Pause after it ends.');
 
     const box = this.computer();
 
@@ -801,11 +831,42 @@ export class Thread extends DurableObject<Env> {
   private async browserSocket(): Promise<Response> {
     const browser = await this.openBrowser();
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
-    const frame = (f: Frame) => {
-      if (bufferedBytes(server) > SLOW_VIEWER_BYTES) return;
+    let waiting: Frame | null = null;
+    let inFlight = false;
+    const viewer = {};
+    const deliver = (f: Frame) => {
+      inFlight = true;
+      browser.viewerBusy(viewer);
 
       try {
         server.send(f.bytes);
+      } catch {
+        stop();
+      }
+    };
+    const frameSeen = () => {
+      inFlight = false;
+
+      if (waiting !== null) {
+        const next = waiting;
+
+        waiting = null;
+        deliver(next);
+
+        return;
+      }
+
+      browser.viewerReady(viewer);
+    };
+    const frame = (f: Frame) => {
+      if (inFlight) {
+        waiting = f;
+
+        return;
+      }
+
+      try {
+        deliver(f);
       } catch {
         stop();
       }
@@ -821,7 +882,7 @@ export class Thread extends DurableObject<Env> {
     const stop = () => {
       browser.frames.delete(frame);
       browser.pages.delete(page);
-      browser.viewers.delete(server);
+      browser.viewerReady(viewer);
       browser.closedListeners.delete(browserDied);
 
       if (browser.frames.size === 0) void browser.cast(false).catch(() => undefined);
@@ -829,7 +890,6 @@ export class Thread extends DurableObject<Env> {
 
     server.accept();
     this.watched(server);
-    browser.viewers.add(server);
     browser.closedListeners.add(browserDied);
     server.send(JSON.stringify({ page: browser.page, viewport: browser.viewport }));
 
@@ -843,6 +903,7 @@ export class Thread extends DurableObject<Env> {
     server.addEventListener('message', (event) => {
       void (async () => {
         const input = JSON.parse(String(event.data)) as {
+          seen?: true;
           click?: [number, number];
           scroll?: [number, number, number, number];
           key?: {
@@ -860,7 +921,8 @@ export class Thread extends DurableObject<Env> {
           viewport?: [number, number];
         };
 
-        if (input.click) await browser.click(input.click[0], input.click[1]);
+        if (input.seen) frameSeen();
+        else if (input.click) await browser.click(input.click[0], input.click[1]);
         else if (input.scroll) await browser.scroll(...input.scroll);
         else if (input.key) await browser.key(input.key);
         else if (input.text !== undefined) await browser.type(input.text);

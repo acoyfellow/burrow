@@ -1,13 +1,7 @@
 import { SHELL_ENV, WORKSPACE } from './env';
+import { ackRequest, CreditWindow, TERMINAL_WINDOW_BYTES } from './flow';
 
 export const SESSION = /^[a-z0-9][a-z0-9-]{0,30}$/;
-
-export const SLOW_TERMINAL_BYTES = 1024 * 1024;
-
-const DRAIN_WAIT_MS = 20;
-
-export const bufferedBytes = (socket: WebSocket) =>
-  (socket as WebSocket & { bufferedAmount?: number }).bufferedAmount ?? 0;
 
 export type Size = { readonly cols: number; readonly rows: number };
 
@@ -73,6 +67,7 @@ export const bridge = (socket: WebSocket, process: ExecProcess, abort: AbortCont
   }
 
   const input = stdin.getWriter();
+  const window = new CreditWindow(TERMINAL_WINDOW_BYTES);
   let exited = false;
 
   process.exitCode.then(
@@ -85,12 +80,22 @@ export const bridge = (socket: WebSocket, process: ExecProcess, abort: AbortCont
   );
 
   const stop = () => {
+    window.close();
+
     if (!exited) abort.abort();
   };
 
   socket.addEventListener('message', (event) => {
     if (typeof event.data !== 'string') {
       input.write(new Uint8Array(event.data as ArrayBuffer)).catch(stop);
+
+      return;
+    }
+
+    const acked = ackRequest(event.data);
+
+    if (acked !== null) {
+      window.ack(acked);
 
       return;
     }
@@ -105,8 +110,9 @@ export const bridge = (socket: WebSocket, process: ExecProcess, abort: AbortCont
   void (async () => {
     try {
       for await (const chunk of stdout as ReadableStream<Uint8Array>) {
-        while (bufferedBytes(socket) > SLOW_TERMINAL_BYTES && !abort.signal.aborted)
-          await new Promise((r) => setTimeout(r, DRAIN_WAIT_MS));
+        await window.reserve(chunk.byteLength);
+
+        if (abort.signal.aborted) break;
 
         socket.send(chunk);
       }

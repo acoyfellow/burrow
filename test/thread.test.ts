@@ -84,6 +84,9 @@ test('lifecycle: pause waits for the turn, a lost computer is reported, and an i
   const out = await get('/lifecycle');
 
   expect(out.pauseDuringTurn).toMatch(/agent is working/);
+  expect(['pause', 'refused']).toContain(out.racedPause);
+  expect(out.racedTurnAnswered).toBe(true);
+  expect(out.racedFile).toBe(true);
   expect(out.filesAfterCrash.split('\n')).toContain('kept.txt');
   expect(out.lostNoticed).toBe(true);
   expect(out.idlePhase).toBe('paused');

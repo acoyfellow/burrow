@@ -233,6 +233,19 @@ export default {
       );
 
       await stub(name).waitForAnswer();
+
+      const [raced] = await Promise.all([
+        api.pause(name).then(
+          (pair) => pair?.reason ?? 'none',
+          (error: Error) => (/agent is working/.test(error.message) ? 'refused' : error.message),
+        ),
+        stub(name).start('r3', 'write raced.txt containing after-pause'),
+      ]);
+      await stub(name).waitForAnswer();
+
+      const afterRace = await api.view(name);
+      const racedFiles = await api.exec(name, ['bash', '-lc', 'ls']);
+
       await api.pause(name);
       await api.exec(name, ['bash', '-lc', 'true']);
       await test.crashComputer();
@@ -247,6 +260,11 @@ export default {
 
       return Response.json({
         pauseDuringTurn,
+        racedPause: raced,
+        racedTurnAnswered: afterRace.messages.some(
+          (m) => m.role === 'user' && m.text.includes('raced.txt'),
+        ),
+        racedFile: racedFiles.stdout.split('\n').includes('raced.txt'),
         filesAfterCrash: afterCrash.stdout,
         lostNoticed: crashed.execs.some((e) => e.argv.includes('computer-lost')),
         idlePhase: idle.phase,

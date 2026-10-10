@@ -176,7 +176,7 @@ app.onError((error, c) => {
   const message = error instanceof Error ? error.message : String(error);
   const status = /no such file|not found|ENOENT|unknown thread/i.test(message)
     ? 404
-    : /agent is working/i.test(message)
+    : /agent is working|command is running/i.test(message)
       ? 409
       : 400;
 
