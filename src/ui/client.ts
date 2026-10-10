@@ -235,6 +235,15 @@ function browserSurface(thread, id) {
   entry.root = h('div', { class: 'surface browser-surface' }, bar, stage);
   surfaceCache.set(key, entry);
   const ctx = canvas.getContext('2d');
+  let lastFrame = null;
+  const paint = () => { if (lastFrame) ctx.drawImage(lastFrame, 0, 0, canvas.width, canvas.height); };
+  const resizeCanvas = (viewport) => {
+    entry.viewport = viewport;
+    if (canvas.width === viewport.width && canvas.height === viewport.height) return;
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    paint();
+  };
   const point = (e) => { const r = canvas.getBoundingClientRect(); return [Math.round((e.clientX - r.left) * entry.viewport.width / r.width), Math.round((e.clientY - r.top) * entry.viewport.height / r.height)]; };
   canvas.addEventListener('mousedown', (e) => { canvas.focus(); send({ click: point(e) }); e.preventDefault(); });
   canvas.addEventListener('wheel', (e) => { const [x, y] = point(e); send({ scroll: [x, y, e.deltaX, e.deltaY] }); e.preventDefault(); }, { passive: false });
@@ -255,7 +264,7 @@ function browserSurface(thread, id) {
     ws.onmessage = async (m) => {
       if (typeof m.data === 'string') {
         const msg = JSON.parse(m.data);
-        if (msg.viewport) { entry.viewport = msg.viewport; canvas.width = msg.viewport.width; canvas.height = msg.viewport.height; }
+        if (msg.viewport) resizeCanvas(msg.viewport);
         if (msg.page) { if (document.activeElement !== url) url.value = msg.page.url === 'about:blank' ? '' : msg.page.url; entry.title = msg.page.title; }
         if (msg.error) toast(msg.error, true);
         if (msg.page && msg.viewport) entry.fit();
@@ -263,8 +272,9 @@ function browserSurface(thread, id) {
         return;
       }
       const bitmap = await createImageBitmap(m.data);
-      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      bitmap.close();
+      if (lastFrame) lastFrame.close();
+      lastFrame = bitmap;
+      paint();
       entry.frames += 1; window.__coilFrames = (window.__coilFrames || 0) + 1;
       status.hidden = true;
     };
@@ -291,7 +301,7 @@ function browserSurface(thread, id) {
   entry.fit = () => { sized = ''; fitViewport(); };
   open();
   entry.focus = () => canvas.focus();
-  entry.dispose = () => { entry.closed = true; if (entry.ws) entry.ws.close(); surfaceCache.delete(key); };
+  entry.dispose = () => { entry.closed = true; if (entry.ws) entry.ws.close(); if (lastFrame) lastFrame.close(); surfaceCache.delete(key); };
   return entry;
 }
 
