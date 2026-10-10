@@ -1,0 +1,25 @@
+scripts/check.sh
+  s_d58794dec92dc7::t_03d684b8a259d0 13
+scripts/gate.sh
+  s_d58794dec92dc7::t_94599ae912898e 1-21
+scripts/verify-receipts.mjs
+  s_d58794dec92dc7::t_db14fb21ff37a4 1-75
+test/access.test.ts
+  s_d58794dec92dc7::t_ad60cb87d464e3 1-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "548d3f9fccbe71576980c98f717f34339966292e",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
