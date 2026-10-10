@@ -350,7 +350,7 @@ export class Thread extends DurableObject<Env> {
           createdBy: 'agent',
           parent,
           base: snapshot.id,
-          owner: this.ledger.owner,
+          owner: await this.ownerEmail(),
           size: this.ledger.size,
         });
         await child.start(`${name}-task`, task);
@@ -716,6 +716,16 @@ export class Thread extends DurableObject<Env> {
     return pair;
   }
 
+  private async ownerEmail(): Promise<string> {
+    if (this.ledger.owner !== '') return this.ledger.owner;
+
+    const listed = (await this.directory.get(this.ledger.name ?? ''))?.owner ?? '';
+
+    if (listed !== '') this.ledger.owner = listed;
+
+    return listed;
+  }
+
   async resize(next: Size): Promise<{ size: Size; restarted: boolean }> {
     if (next === this.ledger.size) return { size: next, restarted: false };
 
@@ -762,7 +772,7 @@ export class Thread extends DurableObject<Env> {
       repo: this.ledger.repo,
       running: this.ctx.container?.running ?? false,
       origin: this.ledger.origin,
-      owner: this.ledger.owner,
+      owner: await this.ownerEmail(),
       size: this.ledger.size,
       messages: await agent.messages(),
       pairs: this.ledger.pairs(),
