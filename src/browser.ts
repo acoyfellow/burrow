@@ -253,9 +253,23 @@ export class Browser {
         maxHeight: h,
         everyNthFrame: 1,
       });
+      await this.paintNow();
     }
 
     return this.viewport;
+  }
+
+  async paintNow() {
+    const shot = (await this.call('Page.captureScreenshot', { format: 'jpeg', quality: 60 })) as {
+      data?: string;
+    };
+    const data = shot.data;
+
+    if (data === undefined) return;
+
+    this.last = { data, width: this.viewport.width, height: this.viewport.height };
+
+    for (const listener of this.frames) listener(this.last);
   }
 
   async cast(on: boolean) {

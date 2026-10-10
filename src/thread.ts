@@ -727,6 +727,7 @@ export class Thread extends DurableObject<Env> {
     browser.frames.add(frame);
     browser.pages.add(page);
     await browser.cast(true);
+    await browser.paintNow().catch(() => undefined);
 
     server.addEventListener('message', (event) => {
       void (async () => {
