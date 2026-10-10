@@ -87,6 +87,8 @@ A pause also destroys the container, so an idle thread costs storage and nothing
 | Kill and resume | A thread killed with `ctx.abort()` mid-turn comes back, finishes the same request, and the file exists. The user turn is recorded once |
 | Compaction pairs | Two turns, `compact`, `pause`, `ctx.abort()`, then resume: the disk has exactly the earlier files, the transcript has the summary, the ledger has `[compaction, pause]`, and the agent finishes a third turn |
 
+[`receipts/live-e2e.json`](receipts/live-e2e.json) is a run on the deployed Worker, behind Access, on Cloudflare Containers: create a thread, run a command, the agent writes and commits a file (19 s), pause (3.6 s snapshot), and the next command resumes from the snapshot with the commit intact (1.2 s).
+
 [`receipts/local-e2e.json`](receipts/local-e2e.json) is a run against `wrangler dev` with a real Docker container per thread and real Workers AI. The agent wrote `hello.py`, ran it, and committed it. The pause snapshot was 130 MB. Resuming took 0.3 s, and the commit was still there. A second thread had a different hostname and an empty repo.
 
 ## What it does not do

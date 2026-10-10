@@ -1,0 +1,174 @@
+{
+  "kind": "burrow.live-e2e",
+  "observed": true,
+  "when": "2026-10-10T08:27:28.093011Z",
+  "deploy": {
+    "url": "https://burrow.coey.dev/",
+    "unauthenticated": "302 to Cloudflare Access login",
+    "runtime": "Cloudflare Workers + Durable Object with Cloudflare Containers (standard-1)",
+    "model": "@cf/zai-org/glm-5.3 via Workers AI binding"
+  },
+  "driver": "same-origin fetch from a browser signed in through Access (email OTP)",
+  "thread": "live-mv24rmuz",
+  "steps": [
+    {
+      "step": "create thread",
+      "status": 201,
+      "ms": 333,
+      "body": {
+        "name": "live-mv24rmuz",
+        "phase": "new",
+        "repo": null,
+        "running": false,
+        "messages": [],
+        "pairs": [],
+        "execs": []
+      }
+    },
+    {
+      "step": "exec in container",
+      "status": 200,
+      "ms": 437,
+      "body": {
+        "exitCode": 0,
+        "stdout": "Linux x86_64\ngit version 2.39.5\n/workspace\n## No commits yet on main\n",
+        "stderr": "",
+        "seq": 1
+      }
+    },
+    {
+      "step": "agent writes a file and commits",
+      "status": 200,
+      "ms": 19137,
+      "body": {
+        "requestId": "live-mv24rmuz-turn-1",
+        "status": "done"
+      }
+    },
+    {
+      "step": "read file",
+      "status": 200,
+      "ms": 78,
+      "body": "written by the agent in its own computer\n"
+    },
+    {
+      "step": "pause",
+      "status": 200,
+      "ms": 3593,
+      "body": {
+        "at": 1791620822722,
+        "reason": "pause",
+        "snapshot": {
+          "id": "ef3b4e08-2e17-4705-b9ee-f9062a35a6ae",
+          "size": 40258
+        },
+        "summaryEntry": null
+      }
+    },
+    {
+      "step": "status after pause",
+      "status": 200,
+      "ms": 66,
+      "body": {
+        "phase": "paused",
+        "running": false
+      }
+    },
+    {
+      "step": "resume by exec",
+      "status": 200,
+      "ms": 1228,
+      "body": {
+        "exitCode": 0,
+        "stdout": "16b7d4d Add notes/burrow.txt\nwritten by the agent in its own computer\n",
+        "stderr": "",
+        "seq": 4
+      }
+    },
+    {
+      "step": "mcp tools/list",
+      "status": 200,
+      "ms": 63,
+      "tools": [
+        "thread_create",
+        "thread_send",
+        "thread_exec",
+        "thread_read_file",
+        "thread_compact",
+        "thread_pause",
+        "thread_status"
+      ]
+    }
+  ],
+  "transcript": [
+    {
+      "role": "user",
+      "text": "Create notes/burrow.txt containing the single line: written by the agent in its own computer. Then cat it and git add and commit it."
+    },
+    {
+      "role": "assistant",
+      "text": "\u2192 run({\"command\":\"git status --short && ls\"})\n\u2192 write_file({\"content\":\"written by the agent in its own computer\\n\",\"path\":\"notes/burrow.txt\"})"
+    },
+    {
+      "role": "toolResult",
+      "text": "exit 0\n"
+    },
+    {
+      "role": "toolResult",
+      "text": "Wrote notes/burrow.txt"
+    },
+    {
+      "role": "assistant",
+      "text": "\u2192 run({\"command\":\"cat notes/burrow.txt && git add notes/burrow.txt && git commit -m \\\"Add notes/burrow.txt\\\" && git log -1 --stat\"})"
+    },
+    {
+      "role": "toolResult",
+      "text": "exit 0\nwritten by the agent in its own computer\n[main (root-commit) 16b7d4d] Add notes/burrow.txt\n 1 file changed, 1 insertion(+)\n create mode 100644 notes/burrow.txt\ncommit 16b7d4d176465e53fc98a5d01ddf74476438bf04\nAuthor: burrow <burrow@us"
+    },
+    {
+      "role": "assistant",
+      "text": "Created notes/burrow.txt with the single line, verified it via cat, and committed it as 16b7d4d on main (1 file changed)."
+    }
+  ],
+  "pairs": [
+    {
+      "at": 1791620822722,
+      "reason": "pause",
+      "snapshot": {
+        "id": "ef3b4e08-2e17-4705-b9ee-f9062a35a6ae",
+        "size": 40258
+      },
+      "summaryEntry": null
+    }
+  ],
+  "execs": [
+    {
+      "argv": "uname -sm; git --version; pwd; git status --short --branch",
+      "exitCode": 0,
+      "bytes": 69,
+      "sha256": "edc6e0e9bfd18238f0ec705883150f4072cc49ed070cfea5e63c92c6ea17a95d"
+    },
+    {
+      "argv": "git status --short && ls",
+      "exitCode": 0,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": "cat notes/burrow.txt && git add notes/burrow.txt && git commit -m \"Add notes/burrow.txt\" && git log -1 --stat",
+      "exitCode": 0,
+      "bytes": 379,
+      "sha256": "d1258ced5dbcf7148cdba4e7962554543fa67370bce7bd835789ab6d00c98bf1"
+    },
+    {
+      "argv": "git log --oneline; cat notes/burrow.txt",
+      "exitCode": 0,
+      "bytes": 70,
+      "sha256": "f01fe0b28d59083bde6d38177541752b02448b2ff76a74dc1970b7b8b19e8d29"
+    }
+  ],
+  "notes": [
+    "A first attempt in the same session sent empty request bodies because of a bug in the driver script, not the app; it is not part of this receipt.",
+    "The resume step is the first exec after pause: the container starts from the pause snapshot, and git log shows the agent commit."
+  ]
+}
