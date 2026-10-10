@@ -1,0 +1,23 @@
+README.md
+  s_d58794dec92dc7::t_995d95278c5666 157
+receipts/reviews/architecture-and-performance.md
+  s_d58794dec92dc7::t_819fd5e6ef1c99 1-38
+receipts/reviews/round-5/architecture-and-performance.md
+  s_d58794dec92dc7::t_ce78b3e6c1dca2 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9ba65a5f8795150130a0c082b064ad949cf77510",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
