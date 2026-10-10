@@ -1,0 +1,71 @@
+.gitignore
+  s_d58794dec92dc7::t_1c9cd749e584b9 1-4
+CONTRIBUTING.md
+  s_d58794dec92dc7::t_d4185634f2a58d 1-5
+LICENSE
+  s_d58794dec92dc7::t_bc8305643e348e 1-21
+README.md
+  s_d58794dec92dc7::t_36929a66f0dbfd 1-124
+SECURITY.md
+  s_d58794dec92dc7::t_c26eb4a744b44e 1-5
+biome.json
+  s_d58794dec92dc7::t_d88e22c3ca9b12 1-15
+bun.lock
+  s_d58794dec92dc7::t_f3abe83bc7dd8a 1-513
+computer/Dockerfile
+  s_d58794dec92dc7::t_5f50436b78649a 1-14
+package.json
+  s_d58794dec92dc7::t_2d61798545eaa6 1-34
+receipts/local-e2e.json
+  s_d58794dec92dc7::t_5c57b740e8fd0a 1-117
+scripts/check.sh
+  s_d58794dec92dc7::t_d915a942b7c5be 1-39
+src/access.ts
+  s_d58794dec92dc7::t_b76f908300fbf8 1-132
+src/agent.ts
+  s_d58794dec92dc7::t_64af2a82537237 1-191
+src/computer.ts
+  s_d58794dec92dc7::t_d57127dbf642e3 1-78
+src/index.ts
+  s_d58794dec92dc7::t_dcd482e490f06a 1-88
+src/ledger.ts
+  s_d58794dec92dc7::t_270285f0cc7274 1-167
+src/mcp.ts
+  s_d58794dec92dc7::t_d842d253bf6600 1-159
+src/model.ts
+  s_d58794dec92dc7::t_0e7409af90e283 1-64
+src/thread.ts
+  s_d58794dec92dc7::t_a4dc95e2f7082e 1-191
+src/ui.ts
+  s_d58794dec92dc7::t_02d13a7479edaa 1-50
+status.json
+  s_d58794dec92dc7::t_2b97aae449a46c 1-75
+test/memory-computer.ts
+  s_d58794dec92dc7::t_124a4c48a19ad4 1-93
+test/thread.test.ts
+  s_d58794dec92dc7::t_8840039bf6adfd 1-65
+test/worker/index.ts
+  s_d58794dec92dc7::t_4c9ffdc0808b1e 1-197
+test/worker/wrangler.jsonc
+  s_d58794dec92dc7::t_4bbc111132fe4b 1-10
+tsconfig.json
+  s_d58794dec92dc7::t_1e8d39bb03a3e8 1-16
+wrangler.jsonc
+  s_d58794dec92dc7::t_3726046d23e00e 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a94482de1395a62afcec0f4b90f9d41ba346cd8a",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
