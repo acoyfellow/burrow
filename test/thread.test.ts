@@ -61,6 +61,7 @@ test('compact, pause, kill, resume: the summary and the disk come back together 
   expect(out.resumedFiles.split('\n')).toEqual(['a.txt', 'b.txt']);
   expect(out.pairs).toEqual(['compaction', 'pause']);
   expect(out.hasSummary).toBe(true);
+  expect(out.summaryIdMatches).toBe(true);
   expect(out.lastAnswer).toBe('Done.');
   expect(out.finalFiles.split('\n')).toEqual(['a.txt', 'b.txt', 'c.txt']);
 });

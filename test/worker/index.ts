@@ -171,6 +171,9 @@ export default {
         resumedFiles: resumedFiles.stdout,
         pairs: view.pairs.map((p) => p.reason),
         hasSummary: view.messages.some((m) => m.kind === 'pi.compaction'),
+        summaryIdMatches: view.messages.some(
+          (m) => m.kind === 'pi.compaction' && m.id === pair.summaryEntry,
+        ),
         lastAnswer:
           view.messages.filter((m) => m.role === 'assistant' && m.text !== '').at(-1)?.text ?? null,
         finalFiles: (await api.exec(name, ['bash', '-lc', 'ls'])).stdout,

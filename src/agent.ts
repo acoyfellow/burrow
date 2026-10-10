@@ -232,7 +232,19 @@ export const openAgent = async (
       const task = await conversation.compact(instructions, CONTEXT);
       const settled = await harness.waitForTask(task, CONTEXT);
 
-      if (settled.state.outcome?.status !== 'completed') return null;
+      const outcome = settled.state.outcome;
+
+      if (outcome?.status !== 'completed') return null;
+
+      if (outcome.result.entryId !== undefined) return String(outcome.result.entryId);
+
+      if (outcome.result.submissionId === undefined) return null;
+
+      const submission = await harness.submission(outcome.result.submissionId, CONTEXT);
+      const placed = submission === undefined ? undefined : await submission.wait(CONTEXT);
+
+      if (placed !== undefined && 'entry' in placed && placed.entry !== undefined)
+        return String(placed.entry);
 
       const page = await conversation.entries({}, 50, undefined, CONTEXT);
       const summary = page.items.find((entry) => CompactionEntry.is(entry));

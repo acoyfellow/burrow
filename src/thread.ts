@@ -128,7 +128,7 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected settings(): HarnessSettings {
-    return {};
+    return { compaction: { keepRecentTokens: 2000 } };
   }
 
   protected computer(): Computer {
