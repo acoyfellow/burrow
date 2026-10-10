@@ -232,6 +232,11 @@ export default {
         (error: Error) => error.message,
       );
 
+      const compactDuringTurn = await api.compact(name).then(
+        () => 'compacted',
+        (error: Error) => error.message,
+      );
+
       await stub(name).waitForAnswer();
 
       const [raced] = await Promise.all([
@@ -270,6 +275,7 @@ export default {
 
       return Response.json({
         pauseDuringTurn,
+        compactDuringTurn,
         compacted,
         pausedDuringCompaction,
         filesAfterCompaction: afterCompaction.stdout,

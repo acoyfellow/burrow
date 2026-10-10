@@ -585,7 +585,15 @@ export class Thread extends DurableObject<Env> {
       return;
     }
 
-    if (this.computer().running()) await this.pause();
+    if (!this.computer().running()) return;
+
+    try {
+      await this.pause();
+    } catch (cause) {
+      if (!(cause instanceof ThreadBusy)) throw cause;
+
+      await this.ctx.storage.setAlarm(Date.now() + AUTO_PAUSE_AFTER_MS);
+    }
   }
 
   exec(argv: string[]): Promise<ExecResult & { seq: number }> {
@@ -615,6 +623,9 @@ export class Thread extends DurableObject<Env> {
   }
 
   compact(instructions?: string): Promise<Pair> {
+    if (this.ledger.busy)
+      return Promise.reject(new ThreadBusy('The agent is working. Compact after the turn ends.'));
+
     return this.using(() => this.serialized(() => this.compactNow(instructions)));
   }
 
@@ -820,18 +831,20 @@ export class Thread extends DurableObject<Env> {
     if (!this.ledger.surfaces.some((s) => s.id === id && s.kind === 'terminal'))
       return new Response('unknown terminal', { status: 404 });
 
-    await this.awake();
-
     const container = this.ctx.container;
 
     if (container === undefined) return new Response('no container', { status: 500 });
 
     const abort = new AbortController();
-    const process = await container.exec(tmuxArgs(id), {
-      pty: size,
-      env: terminalEnv(),
-      cwd: WORKSPACE,
-      signal: abort.signal,
+    const process = await this.using(async () => {
+      await this.awake();
+
+      return container.exec(tmuxArgs(id), {
+        pty: size,
+        env: terminalEnv(),
+        cwd: WORKSPACE,
+        signal: abort.signal,
+      });
     });
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
 

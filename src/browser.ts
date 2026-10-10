@@ -75,7 +75,7 @@ export class Browser {
   page: PageState = { url: 'about:blank', title: '' };
   last: Frame | null = null;
 
-  private constructor(
+  constructor(
     process: ExecProcess,
     private readonly abort: AbortController,
   ) {
@@ -442,7 +442,7 @@ export class Browser {
   }
 
   close() {
-    this.closed = true;
+    this.fail();
     this.abort.abort();
   }
 }

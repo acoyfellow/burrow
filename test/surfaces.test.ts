@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeUrl, nulFrames } from '../src/browser';
+import { Browser, normalizeUrl, nulFrames } from '../src/browser';
 import { inWorkspace } from '../src/env';
 import {
   bounded,
@@ -103,5 +103,39 @@ describe('workspace paths', () => {
     expect(inWorkspace('.')).toBe('/workspace');
     expect(inWorkspace('')).toBe('/workspace');
     expect(inWorkspace('/etc/hosts')).toBe('/etc/hosts');
+  });
+});
+
+describe('closing the browser', () => {
+  const fakeChromium = () => {
+    const stdout = new TransformStream<Uint8Array, Uint8Array>();
+    const stdin = new WritableStream<Uint8Array>();
+    let exit: (code: number) => void = () => undefined;
+    const exitCode = new Promise<number>((resolve) => {
+      exit = resolve;
+    });
+
+    return {
+      process: { stdin, stdout: stdout.readable, exitCode } as unknown as ExecProcess,
+      exit,
+    };
+  };
+
+  it('fails calls that are waiting and tells every viewer, instead of hanging', async () => {
+    const chromium = fakeChromium();
+    const browser = new Browser(chromium.process, new AbortController());
+    let viewerClosed = false;
+
+    browser.closedListeners.add(() => {
+      viewerClosed = true;
+    });
+
+    const pending = browser.send('Page.navigate', { url: 'http://localhost:3000' });
+
+    browser.close();
+
+    await expect(pending).resolves.toEqual({ error: { message: 'browser exited' } });
+    expect(viewerClosed).toBe(true);
+    expect(browser.alive).toBe(false);
   });
 });
