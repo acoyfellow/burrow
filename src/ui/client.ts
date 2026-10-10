@@ -154,6 +154,16 @@ const loadTerm = () => (termModule ??= import(window.__TERM_SRC));
 const wsUrl = (path) => (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + path;
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+function applyTermTheme() {
+  for (const entry of surfaceCache.values()) {
+    const node = entry.el && entry.el.querySelector('.cloudterm');
+    if (!node) continue;
+    node.style.setProperty('--ct-bg', css('--term-bg'));
+    node.style.setProperty('--ct-fg', css('--term-fg'));
+  }
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => requestAnimationFrame(applyTermTheme));
+
 function termTheme() {
   return { background: css('--term-bg'), foreground: css('--term-fg'), cursor: css('--orange'), fontFamily: css('--mono'), fontSize: 12.5 };
 }
@@ -174,15 +184,19 @@ function terminalSurface(thread, id) {
       entry.term = await mount(el, {
         theme: termTheme(),
         onData: (bytes) => { if (entry.ws && entry.ws.readyState === 1) entry.ws.send(bytes); },
-        onResize: (cols, rows) => { if (entry.ws && entry.ws.readyState === 1) entry.ws.send(JSON.stringify({ resize: [cols, rows] })); },
+        onResize: (cols, rows) => { if (cols >= 2 && rows >= 2 && entry.ws && entry.ws.readyState === 1) entry.ws.send(JSON.stringify({ resize: [cols, rows] })); },
       });
+      applyTermTheme();
       new ResizeObserver(() => { if (root.isConnected && root.offsetWidth > 0) entry.term.fit(); }).observe(el);
     }
     const t = entry.term;
-    const ws = new WebSocket(wsUrl('/api/threads/' + thread + '/terminal?id=' + id + '&cols=' + t.cols + '&rows=' + t.rows));
+    if (root.offsetWidth > 0) t.fit();
+    const cols = Math.max(20, Math.min(500, t.cols || 80));
+    const rows = Math.max(5, Math.min(300, t.rows || 24));
+    const ws = new WebSocket(wsUrl('/api/threads/' + thread + '/terminal?id=' + id + '&cols=' + cols + '&rows=' + rows));
     ws.binaryType = 'arraybuffer';
     entry.ws = ws;
-    ws.onopen = () => { entry.retry = 0; status.replaceChildren(); status.hidden = true; ws.send(JSON.stringify({ resize: [t.cols, t.rows] })); t.focus(); window.__coilTerm = (window.__coilTerm || 0) + 1; };
+    ws.onopen = () => { entry.retry = 0; status.replaceChildren(); status.hidden = true; if (t.cols >= 2 && t.rows >= 2) ws.send(JSON.stringify({ resize: [t.cols, t.rows] })); t.focus(); window.__coilTerm = (window.__coilTerm || 0) + 1; };
     ws.onmessage = (m) => { window.__coilBytes = (window.__coilBytes || 0) + m.data.byteLength; t.write(new Uint8Array(m.data)); };
     ws.onclose = (e) => {
       entry.ws = null;
@@ -523,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const next = dark ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('coil-theme', next); } catch {}
-    for (const entry of surfaceCache.values()) if (entry.el) { entry.el.style.setProperty('--ct-bg', css('--term-bg')); entry.el.style.setProperty('--ct-fg', css('--term-fg')); }
+    applyTermTheme();
   });
   render(); loadThreads();
   if (S.name) { loadView(); connect(); }
