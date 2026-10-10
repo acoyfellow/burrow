@@ -27,9 +27,10 @@ export const STYLE = `
 :root[data-theme=light]{color-scheme:light;${LIGHT}}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--text);font:13.5px/1.55 var(--sans);font-optical-sizing:auto;-webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,textarea{font:inherit;color:inherit}
-@media (max-width: 500px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),select,textarea,[contenteditable]:not([contenteditable=false]){font-size:16px !important}}
+@media (max-width: 500px), (pointer: coarse){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),select,textarea,[contenteditable]:not([contenteditable=false]){font-size:16px !important}}
 button{cursor:pointer;border:1px solid transparent;background:transparent;border-radius:6px;padding:3px 8px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--dim);font-size:13px}
 button:hover:not(:disabled){background:var(--hover);color:var(--text)}
 button:disabled{opacity:.4;cursor:default}
@@ -40,7 +41,7 @@ input:focus,textarea:focus{border-color:var(--blue)}
 textarea{resize:none}
 .faint{color:var(--faint)}.dim{color:var(--dim)}
 
-.app{display:grid;grid-template-columns:248px minmax(0,1fr) minmax(300px,32%);grid-template-rows:100%;height:100dvh}
+.app{display:grid;grid-template-columns:248px minmax(0,1fr) minmax(300px,32%);grid-template-rows:100%;height:100dvh;box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 .side{border-right:1px solid var(--line);background:var(--side);display:flex;flex-direction:column;min-height:0}
 .brand{display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px;height:42px;flex:none}
 .brand b{font-size:15px;font-weight:600;letter-spacing:-.02em}
@@ -49,7 +50,7 @@ textarea{resize:none}
 .brand .logo img{margin-right:7px}
 .brand .logo img{border-radius:5px}
 #install{border:1px solid var(--line2);font-size:12px;padding:2px 8px}
-.offline .bar::after{content:'Offline. Showing the last view; actions resume when you reconnect.';position:fixed;top:6px;left:50%;transform:translateX(-50%);background:var(--orange-soft);color:var(--warn);border:1px solid var(--line2);border-radius:99px;padding:3px 12px;font-size:12px;z-index:40}
+.offline .bar::after{content:'Offline. Showing the last view; actions resume when you reconnect.';position:fixed;top:calc(6px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--orange-soft);color:var(--warn);border:1px solid var(--line2);border-radius:99px;padding:3px 12px;font-size:12px;z-index:40}
 .brand .new{width:28px;height:28px;padding:0;justify-content:center;border-radius:50%;background:var(--text);color:var(--bg);font-size:16px}
 .brand .new:hover:not(:disabled){background:var(--text);color:var(--bg);opacity:.85}
 .list{flex:1;overflow:auto;padding:2px 6px}
@@ -187,14 +188,14 @@ dialog .actions .primary{padding:5px 12px}
 @media (max-width:1100px){
   .app{grid-template-columns:220px minmax(0,1fr)}
   .panel{display:none}
-  .app.show-panel .panel{display:flex;position:fixed;inset:0 0 0 auto;width:min(440px,100vw);z-index:10;box-shadow:-16px 0 40px rgba(0,0,0,.18)}
+  .app.show-panel .panel{display:flex;position:fixed;inset:0 0 0 auto;width:min(440px,100vw);z-index:10;box-shadow:-16px 0 40px rgba(0,0,0,.18);padding-top:env(safe-area-inset-top);box-sizing:border-box}
   .bar .actions .panel-toggle{display:inline-flex}
   .narrow.panel-close{display:inline-flex!important}
 }
 @media (max-width:720px){
   .app{grid-template-columns:100%}
   .side{display:none}
-  .app.show-side .side{display:flex;position:fixed;inset:0;z-index:15}
+  .app.show-side .side{display:flex;position:fixed;inset:0;z-index:15;padding-top:env(safe-area-inset-top)}
   .narrow{display:inline-flex!important}
   .bar{padding:0 6px;position:relative}
   .more{display:inline-flex!important}

@@ -43,9 +43,20 @@ describe('web app manifest', () => {
   });
 });
 
+describe('installed app on a phone', () => {
+  it('keeps the top bar below the status bar and clock', () => {
+    expect(STYLE).toMatch(/\.app\{[^}]*padding:env\(safe-area-inset-top\)/);
+    expect(STYLE).toMatch(/\.app\.show-side \.side\{[^}]*padding-top:env\(safe-area-inset-top\)/);
+    expect(STYLE).toMatch(/\.app\.show-panel \.panel\{[^}]*padding-top:env\(safe-area-inset-top\)/);
+  });
+});
+
 describe('phone text entry', () => {
   it('keeps every text-entry control at 16px on phones so iOS Safari does not zoom', () => {
-    const rule = /@media \(max-width: 500px\)\{([^{]+)\{font-size:16px !important\}\}/.exec(STYLE);
+    const rule =
+      /@media \(max-width: 500px\), \(pointer: coarse\)\{([^{]+)\{font-size:16px !important\}\}/.exec(
+        STYLE,
+      );
 
     expect(rule).not.toBeNull();
     for (const selector of [
