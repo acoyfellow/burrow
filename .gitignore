@@ -5,3 +5,4 @@ node_modules/
 .pi/
 .guardrail/
 src/ui/term.generated.ts
+wrangler.local.jsonc

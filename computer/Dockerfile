@@ -1,4 +1,4 @@
-ARG NIX_IMAGE=registry.cloudflare.com/bfcb6ac5b3ceaf42a09607f6f7925823/nix-cf-proof@sha256:42f16e4c10bf7b078782e4fde6765010f0fd6d60d387d37b0cb964a25e534910
+ARG NIX_IMAGE
 ARG SANDBOX_TOOLS_IMAGE=docker.io/cloudflare/sandbox:1.0.0
 FROM ${SANDBOX_TOOLS_IMAGE} AS sandbox-tools
 FROM docker.io/library/busybox:1.37-musl AS busybox

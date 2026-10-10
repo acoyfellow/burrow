@@ -82,17 +82,18 @@ You need Bun, Docker, and a Cloudflare account with Containers (Workers Paid).
 
 ```sh
 git clone https://github.com/acoyfellow/coil && cd coil && bun install
-bun run ship -- --domain coil.example.com --team https://<team>.cloudflareaccess.com --aud <aud>
+NIX_IMAGE=<your nix-cf-proof image> bun run ship -- --domain coil.example.com --team https://<team>.cloudflareaccess.com --aud <aud>
 ```
 
 `ship` typechecks, lints, runs the tests, builds the computer image, and deploys. If Access is not set up, the Worker answers 503 instead of serving anything.
 
-The image starts from the [nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof) image. Point `NIX_IMAGE` in [`computer/Dockerfile`](computer/Dockerfile) at your own build.
+The computer image starts from a [nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof) build (the git that cannot force-push). Build it and push it to your account's registry once, then pass its reference as `NIX_IMAGE`. `ship` writes it into a gitignored `wrangler.local.jsonc`.
 
 ### Run it locally
 
 ```sh
-npx wrangler dev --var LOCAL_DEV_WITHOUT_ACCESS:1   # real containers in Docker, real Workers AI
+NIX_IMAGE=<image> node scripts/with-image.mjs
+npx wrangler dev -c wrangler.local.jsonc --var LOCAL_DEV_WITHOUT_ACCESS:1   # real containers in Docker, real Workers AI
 ```
 
 Open `http://localhost:8787/`, or use the API:

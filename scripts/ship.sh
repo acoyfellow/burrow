@@ -18,7 +18,7 @@ done
 
 if [ -z "$domain" ] || [ -z "$team" ] || [ -z "$aud" ]; then
   cat >&2 <<'USAGE'
-usage: bun run ship -- --domain coil.example.com --team https://<team>.cloudflareaccess.com --aud <access-app-aud>
+usage: NIX_IMAGE=<image> bun run ship -- --domain coil.example.com --team https://<team>.cloudflareaccess.com --aud <access-app-aud>
 
 1. In Zero Trust, add a self-hosted Access application for the domain and allow only yourself.
 2. Copy its Application Audience (AUD) tag.
@@ -29,5 +29,6 @@ fi
 
 node scripts/build-term.mjs
 bash scripts/check.sh
-npx wrangler deploy --domain "$domain" --var "ACCESS_TEAM_DOMAIN:$team" --var "ACCESS_AUD:$aud"
+node scripts/with-image.mjs
+npx wrangler deploy -c wrangler.local.jsonc --domain "$domain" --var "ACCESS_TEAM_DOMAIN:$team" --var "ACCESS_AUD:$aud"
 echo "coil is live at https://$domain (behind Access)"
