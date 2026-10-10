@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "burrow",
+  "main": "src/index.ts",
+  "workers_dev": false,
+  "preview_urls": false,
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "ai": { "binding": "AI", "remote": true },
+  "vars": { "MODEL": "@cf/zai-org/glm-5.3" },
+  "containers": [
+    {
+      "class_name": "Thread",
+      "scheduling_policy": "durable_object",
+      "images": { "computer": { "dockerfile": "./computer/Dockerfile" } }
+    }
+  ],
+  "durable_objects": { "bindings": [{ "name": "THREAD", "class_name": "Thread" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Thread"] }]
+}

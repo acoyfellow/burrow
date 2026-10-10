@@ -1,0 +1,117 @@
+{
+  "kind": "burrow.local-e2e",
+  "observed": true,
+  "when": "2026-10-10T02:49:34.827975Z",
+  "environment": "wrangler dev 4.149.0, real Docker container per Durable Object (colima, linux/amd64), real Workers AI via remote binding (@cf/zai-org/glm-5.3)",
+  "steps": [
+    {
+      "step": "create thread live-1",
+      "result": "201, phase new"
+    },
+    {
+      "step": "exec in its container",
+      "result": "exit 0, Linux x86_64, git 2.39.5, /workspace is a git repo",
+      "ms": 1233
+    },
+    {
+      "step": "agent turn: write hello.py, run it, commit",
+      "result": "status done; tools write_file then run; commit f1223cf",
+      "ms": 97399
+    },
+    {
+      "step": "pause",
+      "result": "snapshot 130 MB recorded as a pause pair; container destroyed; phase paused",
+      "ms": 422
+    },
+    {
+      "step": "resume by exec",
+      "result": "git log shows f1223cf; hello.py prints hello from burrow",
+      "ms": 293
+    },
+    {
+      "step": "second thread live-2",
+      "result": "different hostname; empty repo; no hello.py"
+    },
+    {
+      "step": "MCP tools/list and tools/call thread_exec",
+      "result": "7 tools; cat hello.py returned the file"
+    }
+  ],
+  "transcript": [
+    {
+      "role": "user",
+      "text": "Create hello.py that prints hello from burrow, run it with python3 to check, then git add and commit it."
+    },
+    {
+      "role": "system",
+      "text": ""
+    },
+    {
+      "role": "assistant",
+      "text": "\u2192 write_file({\"content\":\"print(\\\"hello from burrow\\\")\\n\",\"path\":\"hello.py\"})"
+    },
+    {
+      "role": "toolResult",
+      "text": "Wrote hello.py"
+    },
+    {
+      "role": "assistant",
+      "text": "\u2192 run({\"command\":\"python3 hello.py && git add hello.py && git commit -m \\\"Add hello.py printing hello from burrow\\\"\"})"
+    },
+    {
+      "role": "toolResult",
+      "text": "exit 0\nhello from burrow\n[main (root-commit) f1223cf] Add hello.py printing hello from burrow\n 1 file changed, 1 insertion(+)\n create mode 100644 hello.py\n"
+    },
+    {
+      "role": "assistant",
+      "text": "Created `hello.py`, verified it prints \"hello from burrow\" with python3, and committed it (f1223cf) to git."
+    }
+  ],
+  "pairs": [
+    {
+      "at": 1791600545030,
+      "reason": "pause",
+      "snapshot": {
+        "id": "bc96ba37-102b-4663-aaa6-37ecec65d4ba",
+        "size": 129977302
+      },
+      "summaryEntry": null
+    }
+  ],
+  "execs": [
+    {
+      "argv": "uname -a; git --version; pwd; ls -la",
+      "exitCode": 0,
+      "bytes": 287,
+      "sha256": "96c02b023f8520bfcc1933f9e1c590690a8b76173bd1eccf1bb4bb97acb12e2f"
+    },
+    {
+      "argv": "python3 hello.py && git add hello.py && git commit -m \"Add hello.py printing hello from burrow\"",
+      "exitCode": 0,
+      "bytes": 148,
+      "sha256": "273c0e7cb1b0c566b340746ac86cebfee60ef55fbbec2c6f7f191f48cd148170"
+    },
+    {
+      "argv": "git log --oneline; cat hello.py; python3 hello.py",
+      "exitCode": 0,
+      "bytes": 93,
+      "sha256": "343eff9efeb49f6bcd09ea9ad4fb733ef46b5d7fa0be43351c23fa256561da66"
+    },
+    {
+      "argv": "hostname",
+      "exitCode": 0,
+      "bytes": 13,
+      "sha256": "83e51da25070430aa2067c4171f6b5dd7c6b4ee93f3257b8ff29333cd5839c1f"
+    },
+    {
+      "argv": "cat hello.py",
+      "exitCode": 0,
+      "bytes": 27,
+      "sha256": "4c8de108bed56fe7ce5c845e7b0c57070db5364e204095163e2cb2805ab354d4"
+    }
+  ],
+  "notProven": [
+    "deployed Cloudflare Containers (this ran in wrangler dev)",
+    "Access sign-in on burrow.coey.dev"
+  ]
+}

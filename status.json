@@ -1,0 +1,75 @@
+{
+ "state": "building",
+ "iteration": 2,
+ "northStar": "One thread, one agent, one computer, on pure Cloudflare: a Pi Durable harness and a container in the same Durable Object, compacted together.",
+ "constraint": "Pure Cloudflare primitives plus pi-durable. No external database or VM provider.",
+ "falsifiable": "A thread's transcript and its computer's disk can be paused, killed, and resumed together from one Durable Object, so that after resume the agent's view and the disk agree.",
+ "steps": [
+  {
+   "id": "scaffold",
+   "done": true
+  },
+  {
+   "id": "thread-do-pi-durable",
+   "done": true
+  },
+  {
+   "id": "container-exec-files",
+   "done": true
+  },
+  {
+   "id": "paired-compaction-pause-resume",
+   "done": true
+  },
+  {
+   "id": "offline-tests-isolation-kill-compaction",
+   "done": true
+  },
+  {
+   "id": "http-api-and-mcp",
+   "done": true
+  },
+  {
+   "id": "web-ui",
+   "done": true
+  },
+  {
+   "id": "readme-repo-shape",
+   "done": true
+  },
+  {
+   "id": "deploy-access",
+   "done": false
+  },
+  {
+   "id": "live-e2e-receipt",
+   "done": false
+  },
+  {
+   "id": "public-repo",
+   "done": true
+  },
+  {
+   "id": "notify",
+   "done": false
+  }
+ ],
+ "proven": [
+  "pi-durable runs per thread in a Durable Object that also owns a container (offline test + receipts/local-e2e.json)",
+  "pausing snapshots the disk and resuming restores it, with the transcript intact (offline test; local Docker: 130 MB snapshot, 0.3 s resume, commit intact)",
+  "a compaction summary and a disk snapshot are recorded as one pair (offline test)",
+  "a thread killed with ctx.abort() mid-turn finishes the same request once (offline test)"
+ ],
+ "unproven": [
+  "the same lifecycle on deployed Cloudflare Containers (deployed, but behind Access that is not yet configured)",
+  "forking a new thread from a pair"
+ ],
+ "disproven": [],
+ "openQuestions": [
+  "Does ctx.container.snapshotContainer work on the account's plan?",
+  "Does wrangler dev run containers locally with colima?"
+ ],
+ "blocked": [
+  "Access app for burrow.coey.dev: the dashboard session expired and the API token has no Access scope"
+ ]
+}

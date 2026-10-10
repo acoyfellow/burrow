@@ -1,0 +1,34 @@
+{
+  "name": "burrow",
+  "version": "0.0.1",
+  "description": "One thread, one agent, one computer. Pi Durable and a Cloudflare container per thread, compacted together.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acoyfellow/burrow.git"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p .",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "check": "bash scripts/check.sh"
+  },
+  "dependencies": {
+    "@cloudflare/sandbox": "1.0.0",
+    "@earendil-works/pi-ai": "1.1.0",
+    "@earendil-works/pi-durable": "1.1.0",
+    "hono": "4.13.13"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@cloudflare/workers-types": "^5.20261010.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.3",
+    "wrangler": "4.149.0"
+  }
+}
