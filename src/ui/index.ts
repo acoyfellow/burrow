@@ -20,7 +20,9 @@ export const page = () => `<!doctype html>
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="${FONTS}">
+<link rel="preload" as="style" href="${FONTS}">
+<link rel="stylesheet" href="${FONTS}" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="${FONTS}"></noscript>
 <script>try{const t=localStorage.getItem("coil-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
 <title>coil</title>
 <style>${STYLE}</style>
