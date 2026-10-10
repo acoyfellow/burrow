@@ -118,11 +118,6 @@ export class Directory extends DurableObject {
       .map(fromRow);
   }
 
-  adoptUnowned(owner: string): number {
-    return this.ctx.storage.sql.exec(`UPDATE threads SET owner = ? WHERE owner = ''`, owner)
-      .rowsWritten;
-  }
-
   remove(name: string): void {
     this.ctx.storage.sql.exec('DELETE FROM threads WHERE name = ?', name);
   }

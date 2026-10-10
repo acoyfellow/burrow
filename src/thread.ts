@@ -65,7 +65,6 @@ export type Env = {
   readonly AI: Ai;
   readonly MODEL: string;
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
-  readonly OWNER_EMAIL?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
 };

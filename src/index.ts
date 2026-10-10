@@ -135,16 +135,6 @@ app.post('/api/threads/:name/size', async (c) => {
 
 app.get('/api/sizes', (c) => c.json(SIZES));
 
-app.post('/api/adopt-unowned', async (c) => {
-  if (c.env.OWNER_EMAIL === undefined || c.var.who !== c.env.OWNER_EMAIL.toLowerCase())
-    return c.json(
-      { error: 'only the deploy owner can adopt threads made before per-user threads' },
-      403,
-    );
-
-  return c.json({ adopted: await c.env.DIRECTORY.getByName('all').adoptUnowned(c.var.who) });
-});
-
 app.post('/api/threads/:name/fork', async (c) => {
   const input = await body<{ name: string }>(c.req.raw);
 
