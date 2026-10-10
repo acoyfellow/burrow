@@ -152,8 +152,9 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 | --- | --- |
 | [`receipts/live-v3.json`](receipts/live-v3.json) | On production: two terminals on separate ttys, reattach keeps history, the browser opens the computer's `localhost`, click to new frame in about 100 ms, the agent drives the browser |
 | [`receipts/lighthouse.json`](receipts/lighthouse.json) | Lighthouse 100 for performance, accessibility, best practices, and SEO; Chrome reports no installability errors |
+| [`receipts/flow-control.json`](receipts/flow-control.json) | On production: a client that stops acknowledging output stops the stream; one that acknowledges gets all of it |
 | [`receipts/browser-eval.json`](receipts/browser-eval.json) | Why the browser runs inside the computer (below) |
-| [`receipts/reviews/`](receipts/reviews) | Two independent adversarial reviews (architecture and performance; OSS readiness). Each round is kept: round 1 failed (4 blockers, 8 majors), round 2 passed OSS readiness and failed architecture on 3 majors (back-pressure, auto-pause under a command, a pause/turn race). The fixes follow each round in the git log |
+| [`receipts/reviews/`](receipts/reviews) | Two independent adversarial reviews (architecture and performance; OSS readiness). Each round is kept: round 1 failed (4 blockers, 8 majors), round 2 passed OSS readiness and failed architecture on 3 majors (back-pressure, auto-pause under a command, a pause/turn race), round 3 found a pause-during-compaction deadlock. The fixes follow each round in the git log |
 
 [`receipts/live-ui.json`](receipts/live-ui.json) is the core lifecycle run on Cloudflare Containers with the Nix image, behind Access. It was recorded before the project was renamed, so it shows the old name (burrow) and hostname; the same code paths run under coil today, and [`receipts/live-v3.json`](receipts/live-v3.json) is the run on the current deploy.
 
@@ -208,7 +209,7 @@ On production the in-computer browser takes longer to open the first time (about
 | [`src/service.ts`](src/service.ts) | Create, fork, and warm bases across threads |
 | [`src/directory.ts`](src/directory.ts) | The thread list and warm bases |
 | [`src/computer.ts`](src/computer.ts) | The Sandbox SDK computer: start, exec, files, snapshots |
-| [`src/terminal.ts`](src/terminal.ts) | Terminals: tmux over a PTY WebSocket. Binary frames are keys; text frames are `{"resize":[cols,rows]}` |
+| [`src/terminal.ts`](src/terminal.ts) | Terminals: tmux over a PTY WebSocket. Binary frames are keys; text frames are `{"resize":[cols,rows]}` or `{"ack":bytes}`. The client must ack what it has drawn: the server sends at most 512 KB ahead ([`src/flow.ts`](src/flow.ts)) |
 | [`src/browser.ts`](src/browser.ts) | The browser: Chromium over `--remote-debugging-pipe` (NUL-separated JSON on exec stdio, no open port), screencast, input, and agent tools |
 | [`scripts/build-term.mjs`](scripts/build-term.mjs) | Bundles cloudterm into `/assets/term-<hash>.js` |
 | [`src/shell.ts`](src/shell.ts) | The time limit and pipe handling for agent commands |

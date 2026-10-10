@@ -246,6 +246,16 @@ export default {
       const afterRace = await api.view(name);
       const racedFiles = await api.exec(name, ['bash', '-lc', 'ls']);
 
+      const [compacted, pausedDuringCompaction] = await Promise.all([
+        api.compact(name).then((pair) => pair.reason),
+        api.pause(name).then(
+          (pair) => pair?.reason ?? 'none',
+          (error: Error) =>
+            /command is running|agent is working/.test(error.message) ? 'refused' : error.message,
+        ),
+      ]);
+      const afterCompaction = await api.exec(name, ['bash', '-lc', 'ls']);
+
       await api.pause(name);
       await api.exec(name, ['bash', '-lc', 'true']);
       await test.crashComputer();
@@ -260,6 +270,9 @@ export default {
 
       return Response.json({
         pauseDuringTurn,
+        compacted,
+        pausedDuringCompaction,
+        filesAfterCompaction: afterCompaction.stdout,
         racedPause: raced,
         racedTurnAnswered: afterRace.messages.some(
           (m) => m.role === 'user' && m.text.includes('raced.txt'),

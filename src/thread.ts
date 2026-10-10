@@ -94,6 +94,8 @@ const IDLE_CHECK_MS = 1000;
 
 const AUTO_PAUSE_AFTER_MS = 9 * 60 * 1000;
 
+const VIEWER_ACK_TIMEOUT_MS = 2000;
+
 export class ThreadBusy extends Error {
   override readonly name = 'ThreadBusy';
 }
@@ -274,6 +276,10 @@ export class Thread extends DurableObject<Env> {
   private async awake(): Promise<Computer> {
     while (this.pausing !== undefined) await this.pausing.catch(() => undefined);
 
+    return this.awakeInsideLifecycle();
+  }
+
+  private awakeInsideLifecycle(): Promise<Computer> {
     this.booting ??= (async () => {
       const box = this.computer();
 
@@ -491,10 +497,17 @@ export class Thread extends DurableObject<Env> {
   async start(requestId: string, input: string): Promise<{ requestId: string }> {
     while (this.pausing !== undefined) await this.pausing.catch(() => undefined);
 
-    const agent = await this.open();
+    this.inFlight += 1;
 
-    await agent.submit(requestId, input);
-    this.ledger.busy = true;
+    try {
+      const agent = await this.open();
+
+      await agent.submit(requestId, input);
+      this.ledger.busy = true;
+    } finally {
+      this.inFlight -= 1;
+    }
+
     this.ledger.lastActivity = Date.now();
     await this.publish({ title: this.ledger.titled ? undefined : input.slice(0, 80) });
     this.ledger.titled = true;
@@ -602,7 +615,7 @@ export class Thread extends DurableObject<Env> {
   }
 
   compact(instructions?: string): Promise<Pair> {
-    return this.serialized(() => this.compactNow(instructions));
+    return this.using(() => this.serialized(() => this.compactNow(instructions)));
   }
 
   private async compactNow(instructions?: string): Promise<Pair> {
@@ -613,7 +626,7 @@ export class Thread extends DurableObject<Env> {
     const summaryEntry = await agent.compact(instructions).finally(() => {
       this.ledger.compacting = false;
     });
-    const box = await this.awake();
+    const box = await this.awakeInsideLifecycle();
     const pair: Pair = {
       at: Date.now(),
       reason: 'compaction',
@@ -629,7 +642,7 @@ export class Thread extends DurableObject<Env> {
 
   snapshot(): Promise<Snapshot> {
     return this.serialized(async () => {
-      const box = await this.awake();
+      const box = await this.awakeInsideLifecycle();
 
       return box.snapshot(`coil-${this.ledger.name ?? 'thread'}-s-${Date.now()}`);
     });
@@ -781,10 +794,12 @@ export class Thread extends DurableObject<Env> {
 
     if (surface === undefined) return this.ledger.surfaces;
 
-    if (surface.kind === 'terminal' && this.ctx.container?.running)
-      await this.computer()
-        .exec(['tmux', 'kill-session', '-t', `=${id}`])
-        .catch(() => undefined);
+    if (surface.kind === 'terminal' && this.ctx.container?.running && this.pausing === undefined)
+      await this.using(() =>
+        this.computer()
+          .exec(['tmux', 'kill-session', '-t', `=${id}`])
+          .catch(() => undefined),
+      );
 
     if (surface.kind === 'browser') {
       void this.browser?.then((b) => b.close()).catch(() => undefined);
@@ -833,10 +848,18 @@ export class Thread extends DurableObject<Env> {
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
     let waiting: Frame | null = null;
     let inFlight = false;
+    let stuck: ReturnType<typeof setTimeout> | undefined;
     const viewer = {};
+    const giveUpOnViewer = () => {
+      inFlight = false;
+      waiting = null;
+      browser.viewerReady(viewer);
+    };
     const deliver = (f: Frame) => {
       inFlight = true;
       browser.viewerBusy(viewer);
+      clearTimeout(stuck);
+      stuck = setTimeout(giveUpOnViewer, VIEWER_ACK_TIMEOUT_MS);
 
       try {
         server.send(f.bytes);
@@ -845,6 +868,7 @@ export class Thread extends DurableObject<Env> {
       }
     };
     const frameSeen = () => {
+      clearTimeout(stuck);
       inFlight = false;
 
       if (waiting !== null) {
@@ -882,6 +906,7 @@ export class Thread extends DurableObject<Env> {
     const stop = () => {
       browser.frames.delete(frame);
       browser.pages.delete(page);
+      clearTimeout(stuck);
       browser.viewerReady(viewer);
       browser.closedListeners.delete(browserDied);
 

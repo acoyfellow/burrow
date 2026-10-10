@@ -1,0 +1,17 @@
+{
+  "kind": "coil.flow-control",
+  "at": "2026-10-10T15:45:00Z",
+  "target": "production, fresh threads, after commit 32eeea2",
+  "terminal": {
+    "command": "seq 1 400000 (about 2.6 MB of output)",
+    "clientAcksEvery64KB": { "bytesReceived": 716266, "finished": true, "ms": 2510 },
+    "clientNeverAcks": { "bytesReceived": 1026, "finished": false, "waitedMs": 40001 },
+    "throughTheRealUI": { "command": "seq 1 300000", "bytesDrawn": 662328, "finished": true }
+  },
+  "browser": {
+    "page": "a counter that changes every 30 ms, served on localhost:8080 inside the computer",
+    "viewerAcksEachFrame": { "frames": 141, "seconds": 12 },
+    "viewerNeverAcks": { "frames": 1, "seconds": 12 }
+  },
+  "meaning": "The server only sends what the client has confirmed it drew, so a slow or stalled client cannot fill the Durable Object's memory."
+}
