@@ -31,7 +31,7 @@ export type Computer = {
 export const inWorkspace = (path: string) =>
   path.startsWith('/') ? path : `${WORKSPACE}/${path.replace(/^\.\/?/, '')}`;
 
-const INACTIVITY_MS = 10 * 60 * 1000;
+const PLATFORM_INACTIVITY_MS = 60 * 60 * 1000;
 
 const LOST_LAUNCHES_BEFORE_GIVING_UP = 3;
 
@@ -41,25 +41,31 @@ const decode = (bytes: ArrayBuffer | Uint8Array | string | undefined): string =>
 export const sandboxComputer = (container: Container, image: string): Computer => {
   const files = new Files(container);
 
-  const exec = async (argv: readonly string[], cwd = WORKSPACE): Promise<ExecResult> => {
-    let lost = 0;
+  const launch = async (argv: readonly string[], cwd: string) => {
+    let failures = 0;
 
     for (;;) {
       try {
-        const process = await container.exec([...argv], { cwd, env: SHELL_ENV });
-        const output = await process.output();
-
-        return {
-          exitCode: output.exitCode,
-          stdout: decode(output.stdout),
-          stderr: decode(output.stderr),
-        };
+        return await container.exec([...argv], { cwd, env: SHELL_ENV });
       } catch (cause) {
-        lost += 1;
+        failures += 1;
 
-        if (lost >= LOST_LAUNCHES_BEFORE_GIVING_UP) throw new ComputerLost(String(cause));
+        if (failures >= LOST_LAUNCHES_BEFORE_GIVING_UP) throw new ComputerLost(String(cause));
       }
     }
+  };
+
+  const exec = async (argv: readonly string[], cwd = WORKSPACE): Promise<ExecResult> => {
+    const process = await launch(argv, cwd);
+    const output = await process.output().catch((cause: unknown) => {
+      throw new ComputerLost(`the command started but its output was lost: ${String(cause)}`);
+    });
+
+    return {
+      exitCode: output.exitCode,
+      stdout: decode(output.stdout),
+      stderr: decode(output.stderr),
+    };
   };
 
   return {
@@ -76,7 +82,7 @@ export const sandboxComputer = (container: Container, image: string): Computer =
       container.start(
         from === undefined ? { ...base, image } : { ...base, containerSnapshot: { id: from.id } },
       );
-      await container.setInactivityTimeout(INACTIVITY_MS);
+      await container.setInactivityTimeout(PLATFORM_INACTIVITY_MS);
     },
     exec,
     readFile: async (path) => (await files.readFile(inWorkspace(path))).text(),

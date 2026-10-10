@@ -10,7 +10,7 @@ if (!image) {
 const source = readFileSync('wrangler.jsonc', 'utf8');
 const withImage = source.replace(
   '"dockerfile": "./computer/Dockerfile" }',
-  `"dockerfile": "./computer/Dockerfile", "build_vars": { "NIX_IMAGE": ${JSON.stringify(image)} } }`,
+  `"dockerfile": "./computer/Dockerfile", "build_vars": { "NIX_IMAGE": ${JSON.stringify(image)}, "APK_PLAIN_HTTP": ${JSON.stringify(process.env.APK_PLAIN_HTTP ?? '0')} } }`,
 );
 
 if (withImage === source) {

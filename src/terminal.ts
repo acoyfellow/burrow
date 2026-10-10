@@ -2,6 +2,13 @@ import { SHELL_ENV, WORKSPACE } from './env';
 
 export const SESSION = /^[a-z0-9][a-z0-9-]{0,30}$/;
 
+export const SLOW_TERMINAL_BYTES = 1024 * 1024;
+
+const DRAIN_WAIT_MS = 20;
+
+export const bufferedBytes = (socket: WebSocket) =>
+  (socket as WebSocket & { bufferedAmount?: number }).bufferedAmount ?? 0;
+
 export type Size = { readonly cols: number; readonly rows: number };
 
 export const parseSize = (cols: unknown, rows: unknown): Size | null => {
@@ -97,7 +104,12 @@ export const bridge = (socket: WebSocket, process: ExecProcess, abort: AbortCont
 
   void (async () => {
     try {
-      for await (const chunk of stdout as ReadableStream<Uint8Array>) socket.send(chunk);
+      for await (const chunk of stdout as ReadableStream<Uint8Array>) {
+        while (bufferedBytes(socket) > SLOW_TERMINAL_BYTES && !abort.signal.aborted)
+          await new Promise((r) => setTimeout(r, DRAIN_WAIT_MS));
+
+        socket.send(chunk);
+      }
       socket.close(1000, `exit ${await process.exitCode}`);
     } catch {
       if (!abort.signal.aborted) socket.close(1011, 'terminal output failed');

@@ -6,6 +6,8 @@ const snapshots = new Map<string, Disk>();
 
 const running = new Map<string, Disk>();
 
+export const crash = (owner: string) => running.delete(owner);
+
 const ok = (stdout = ''): ExecResult => ({ exitCode: 0, stdout, stderr: '' });
 
 const live = (owner: string): Disk => {
@@ -29,8 +31,9 @@ export const memoryComputer = (owner: string): Computer => ({
 
     running.set(owner, new Map(from === undefined ? [] : (snapshots.get(from.id) ?? [])));
   },
-  exec: async (argv) => {
+  exec: async (wrapped) => {
     const disk = live(owner);
+    const argv = wrapped[3] === 'bounded' ? wrapped.slice(5) : wrapped;
     const script = argv[0] === 'bash' || argv[0] === 'sh' ? argv[2] : undefined;
 
     if (script === 'ls') return ok(listing(disk));

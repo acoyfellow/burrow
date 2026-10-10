@@ -8,7 +8,7 @@ import {
   type ModelChoice,
   openAgent,
 } from './agent';
-import { Browser, type PageState } from './browser';
+import { Browser, type Frame, type PageState, SLOW_VIEWER_BYTES } from './browser';
 import {
   type Computer,
   type Entry,
@@ -27,7 +27,8 @@ import {
   type Surface,
 } from './ledger';
 import { workersAI } from './model';
-import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
+import { bounded, HUMAN_LIMIT_SECONDS } from './shell';
+import { bridge, bufferedBytes, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
 
 export type ThreadView = {
   readonly name: string;
@@ -90,6 +91,12 @@ const IMAGE = 'computer';
 const DIRECTORY = 'all';
 
 const IDLE_CHECK_MS = 1000;
+
+const AUTO_PAUSE_AFTER_MS = 9 * 60 * 1000;
+
+export class ThreadBusy extends Error {
+  override readonly name = 'ThreadBusy';
+}
 
 const KEY_CODES: Record<string, number> = {
   Enter: 13,
@@ -159,6 +166,39 @@ export class Thread extends DurableObject<Env> {
 
   private browser: Promise<Browser> | undefined;
 
+  private lifecycle: Promise<unknown> = Promise.resolve();
+
+  private viewers = 0;
+
+  private watched(socket: WebSocket) {
+    this.viewers += 1;
+
+    const done = () => {
+      socket.removeEventListener('close', done);
+      socket.removeEventListener('error', done);
+      this.viewers -= 1;
+      void this.touch();
+    };
+
+    socket.addEventListener('close', done);
+    socket.addEventListener('error', done);
+  }
+
+  private serialized<T>(step: () => Promise<T>): Promise<T> {
+    const run = this.lifecycle.then(step, step);
+
+    this.lifecycle = run.catch(() => undefined);
+
+    return run;
+  }
+
+  private async touch() {
+    this.ledger.lastActivity = Date.now();
+    await this.ctx.storage.setAlarm(
+      Date.now() + (this.ledger.busy ? IDLE_CHECK_MS : AUTO_PAUSE_AFTER_MS),
+    );
+  }
+
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.ledger = new Ledger(ctx.storage.sql);
@@ -223,6 +263,8 @@ export class Thread extends DurableObject<Env> {
       if (!box.running()) {
         const from = this.ledger.bootSnapshot();
 
+        if (this.ledger.phase === 'awake') await this.recordLostComputer(from);
+
         await box.boot(from);
 
         if (from === undefined && this.ledger.repo !== null) {
@@ -253,6 +295,8 @@ export class Thread extends DurableObject<Env> {
         await this.publish();
         this.state();
       }
+
+      await this.touch();
 
       return box;
     })().finally(() => {
@@ -432,6 +476,7 @@ export class Thread extends DurableObject<Env> {
 
     await agent.submit(requestId, input);
     this.ledger.busy = true;
+    this.ledger.lastActivity = Date.now();
     await this.publish({ title: this.ledger.titled ? undefined : input.slice(0, 80) });
     this.ledger.titled = true;
     this.state();
@@ -463,16 +508,59 @@ export class Thread extends DurableObject<Env> {
     this.state();
   }
 
-  override async alarm(): Promise<void> {
-    const agent = await this.open();
+  private async recordLostComputer(from: Snapshot | undefined) {
+    const restored =
+      from === undefined
+        ? 'an empty disk'
+        : `the disk saved at ${new Date(this.ledger.latest()?.at ?? 0).toISOString()}`;
+    const record = await this.ledger.logExec(
+      ['coil', 'computer-lost'],
+      1,
+      `The computer stopped without being paused. It was restarted from ${restored}; changes made after that are gone.`,
+      'agent',
+    );
 
-    await agent.idle();
-    await this.settle();
+    this.emit({ type: 'exec', record });
+  }
+
+  override async alarm(): Promise<void> {
+    if (this.ledger.busy) {
+      const agent = await this.open();
+      const finished = await Promise.race([
+        agent.idle().then(() => true),
+        new Promise<boolean>((r) => setTimeout(() => r(false), 20_000)),
+      ]);
+
+      if (!finished) {
+        await this.ctx.storage.setAlarm(Date.now() + IDLE_CHECK_MS);
+
+        return;
+      }
+
+      await this.settle();
+      await this.touch();
+
+      return;
+    }
+
+    const idleFor = Date.now() - this.ledger.lastActivity;
+
+    if (idleFor < AUTO_PAUSE_AFTER_MS || this.viewers > 0) {
+      await this.ctx.storage.setAlarm(
+        Date.now() + Math.max(IDLE_CHECK_MS, AUTO_PAUSE_AFTER_MS - idleFor),
+      );
+
+      return;
+    }
+
+    if (this.computer().running()) await this.pause();
   }
 
   async exec(argv: string[]): Promise<ExecResult & { seq: number }> {
     const box = await this.awake();
-    const result = await box.exec(argv);
+    const result = await box.exec(bounded(argv, HUMAN_LIMIT_SECONDS));
+
+    await this.touch();
     const record = await this.ledger.logExec(
       argv,
       result.exitCode,
@@ -492,7 +580,11 @@ export class Thread extends DurableObject<Env> {
     return (await this.awake()).list(path);
   }
 
-  async compact(instructions?: string): Promise<Pair> {
+  compact(instructions?: string): Promise<Pair> {
+    return this.serialized(() => this.compactNow(instructions));
+  }
+
+  private async compactNow(instructions?: string): Promise<Pair> {
     const agent = await this.open();
 
     this.ledger.compacting = true;
@@ -514,13 +606,23 @@ export class Thread extends DurableObject<Env> {
     return pair;
   }
 
-  async snapshot(): Promise<Snapshot> {
-    const box = await this.awake();
+  snapshot(): Promise<Snapshot> {
+    return this.serialized(async () => {
+      const box = await this.awake();
 
-    return box.snapshot(`coil-${this.ledger.name ?? 'thread'}-s-${Date.now()}`);
+      return box.snapshot(`coil-${this.ledger.name ?? 'thread'}-s-${Date.now()}`);
+    });
   }
 
-  async pause(): Promise<Pair | null> {
+  pause(): Promise<Pair | null> {
+    return this.serialized(() => this.pauseNow());
+  }
+
+  private async pauseNow(): Promise<Pair | null> {
+    if (this.booting !== undefined) await this.booting.catch(() => undefined);
+
+    if (this.ledger.busy) throw new ThreadBusy('The agent is working. Pause after the turn ends.');
+
     const box = this.computer();
 
     if (!box.running()) {
@@ -542,6 +644,7 @@ export class Thread extends DurableObject<Env> {
     void this.browser?.then((b) => b.close()).catch(() => undefined);
     this.browser = undefined;
     await box.destroy();
+    await this.ctx.storage.deleteAlarm();
     this.ledger.phase = 'paused';
     await this.publish();
     this.state();
@@ -689,6 +792,7 @@ export class Thread extends DurableObject<Env> {
 
     server.binaryType = 'arraybuffer';
     server.accept();
+    this.watched(server);
     bridge(server, process, abort);
 
     return new Response(null, { status: 101, webSocket: client });
@@ -697,10 +801,11 @@ export class Thread extends DurableObject<Env> {
   private async browserSocket(): Promise<Response> {
     const browser = await this.openBrowser();
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
-    const decode = (data: string) => Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
-    const frame = (f: { data: string }) => {
+    const frame = (f: Frame) => {
+      if (bufferedBytes(server) > SLOW_VIEWER_BYTES) return;
+
       try {
-        server.send(decode(f.data));
+        server.send(f.bytes);
       } catch {
         stop();
       }
@@ -712,14 +817,20 @@ export class Thread extends DurableObject<Env> {
         stop();
       }
     };
+    const browserDied = () => server.close(1011, 'browser exited');
     const stop = () => {
       browser.frames.delete(frame);
       browser.pages.delete(page);
+      browser.viewers.delete(server);
+      browser.closedListeners.delete(browserDied);
 
       if (browser.frames.size === 0) void browser.cast(false).catch(() => undefined);
     };
 
     server.accept();
+    this.watched(server);
+    browser.viewers.add(server);
+    browser.closedListeners.add(browserDied);
     server.send(JSON.stringify({ page: browser.page, viewport: browser.viewport }));
 
     if (browser.last !== null) frame(browser.last);

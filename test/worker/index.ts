@@ -8,7 +8,7 @@ import type { ModelChoice } from '../../src/agent';
 import type { Computer } from '../../src/computer';
 import { coil } from '../../src/service';
 import { type Env, Thread } from '../../src/thread';
-import { memoryComputer } from '../memory-computer';
+import { crash, memoryComputer } from '../memory-computer';
 
 export { Directory } from '../../src/directory';
 
@@ -71,6 +71,18 @@ const scripted = (): ModelChoice => {
 };
 
 export class TestThread extends Thread {
+  async crashComputer() {
+    crash(this.ctx.id.toString());
+  }
+
+  async runAlarm() {
+    await this.alarm();
+  }
+
+  async forgetActivity() {
+    this.ledger.lastActivity = 0;
+  }
+
   protected override model(): ModelChoice {
     return scripted();
   }
@@ -204,6 +216,42 @@ export default {
           () => 'found',
           (error: Error) => error.message,
         ),
+      });
+    }
+
+    if (url.pathname === '/lifecycle') {
+      const name = `l-${run}`;
+      const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      await api.create({ name, createdBy: 'test' });
+      await api.send(name, 'r1', 'write kept.txt containing before-pause');
+      await stub(name).start('r2', 'write late.txt containing during-turn');
+
+      const pauseDuringTurn = await api.pause(name).then(
+        () => 'paused',
+        (error: Error) => error.message,
+      );
+
+      await stub(name).waitForAnswer();
+      await api.pause(name);
+      await api.exec(name, ['bash', '-lc', 'true']);
+      await test.crashComputer();
+
+      const afterCrash = await api.exec(name, ['bash', '-lc', 'ls']);
+      const crashed = await api.view(name);
+
+      await test.forgetActivity();
+      await test.runAlarm();
+
+      const idle = await api.view(name);
+
+      return Response.json({
+        pauseDuringTurn,
+        filesAfterCrash: afterCrash.stdout,
+        lostNoticed: crashed.execs.some((e) => e.argv.includes('computer-lost')),
+        idlePhase: idle.phase,
+        idleRunning: idle.running,
+        idlePairs: idle.pairs.map((p) => p.reason),
       });
     }
 

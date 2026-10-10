@@ -22,7 +22,7 @@ Same terminals, same browser, same <code>localhost</code>. All on Cloudflare.</p
   <img src="docs/hero-light.png" alt="A coil thread. The agent wrote a counter page, served it on localhost:3000, committed it, opened it in the thread's own Chromium, and clicked plus three times. The page on the right shows 3.">
 </picture>
 
-<sub>One prompt. The agent wrote the page, started a server on <code>localhost:3000</code>, committed it, opened it in the thread's browser, clicked <b>+</b> three times, and read back <b>3</b>. You see the same page and can click it too.</sub>
+<sub>One prompt (thread `hero-mv2hzd5x`). The agent wrote the page, started a server on <code>localhost:3000</code>, committed it, opened it in the thread's browser, clicked <b>+</b> three times, and read back <b>3</b>. You see the same page and can click it too.</sub>
 
 ## Why
 
@@ -75,9 +75,16 @@ On a phone you get the transcript and the composer, with the computer and action
 
 ## Deploy your own
 
-You need Bun, Docker, and a Cloudflare account with Containers (Workers Paid).
+**Before you start**
 
-1. In Zero Trust, add a self-hosted **Access application** for the hostname you want, and allow only yourself. Copy its **Application Audience (AUD)** tag.
+- [ ] Bun and Docker. Docker must build `linux/amd64` images; on Apple Silicon that uses emulation and is slower.
+- [ ] A Cloudflare account on Workers Paid, with Containers and Workers AI. The model is `MODEL` in [`wrangler.jsonc`](wrangler.jsonc); Workers AI usage is billed to your account.
+- [ ] `npx wrangler login` to that account.
+- [ ] A zone in the same account for the hostname. `--domain` creates a Custom Domain on it.
+- [ ] Zero Trust set up, so you have a team domain such as `https://<team>.cloudflareaccess.com`.
+- [ ] A [nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof) image pushed to your account's registry (see below).
+
+1. In Zero Trust, add a self-hosted **Access application** whose hostname is exactly the `--domain` you will use, and allow only yourself. Copy its **Application Audience (AUD)** tag.
 2. Deploy:
 
 ```sh
@@ -146,9 +153,9 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 | [`receipts/live-v3.json`](receipts/live-v3.json) | On production: two terminals on separate ttys, reattach keeps history, the browser opens the computer's `localhost`, click to new frame in about 100 ms, the agent drives the browser |
 | [`receipts/lighthouse.json`](receipts/lighthouse.json) | Lighthouse 100 for performance, accessibility, best practices, and SEO; Chrome reports no installability errors |
 | [`receipts/browser-eval.json`](receipts/browser-eval.json) | Why the browser runs inside the computer (below) |
-| [`receipts/reviews/`](receipts/reviews) | Two independent adversarial reviews of the architecture, performance, and OSS readiness |
+| [`receipts/reviews/`](receipts/reviews) | Two independent adversarial reviews (architecture and performance; OSS readiness). Round 1 failed with 4 blockers and 8 major findings; the fixes are in the commits after it, and the final round is the top-level reports |
 
-[`receipts/live-ui.json`](receipts/live-ui.json) is a run on the deployed Worker, behind Access, on Cloudflare Containers with the Nix image:
+[`receipts/live-ui.json`](receipts/live-ui.json) is the core lifecycle run on Cloudflare Containers with the Nix image, behind Access. It was recorded before the project was renamed, so it shows the old name (burrow) and hostname; the same code paths run under coil today, and [`receipts/live-v3.json`](receipts/live-v3.json) is the run on the current deploy.
 
 | Step | Result |
 | --- | --- |
@@ -162,10 +169,14 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 | Isolation | A file written in one thread's computer was absent in another's; different hosts |
 | Thread list | A fresh browser listed threads made by the script and over MCP |
 
-`scripts/gate.sh` fails unless all of that holds, the repo is pushed, and the URL redirects to Access.
+`scripts/gate.sh` is the author's release checklist for coil.coey.dev: it fails unless the tests pass, every receipt holds, the repo is pushed, the URL redirects to Access, and the reviews pass. For your own deploy, `bun run check` is the part that applies.
 
 ## What it does not do
 
+- **An idle thread pauses itself.** After 9 minutes with no turn, command, or open terminal or browser, the thread saves its disk and stops the computer, so idle computers cost nothing. If the platform stops a computer some other way, the next action restores the last saved disk and the thread's History says so.
+- **You cannot pause while the agent is working.** Pause returns 409 until the turn ends, so a snapshot never catches a command halfway.
+- **Snapshots are kept.** Every pause, compaction, fork, child, and warm base keeps its disk snapshot in your account; coil does not delete old ones yet, because the container binding has no delete call.
+- **Commands from the API and MCP stop after 10 minutes**, and any command's output is cut at 256 KB (the History notes the full size).
 - **It does not restore running processes.** A resumed computer gets its disk back, not its memory. Terminal tabs reopen as new shells in the same folders, and the browser starts on a blank page.
 - **It does not work offline.** The PWA caches the app shell so it opens instantly and shows your last view, but threads, terminals, and the browser need the network.
 - **Terminals have no mouse support.** Scroll back with tmux keys, not the wheel.
@@ -178,7 +189,7 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 
 ## Why the browser runs in the computer
 
-We measured three engines on the same page ([`receipts/browser-eval.json`](receipts/browser-eval.json)):
+We measured three engines on the same page, in a lab run ([`receipts/browser-eval.json`](receipts/browser-eval.json)):
 
 | Engine | Cold start | Screencast | Click | Opens the computer's `localhost` |
 | --- | --- | --- | --- | --- |
@@ -186,7 +197,7 @@ We measured three engines on the same page ([`receipts/browser-eval.json`](recei
 | Browser Run (Chromium) | 0.4–1.9 s | ~30 fps | 57–145 ms | no |
 | Browser Run Kitesurf | ~0.6 s | ~23 fps | 88–146 ms | no |
 
-Only the in-computer browser can open the dev server the agent just started, keeps its cookies for the life of the computer, and adds no second bill. Kitesurf is a good fit later for fast, stateless reads of public pages.
+On production the in-computer browser takes longer to open the first time (about 5.5 s, [`receipts/live-v3.json`](receipts/live-v3.json)), because Chromium starts inside a cold computer. Only the in-computer browser can open the dev server the agent just started, keeps its cookies for the life of the computer, and adds no second bill. Kitesurf is a good fit later for fast, stateless reads of public pages.
 
 ## Where to change behavior
 

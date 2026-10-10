@@ -77,3 +77,16 @@ test('the directory lists threads from any creator, and a fork starts from the p
   expect(out.forkSeeded).toBe(true);
   expect(out.unknown).toMatch(/unknown thread/);
 });
+
+test('lifecycle: pause waits for the turn, a lost computer is reported, and an idle thread pauses itself', {
+  timeout: 90_000,
+}, async () => {
+  const out = await get('/lifecycle');
+
+  expect(out.pauseDuringTurn).toMatch(/agent is working/);
+  expect(out.filesAfterCrash.split('\n')).toContain('kept.txt');
+  expect(out.lostNoticed).toBe(true);
+  expect(out.idlePhase).toBe('paused');
+  expect(out.idleRunning).toBe(false);
+  expect(out.idlePairs.at(-1)).toBe('pause');
+});

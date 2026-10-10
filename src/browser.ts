@@ -1,4 +1,5 @@
 import { SHELL_ENV } from './env';
+import { bufferedBytes } from './terminal';
 
 export const VIEWPORT = { width: 1280, height: 800 } as const;
 
@@ -33,7 +34,13 @@ type CdpMessage = {
   sessionId?: string;
 };
 
-export type Frame = { readonly data: string; readonly width: number; readonly height: number };
+export type Frame = { readonly bytes: Uint8Array; readonly width: number; readonly height: number };
+
+export const SLOW_VIEWER_BYTES = 1024 * 1024;
+
+const ACK_RETRY_MS = 50;
+
+const fromBase64 = (data: string) => Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
 
 export type PageState = { readonly url: string; readonly title: string };
 
@@ -66,6 +73,8 @@ export class Browser {
   private casting = false;
   private closed = false;
   readonly frames = new Set<(frame: Frame) => void>();
+  readonly viewers = new Set<WebSocket>();
+  readonly closedListeners = new Set<() => void>();
   readonly pages = new Set<(page: PageState) => void>();
   page: PageState = { url: 'about:blank', title: '' };
   last: Frame | null = null;
@@ -107,7 +116,11 @@ export class Browser {
   }
 
   private fail() {
+    if (this.closed) return;
+
     this.closed = true;
+
+    for (const listener of this.closedListeners) listener();
 
     for (const resolve of this.waiting.values()) resolve({ error: { message: 'browser exited' } });
 
@@ -142,14 +155,15 @@ export class Browser {
         metadata: { deviceWidth: number; deviceHeight: number };
       };
 
-      void this.send('Page.screencastFrameAck', { sessionId: params.sessionId });
       this.last = {
-        data: params.data,
+        bytes: fromBase64(params.data),
         width: params.metadata.deviceWidth,
         height: params.metadata.deviceHeight,
       };
 
       for (const listener of this.frames) listener(this.last);
+
+      this.ackWhenViewersCatchUp(params.sessionId);
 
       return;
     }
@@ -259,6 +273,18 @@ export class Browser {
     return this.viewport;
   }
 
+  private ackWhenViewersCatchUp(sessionId: number) {
+    const behind = [...this.viewers].some((socket) => bufferedBytes(socket) > SLOW_VIEWER_BYTES);
+
+    if (behind && !this.closed) {
+      setTimeout(() => this.ackWhenViewersCatchUp(sessionId), ACK_RETRY_MS);
+
+      return;
+    }
+
+    void this.send('Page.screencastFrameAck', { sessionId });
+  }
+
   async paintNow() {
     const shot = (await this.call('Page.captureScreenshot', { format: 'jpeg', quality: 60 })) as {
       data?: string;
@@ -267,7 +293,11 @@ export class Browser {
 
     if (data === undefined) return;
 
-    this.last = { data, width: this.viewport.width, height: this.viewport.height };
+    this.last = {
+      bytes: fromBase64(data),
+      width: this.viewport.width,
+      height: this.viewport.height,
+    };
 
     for (const listener of this.frames) listener(this.last);
   }

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeUrl, nulFrames } from '../src/browser';
-import { boundedShell, RUN_LIMIT_SECONDS, TIMED_OUT_EXIT } from '../src/shell';
+import {
+  bounded,
+  boundedShell,
+  HUMAN_LIMIT_SECONDS,
+  OUTPUT_CAP_BYTES,
+  RUN_LIMIT_SECONDS,
+  TIMED_OUT_EXIT,
+} from '../src/shell';
 import { parseSize, resizeRequest, SESSION, tmuxArgs } from '../src/terminal';
 
 describe('browser pipe framing', () => {
@@ -65,13 +72,24 @@ describe('terminal sessions', () => {
 });
 
 describe('bounded shell', () => {
-  it('runs the command under a time limit and detaches it from the exec pipes', () => {
+  it('wraps the command with a time limit, no stdin, and capped output', () => {
     const argv = boundedShell('npm run dev &');
 
     expect(argv.slice(0, 2)).toEqual(['bash', '-c']);
-    expect(argv.at(-1)).toBe('npm run dev &');
-    expect(argv[2]).toContain(`timeout --kill-after=5 ${RUN_LIMIT_SECONDS}`);
-    expect(argv[2]).toContain('>"$out" 2>"$err"');
+    expect(argv.slice(3)).toEqual([
+      'bounded',
+      String(RUN_LIMIT_SECONDS),
+      'bash',
+      '-lc',
+      'npm run dev &',
+    ]);
+    expect(argv[2]).toContain('timeout --kill-after=5 "$limit" "$@"');
+    expect(argv[2]).toContain(`head -c ${OUTPUT_CAP_BYTES}`);
     expect(TIMED_OUT_EXIT).toBe(124);
+  });
+
+  it('gives humans a longer limit than the agent', () => {
+    expect(bounded(['ls'], HUMAN_LIMIT_SECONDS)[4]).toBe(String(HUMAN_LIMIT_SECONDS));
+    expect(HUMAN_LIMIT_SECONDS).toBeGreaterThan(RUN_LIMIT_SECONDS);
   });
 });

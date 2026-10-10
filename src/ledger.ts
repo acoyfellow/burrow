@@ -78,6 +78,14 @@ export class Ledger {
     this.put('phase', next);
   }
 
+  get lastActivity(): number {
+    return Number(this.get('lastActivity') ?? '0');
+  }
+
+  set lastActivity(at: number) {
+    this.put('lastActivity', String(at));
+  }
+
   get name(): string | null {
     return this.get('name');
   }

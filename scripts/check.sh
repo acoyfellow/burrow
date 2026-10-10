@@ -31,9 +31,17 @@ if grep -q 'cloudflare-ui' bun.lock; then
 fi
 
 step "no account IDs or tokens in tracked files"
-if git ls-files -z | xargs -0 grep -nE '(account_id|CLOUDFLARE_API_TOKEN).*[0-9a-f]{32}' 2>/dev/null; then
+if git ls-files -z | xargs -0 grep -nE '(account_id|CLOUDFLARE_API_TOKEN).*[0-9a-f]{32}|registry\.cloudflare\.com/[0-9a-f]{32}' 2>/dev/null; then
   echo "found a secret-looking value"
   exit 1
 fi
+
+step "every receipt the README links to exists"
+for linked in $(grep -oE '\(receipts/[^)#]+\)' README.md | tr -d '()' | sort -u); do
+  if [ ! -e "$linked" ]; then
+    echo "README links to $linked, which does not exist"
+    exit 1
+  fi
+done
 
 printf '\nall checks passed\n'

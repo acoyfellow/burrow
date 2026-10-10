@@ -174,7 +174,11 @@ app.post('/mcp', (c) => mcp(c.req.raw, c.var.api));
 
 app.onError((error, c) => {
   const message = error instanceof Error ? error.message : String(error);
-  const status = /no such file|not found|ENOENT|unknown thread/i.test(message) ? 404 : 400;
+  const status = /no such file|not found|ENOENT|unknown thread/i.test(message)
+    ? 404
+    : /agent is working/i.test(message)
+      ? 409
+      : 400;
 
   return c.json({ error: message }, status);
 });

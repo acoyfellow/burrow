@@ -3,7 +3,8 @@ ARG SANDBOX_TOOLS_IMAGE=docker.io/cloudflare/sandbox:1.0.0
 FROM ${SANDBOX_TOOLS_IMAGE} AS sandbox-tools
 FROM docker.io/library/busybox:1.37-musl AS busybox
 FROM docker.io/library/alpine:3.22 AS surfaces
-RUN sed -i 's/https/http/' /etc/apk/repositories && apk add --no-cache tmux chromium font-noto ncurses-terminfo-base
+ARG APK_PLAIN_HTTP=0
+RUN if [ "$APK_PLAIN_HTTP" = 1 ]; then sed -i 's/https/http/' /etc/apk/repositories; fi && apk add --no-cache tmux chromium font-noto ncurses-terminfo-base
 
 FROM ${NIX_IMAGE}
 COPY --from=sandbox-tools /usr/local/bin/sandbox-shim /usr/local/bin/sandbox-shim
