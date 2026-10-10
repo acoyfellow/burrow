@@ -1,0 +1,27 @@
+.gitignore
+  s_d58794dec92dc7::t_b45a4cf61ff948 8
+README.md
+  s_d58794dec92dc7::t_204bca94ba88a5 85,90,95-96
+computer/Dockerfile
+  s_d58794dec92dc7::t_3a10ca88c35d95 1
+scripts/ship.sh
+  s_d58794dec92dc7::t_a308f8db6bc0f1 21,32-33
+scripts/with-image.mjs
+  s_d58794dec92dc7::t_70973c312cf175 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f958d2a349bc8a2038830bdc4649f7c1f2e5d396",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
