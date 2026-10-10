@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeUrl, nulFrames } from '../src/browser';
+import { boundedShell, RUN_LIMIT_SECONDS, TIMED_OUT_EXIT } from '../src/shell';
 import { parseSize, resizeRequest, SESSION, tmuxArgs } from '../src/terminal';
 
 describe('browser pipe framing', () => {
@@ -60,5 +61,17 @@ describe('terminal sessions', () => {
     expect(args[2]).not.toContain('t2');
     expect(args[2]).toContain('new-session -A');
     expect(args[2]).toContain('capture-pane');
+  });
+});
+
+describe('bounded shell', () => {
+  it('runs the command under a time limit and detaches it from the exec pipes', () => {
+    const argv = boundedShell('npm run dev &');
+
+    expect(argv.slice(0, 2)).toEqual(['bash', '-c']);
+    expect(argv.at(-1)).toBe('npm run dev &');
+    expect(argv[2]).toContain(`timeout --kill-after=5 ${RUN_LIMIT_SECONDS}`);
+    expect(argv[2]).toContain('>"$out" 2>"$err"');
+    expect(TIMED_OUT_EXIT).toBe(124);
   });
 });

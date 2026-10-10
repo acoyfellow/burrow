@@ -20,6 +20,7 @@ import {
 import { openDurableObjectSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/cloudflare';
 import type { Computer } from './computer';
 import type { Ledger } from './ledger';
+import { boundedShell, RUN_LIMIT_SECONDS, TIMED_OUT_EXIT } from './shell';
 
 export const CONTEXT = BACKGROUND_CONTEXT;
 
@@ -89,18 +90,21 @@ const tools = (
 ) => [
   defineTool({
     name: 'run',
-    description: 'Run a shell command in /workspace and return its exit code and output.',
+    description: `Run a shell command in /workspace and return its exit code and output. Commands stop after ${RUN_LIMIT_SECONDS} seconds; start servers with nohup cmd >log 2>&1 &.`,
     parameters: Type.Object({ command: Type.String() }),
     replay: 'unsafe',
     executionMode: 'sequential',
     execute: async (args) => {
       const box = await computer();
-      const result = await box.exec(['bash', '-lc', args.command]);
+      const result = await box.exec(boundedShell(args.command));
+      const timedOut = result.exitCode === TIMED_OUT_EXIT;
       const output = `${result.stdout}${result.stderr === '' ? '' : `\n[stderr]\n${result.stderr}`}`;
 
       await ledger.logExec(['bash', '-lc', args.command], result.exitCode, output, 'agent');
 
-      return text(`exit ${result.exitCode}\n${clip(output)}`);
+      const status = timedOut ? `stopped after ${RUN_LIMIT_SECONDS}s` : `exit ${result.exitCode}`;
+
+      return text(`${status}\n${clip(output)}`);
     },
   }),
   defineTool({
