@@ -1,4 +1,4 @@
-import type { Burrow } from './service';
+import type { Coil } from './service';
 
 type Rpc = {
   jsonrpc: '2.0';
@@ -86,7 +86,7 @@ const TOOLS = [
   },
 ];
 
-const call = async (api: Burrow, tool: string, args: Record<string, unknown>): Promise<unknown> => {
+const call = async (api: Coil, tool: string, args: Record<string, unknown>): Promise<unknown> => {
   switch (tool) {
     case 'thread_list':
       return api.list();
@@ -122,7 +122,7 @@ const call = async (api: Burrow, tool: string, args: Record<string, unknown>): P
   }
 };
 
-export const mcp = async (request: Request, api: Burrow): Promise<Response> => {
+export const mcp = async (request: Request, api: Coil): Promise<Response> => {
   const rpc = (await request.json()) as Rpc;
   const reply = (result: unknown) => Response.json({ jsonrpc: '2.0', id: rpc.id ?? null, result });
 
@@ -133,7 +133,7 @@ export const mcp = async (request: Request, api: Burrow): Promise<Response> => {
       return reply({
         protocolVersion: '2025-06-18',
         capabilities: { tools: {} },
-        serverInfo: { name: 'burrow', version: '0.2.0' },
+        serverInfo: { name: 'coil', version: '0.2.0' },
       });
     case 'tools/list':
       return reply({ tools: TOOLS });

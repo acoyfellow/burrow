@@ -1,14 +1,14 @@
-# burrow spec
+# coil spec
 
 ## The unit
 
-A **burrow** is one thread. It is one Durable Object, named by the thread ID, that owns three things:
+A **coil** is one thread. It is one Durable Object, named by the thread ID, that owns three things:
 
 | Part | Primitive | Lives in |
 | --- | --- | --- |
 | The agent | Pi Durable harness on `storage/sqlite/cloudflare` | The Durable Object's SQLite |
 | The computer | One Cloudflare Container attached to the same Durable Object (`ctx.container`) | The container's disk, then a snapshot |
-| The ledger | Thread state, phase, snapshot IDs, and the compaction record | The same SQLite, in a `burrow_*` table |
+| The ledger | Thread state, phase, snapshot IDs, and the compaction record | The same SQLite, in a `coil_*` table |
 
 All three share one name, one lock, and one lifetime. Nothing about a thread lives anywhere else.
 
@@ -26,14 +26,14 @@ All three share one name, one lock, and one lifetime. Nothing about a thread liv
 The container image comes from the pattern proven in [nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof):
 
 - A repo's `devenv.nix` declares its tools. Cloudflare builds the image in a builder Container (no Docker, no GitHub Actions) and pins it by digest. The same file gives the same tools on a laptop.
-- The default image carries nix-cf-proof's patched git, which **cannot force-push**. An agent in a burrow can commit and push, but it cannot rewrite remote history. That guard is in the binary, not a policy the agent can talk past.
+- The default image carries nix-cf-proof's patched git, which **cannot force-push**. An agent in a coil can commit and push, but it cannot rewrite remote history. That guard is in the binary, not a policy the agent can talk past.
 - Known limit, carried over from nix-cf-proof: Cloudflare cannot prepare `dockerTools.buildLayeredImage` images. Use single-layer `buildImage`.
 
-The first burrow image is the Sandbox shim on a small base, so the spike runs before the Nix build is wired. The Nix image is a drop-in replacement: same shim path, same `/workspace`.
+The first coil image is the Sandbox shim on a small base, so the spike runs before the Nix build is wired. The Nix image is a drop-in replacement: same shim path, same `/workspace`.
 
-## What burrow takes from neighbors
+## What coil takes from neighbors
 
-| From | What it proved | What burrow uses |
+| From | What it proved | What coil uses |
 | --- | --- | --- |
 | [armada](https://github.com/AshishKumar4/armada) | Prepare an environment once, `snapshotContainer`, `destroy`, then `start({ containerSnapshot })`: about 2.5 s from send to answer | A per-repo **setup snapshot**: the first thread on a repo runs setup and snapshots it; every later thread on that repo starts from it. Pause uses the same call per thread. |
 | armada | A lost exec is relaunched, and three lost in a row mark the container lost | The computer's `exec` retries a lost launch and records a typed `ComputerLost` instead of hanging |

@@ -1,5 +1,5 @@
 {
-  "name": "burrow-test",
+  "name": "coil-test",
   "main": "index.ts",
   "workers_dev": false,
   "preview_urls": false,

@@ -269,7 +269,7 @@ export class Thread extends DurableObject<Env> {
         const index = this.ledger.nextChild();
         const name = childName(parent, index);
         const box = await this.awake();
-        const snapshot = await box.snapshot(`burrow-${parent}-child-${index}-${Date.now()}`);
+        const snapshot = await box.snapshot(`coil-${parent}-child-${index}-${Date.now()}`);
         const child = this.env.THREAD.getByName(name);
 
         await child.create(name, {
@@ -504,7 +504,7 @@ export class Thread extends DurableObject<Env> {
     const pair: Pair = {
       at: Date.now(),
       reason: 'compaction',
-      snapshot: await box.snapshot(`burrow-${this.ledger.name ?? 'thread'}-c-${Date.now()}`),
+      snapshot: await box.snapshot(`coil-${this.ledger.name ?? 'thread'}-c-${Date.now()}`),
       summaryEntry,
     };
 
@@ -517,7 +517,7 @@ export class Thread extends DurableObject<Env> {
   async snapshot(): Promise<Snapshot> {
     const box = await this.awake();
 
-    return box.snapshot(`burrow-${this.ledger.name ?? 'thread'}-s-${Date.now()}`);
+    return box.snapshot(`coil-${this.ledger.name ?? 'thread'}-s-${Date.now()}`);
   }
 
   async pause(): Promise<Pair | null> {
@@ -534,7 +534,7 @@ export class Thread extends DurableObject<Env> {
     const pair: Pair = {
       at: Date.now(),
       reason: 'pause',
-      snapshot: await box.snapshot(`burrow-${this.ledger.name ?? 'thread'}-p-${Date.now()}`),
+      snapshot: await box.snapshot(`coil-${this.ledger.name ?? 'thread'}-p-${Date.now()}`),
       summaryEntry: null,
     };
 

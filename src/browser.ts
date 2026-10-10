@@ -361,12 +361,12 @@ export class Browser {
     return this.evaluate(`(() => {
       const out = [];
       let n = 0;
-      document.querySelectorAll('[data-burrow-ref]').forEach((el) => el.removeAttribute('data-burrow-ref'));
+      document.querySelectorAll('[data-coil-ref]').forEach((el) => el.removeAttribute('data-coil-ref'));
       for (const el of document.querySelectorAll('a,button,input,textarea,select,[role=button],[onclick],summary,label')) {
         const r = el.getBoundingClientRect();
         if (r.width === 0 || r.height === 0 || r.bottom < 0 || r.top > innerHeight) continue;
         const ref = 'e' + (++n);
-        el.setAttribute('data-burrow-ref', ref);
+        el.setAttribute('data-coil-ref', ref);
         const text = (el.innerText || el.value || el.placeholder || el.getAttribute('aria-label') || el.title || '').trim().replace(/\\s+/g, ' ').slice(0, 80);
         out.push(ref + ' ' + el.tagName.toLowerCase() + (el.type ? '[' + el.type + ']' : '') + ' "' + text + '" @' + Math.round(r.x + r.width / 2) + ',' + Math.round(r.y + r.height / 2));
         if (n >= 80) break;
@@ -378,7 +378,7 @@ export class Browser {
 
   async clickRef(ref: string) {
     const at = await this.evaluate(
-      `(() => { const el = document.querySelector('[data-burrow-ref="${ref.replace(/[^a-z0-9]/gi, '')}"]'); if (!el) return ''; el.scrollIntoView({block:'center'}); const r = el.getBoundingClientRect(); return Math.round(r.x + r.width / 2) + ',' + Math.round(r.y + r.height / 2); })()`,
+      `(() => { const el = document.querySelector('[data-coil-ref="${ref.replace(/[^a-z0-9]/gi, '')}"]'); if (!el) return ''; el.scrollIntoView({block:'center'}); const r = el.getBoundingClientRect(); return Math.round(r.x + r.width / 2) + ',' + Math.round(r.y + r.height / 2); })()`,
     );
 
     if (at === '') throw new Error(`No element ${ref}. Take a new snapshot.`);

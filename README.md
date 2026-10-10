@@ -1,12 +1,12 @@
-# burrow
+# coil
 
 **One thread, one agent, one computer. On Cloudflare, compacted together.**
 
-![burrow on a desktop: threads on the left, the agent's work in the middle, the thread's history on the right](receipts/shots/desktop.png)
+![coil on a desktop: threads on the left, the agent's work in the middle, the thread's history on the right](receipts/shots/desktop.png)
 
 An agent that works on code needs two things that last: its conversation and its disk. Most setups keep them in two places. The chat is in a database, the files are in a VM or a shared volume, and nothing ties them together. Kill the process and the chat comes back without its files. Run two threads and they edit the same folder. Pause a thread and you pay for an idle machine, or you lose what was on it.
 
-burrow puts both in one [Durable Object](https://developers.cloudflare.com/durable-objects/) per thread:
+coil puts both in one [Durable Object](https://developers.cloudflare.com/durable-objects/) per thread:
 
 - the agent is a [Pi Durable](https://earendil.com/posts/pi-durable/) harness on the object's SQLite;
 - the computer is a [Cloudflare Container](https://developers.cloudflare.com/containers/) attached to the same object, driven through the [Sandbox SDK](https://developers.cloudflare.com/sandbox/), with its own git checkout in `/workspace`;
@@ -47,14 +47,14 @@ burrow puts both in one [Durable Object](https://developers.cloudflare.com/durab
 
 The phone layout keeps the transcript and composer, with actions behind a menu:
 
-<img src="receipts/shots/phone.png" width="260" alt="burrow on a phone"> <img src="receipts/shots/phone-menu.png" width="260" alt="burrow on a phone, actions menu open">
+<img src="receipts/shots/phone.png" width="260" alt="coil on a phone"> <img src="receipts/shots/phone-menu.png" width="260" alt="coil on a phone, actions menu open">
 
 ## Run it
 
 You need Bun, Docker (or colima), and a Cloudflare account with Containers (Workers Paid). The image is based on the nix-cf-proof image in your account's registry; change `NIX_IMAGE` in [`computer/Dockerfile`](computer/Dockerfile) to your own build.
 
 ```sh
-git clone https://github.com/acoyfellow/burrow && cd burrow
+git clone https://github.com/acoyfellow/coil && cd coil
 bun install
 bun run check                                     # typecheck, lint, offline tests in workerd
 npx wrangler dev --var LOCAL_DEV_WITHOUT_ACCESS:1 # real containers in Docker, real Workers AI
@@ -155,7 +155,7 @@ Only the in-computer browser can open the dev server the agent just started, kee
 
 ## Prior art it builds on
 
-- **[armada](https://github.com/AshishKumar4/armada)**: a prepared container can be snapshotted and started again in seconds. burrow uses the same calls for pause, fork, children, and warm bases.
+- **[armada](https://github.com/AshishKumar4/armada)**: a prepared container can be snapshotted and started again in seconds. coil uses the same calls for pause, fork, children, and warm bases.
 - **[tardigrade](https://github.com/acoyfellow/tardigrade)**: Pi Durable in a Durable Object comes back after `ctx.abort()`; the offline kill test shape.
 - **[terrarium](https://github.com/acoyfellow/terrarium)**: one Durable Object as the source of truth for a run; output logged with a byte count and hash.
 - **[nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof)**: the image, and the git that cannot force-push.

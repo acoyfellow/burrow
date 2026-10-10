@@ -6,8 +6,8 @@ export const SHELL_ENV: Record<string, string> = {
   HOME: '/root',
   SSL_CERT_FILE: '/etc/ssl/certs/ca-bundle.crt',
   GIT_SSL_CAINFO: '/etc/ssl/certs/ca-bundle.crt',
-  GIT_AUTHOR_NAME: 'burrow',
-  GIT_AUTHOR_EMAIL: 'burrow@users.noreply.github.com',
-  GIT_COMMITTER_NAME: 'burrow',
-  GIT_COMMITTER_EMAIL: 'burrow@users.noreply.github.com',
+  GIT_AUTHOR_NAME: 'coil',
+  GIT_AUTHOR_EMAIL: 'coil@users.noreply.github.com',
+  GIT_COMMITTER_NAME: 'coil',
+  GIT_COMMITTER_EMAIL: 'coil@users.noreply.github.com',
 };

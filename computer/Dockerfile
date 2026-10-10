@@ -18,10 +18,10 @@ RUN ["/sandbox/bin/bash", "/opt/prepare.sh"]
 ENV PATH=/sandbox/bin:/opt/busybox:/usr/local/bin:/usr/bin \
     TERMINFO_DIRS=/etc/terminfo \
     HOME=/root \
-    GIT_AUTHOR_NAME=burrow \
-    GIT_AUTHOR_EMAIL=burrow@users.noreply.github.com \
-    GIT_COMMITTER_NAME=burrow \
-    GIT_COMMITTER_EMAIL=burrow@users.noreply.github.com \
+    GIT_AUTHOR_NAME=coil \
+    GIT_AUTHOR_EMAIL=coil@users.noreply.github.com \
+    GIT_COMMITTER_NAME=coil \
+    GIT_COMMITTER_EMAIL=coil@users.noreply.github.com \
     SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt \
     GIT_SSL_CAINFO=/etc/ssl/certs/ca-bundle.crt
 WORKDIR /workspace

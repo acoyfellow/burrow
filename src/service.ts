@@ -21,7 +21,7 @@ const slug = (text: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 24) || 'thread';
 
-export const burrow = (env: Env) => {
+export const coil = (env: Env) => {
   const directory = env.DIRECTORY.getByName(DIRECTORY);
 
   const thread = (name: string) => {
@@ -113,4 +113,4 @@ export const burrow = (env: Env) => {
   };
 };
 
-export type Burrow = ReturnType<typeof burrow>;
+export type Coil = ReturnType<typeof coil>;

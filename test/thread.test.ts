@@ -17,7 +17,7 @@ afterAll(async () => {
 
 const get = async (path: string) => {
   const response = await worker.fetch(
-    `http://burrow${path}?run=${crypto.randomUUID().slice(0, 8)}`,
+    `http://coil${path}?run=${crypto.randomUUID().slice(0, 8)}`,
   );
   const body = await response.text();
 

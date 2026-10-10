@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "burrow",
+  "name": "coil",
   "main": "src/index.ts",
   "workers_dev": false,
   "preview_urls": false,

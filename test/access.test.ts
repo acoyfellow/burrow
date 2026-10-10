@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { accessConfig, verifyAccess } from '../src/access';
 
-const TEAM = 'https://burrow-test.cloudflareaccess.com';
+const TEAM = 'https://coil-test.cloudflareaccess.com';
 const AUD = 'a'.repeat(64);
 const config = { teamDomain: TEAM, audience: AUD };
 

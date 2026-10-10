@@ -10,15 +10,15 @@ export const page = () => `<!doctype html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="${FONTS}">
-<script>try{const t=localStorage.getItem("burrow-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
-<title>burrow</title>
+<script>try{const t=localStorage.getItem("coil-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
+<title>coil</title>
 <style>${STYLE}</style>
 </head>
 <body>
 <div class="app">
   <aside class="side">
     <div class="brand">
-      <b>bur<span>row</span></b>
+      <b>co<span>il</span></b>
       <span style="display:flex;gap:2px;align-items:center">
         <button class="narrow" id="side-close" aria-label="Close">✕</button>
         <button class="new" id="new-side" title="New thread" aria-label="New thread">+</button>

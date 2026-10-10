@@ -43,18 +43,18 @@ export type Surface = {
 
 export class Ledger {
   constructor(private readonly sql: SqlStorage) {
-    sql.exec(`CREATE TABLE IF NOT EXISTS burrow_kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
+    sql.exec(`CREATE TABLE IF NOT EXISTS coil_kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
     sql.exec(
-      `CREATE TABLE IF NOT EXISTS burrow_pairs (at INTEGER NOT NULL, reason TEXT NOT NULL, snapshot_id TEXT NOT NULL, snapshot_size INTEGER NOT NULL, summary_entry TEXT)`,
+      `CREATE TABLE IF NOT EXISTS coil_pairs (at INTEGER NOT NULL, reason TEXT NOT NULL, snapshot_id TEXT NOT NULL, snapshot_size INTEGER NOT NULL, summary_entry TEXT)`,
     );
     sql.exec(
-      `CREATE TABLE IF NOT EXISTS burrow_exec (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, argv TEXT NOT NULL, exit_code INTEGER NOT NULL, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL, output TEXT NOT NULL, by TEXT NOT NULL DEFAULT 'human')`,
+      `CREATE TABLE IF NOT EXISTS coil_exec (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, argv TEXT NOT NULL, exit_code INTEGER NOT NULL, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL, output TEXT NOT NULL, by TEXT NOT NULL DEFAULT 'human')`,
     );
   }
 
   private get(key: string): string | null {
     const row = this.sql
-      .exec<{ value: string }>('SELECT value FROM burrow_kv WHERE key = ?', key)
+      .exec<{ value: string }>('SELECT value FROM coil_kv WHERE key = ?', key)
       .toArray()[0];
 
     return row === undefined ? null : row.value;
@@ -62,7 +62,7 @@ export class Ledger {
 
   private put(key: string, value: string) {
     this.sql.exec(
-      'INSERT INTO burrow_kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      'INSERT INTO coil_kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       key,
       value,
     );
@@ -164,7 +164,7 @@ export class Ledger {
 
   record(pair: Pair) {
     this.sql.exec(
-      'INSERT INTO burrow_pairs (at, reason, snapshot_id, snapshot_size, summary_entry) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO coil_pairs (at, reason, snapshot_id, snapshot_size, summary_entry) VALUES (?, ?, ?, ?, ?)',
       pair.at,
       pair.reason,
       pair.snapshot.id,
@@ -182,7 +182,7 @@ export class Ledger {
         snapshot_size: number;
         summary_entry: string | null;
       }>(
-        'SELECT at, reason, snapshot_id, snapshot_size, summary_entry FROM burrow_pairs ORDER BY at ASC, rowid ASC',
+        'SELECT at, reason, snapshot_id, snapshot_size, summary_entry FROM coil_pairs ORDER BY at ASC, rowid ASC',
       )
       .toArray()
       .map((row) => ({
@@ -212,7 +212,7 @@ export class Ledger {
         : output;
     const row = this.sql
       .exec<{ seq: number }>(
-        'INSERT INTO burrow_exec (at, argv, exit_code, bytes, sha256, output, by) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING seq',
+        'INSERT INTO coil_exec (at, argv, exit_code, bytes, sha256, output, by) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING seq',
         at,
         JSON.stringify(argv),
         exitCode,
@@ -238,7 +238,7 @@ export class Ledger {
         output: string;
         by: string;
       }>(
-        'SELECT seq, at, argv, exit_code, bytes, sha256, output, by FROM burrow_exec ORDER BY seq DESC LIMIT ?',
+        'SELECT seq, at, argv, exit_code, bytes, sha256, output, by FROM coil_exec ORDER BY seq DESC LIMIT ?',
         limit,
       )
       .toArray()

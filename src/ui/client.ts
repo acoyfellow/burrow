@@ -182,8 +182,8 @@ function terminalSurface(thread, id) {
     const ws = new WebSocket(wsUrl('/api/threads/' + thread + '/terminal?id=' + id + '&cols=' + t.cols + '&rows=' + t.rows));
     ws.binaryType = 'arraybuffer';
     entry.ws = ws;
-    ws.onopen = () => { entry.retry = 0; status.replaceChildren(); status.hidden = true; ws.send(JSON.stringify({ resize: [t.cols, t.rows] })); t.focus(); window.__burrowTerm = (window.__burrowTerm || 0) + 1; };
-    ws.onmessage = (m) => { window.__burrowBytes = (window.__burrowBytes || 0) + m.data.byteLength; t.write(new Uint8Array(m.data)); };
+    ws.onopen = () => { entry.retry = 0; status.replaceChildren(); status.hidden = true; ws.send(JSON.stringify({ resize: [t.cols, t.rows] })); t.focus(); window.__coilTerm = (window.__coilTerm || 0) + 1; };
+    ws.onmessage = (m) => { window.__coilBytes = (window.__coilBytes || 0) + m.data.byteLength; t.write(new Uint8Array(m.data)); };
     ws.onclose = (e) => {
       entry.ws = null;
       if (entry.closed) return;
@@ -251,7 +251,7 @@ function browserSurface(thread, id) {
       const bitmap = await createImageBitmap(m.data);
       ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
-      entry.frames += 1; window.__burrowFrames = (window.__burrowFrames || 0) + 1;
+      entry.frames += 1; window.__coilFrames = (window.__coilFrames || 0) + 1;
       status.hidden = true;
     };
     ws.onclose = () => {
@@ -413,7 +413,7 @@ function connect() {
     if (name !== S.name) return;
     const ev = JSON.parse(msg.data);
     if (ev.type === 'hello') return;
-    window.__burrowEvents = (window.__burrowEvents || 0) + 1;
+    window.__coilEvents = (window.__coilEvents || 0) + 1;
     if (ev.type === 'state') {
       if (!S.view) return;
       const was = S.view.busy;
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
     const next = dark ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('burrow-theme', next); } catch {}
+    try { localStorage.setItem('coil-theme', next); } catch {}
     for (const entry of surfaceCache.values()) if (entry.el) { entry.el.style.setProperty('--ct-bg', css('--term-bg')); entry.el.style.setProperty('--ct-fg', css('--term-fg')); }
   });
   render(); loadThreads();

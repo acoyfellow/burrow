@@ -254,7 +254,7 @@ export const openAgent = async (
 
   registry.install(
     defineExtension({
-      name: 'burrow',
+      name: 'coil',
       sections: [
         section(
           'preamble',

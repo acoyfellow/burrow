@@ -70,7 +70,7 @@ export const sandboxComputer = (container: Container, image: string): Computer =
       const base = {
         enableInternet: true,
         instance: 'standard-1' as const,
-        labels: { app: 'burrow' },
+        labels: { app: 'coil' },
       };
 
       container.start(

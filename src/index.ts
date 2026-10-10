@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { AccessDenied, accessConfig, verifyAccess } from './access';
 import { mcp } from './mcp';
-import { type Burrow, burrow } from './service';
+import { type Coil, coil } from './service';
 import type { Env } from './thread';
 import { page } from './ui/index';
 import { TERM_JS, TERM_VERSION } from './ui/term.generated';
@@ -11,14 +11,14 @@ export { Thread } from './thread';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
-type Vars = { Bindings: Env; Variables: { who: string; api: Burrow } };
+type Vars = { Bindings: Env; Variables: { who: string; api: Coil } };
 
 const app = new Hono<Vars>();
 
 app.use('*', async (c, next) => {
   if (c.env.LOCAL_DEV_WITHOUT_ACCESS === '1' && LOCAL_HOSTS.has(new URL(c.req.url).hostname)) {
     c.set('who', 'local');
-    c.set('api', burrow(c.env));
+    c.set('api', coil(c.env));
 
     return next();
   }
@@ -37,7 +37,7 @@ app.use('*', async (c, next) => {
     throw cause;
   }
 
-  c.set('api', burrow(c.env));
+  c.set('api', coil(c.env));
 
   return next();
 });

@@ -6,7 +6,7 @@ import {
 } from '@earendil-works/pi-ai/providers/faux';
 import type { ModelChoice } from '../../src/agent';
 import type { Computer } from '../../src/computer';
-import { burrow } from '../../src/service';
+import { coil } from '../../src/service';
 import { type Env, Thread } from '../../src/thread';
 import { memoryComputer } from '../memory-computer';
 
@@ -85,7 +85,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const api = burrow(env);
+    const api = coil(env);
     const stub = (name: string) => env.THREAD.getByName(name);
     const run = url.searchParams.get('run') ?? crypto.randomUUID().slice(0, 8);
 
