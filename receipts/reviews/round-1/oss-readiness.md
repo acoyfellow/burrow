@@ -5,7 +5,7 @@ Scope: README.md, src/, public/, computer/, scripts/, test/, receipts/. `bun run
 ## BLOCKER
 
 ### B1. The default base image is a private registry path that includes an account ID
-- **File:** computer/Dockerfile:1. `NIX_IMAGE=registry.cloudflare.com/bfcb6ac5b3ceaf42a09607f6f7925823/nix-cf-proof@sha256:…`
+- **File:** computer/Dockerfile:1. `NIX_IMAGE=registry.cloudflare.com/ACCOUNT_ID/nix-cf-proof@sha256:…`
 - **What is wrong:** The default points at the author's account-scoped Cloudflare registry. A stranger who runs `bun run ship` will fail to pull that image during `wrangler deploy`. The README calls deploy one command, and for anyone else it fails. The path also commits the author's 32-hex account ID.
 - **Why it matters:** This is the main deploy path for a stranger. It breaks the "Deploy your own" promise and leaks an account identifier. The `check.sh` secret scan (scripts/check.sh:34) only matches `account_id|CLOUDFLARE_API_TOKEN` followed by hex, so it misses this.
 - **Smallest fix:** Publish nix-cf-proof to a public registry (ghcr.io or Docker Hub) and set that as the default. Otherwise, make `NIX_IMAGE` required with no default. In that case, `ship.sh` should refuse to run without `--nix-image`, and the README should list the exact steps to build and push it. Also widen the check to fail on any `registry.cloudflare.com/<hex>` string.
