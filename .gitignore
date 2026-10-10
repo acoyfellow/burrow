@@ -4,3 +4,4 @@ node_modules/
 .dev.vars
 .pi/
 .guardrail/
+src/ui/term.generated.ts

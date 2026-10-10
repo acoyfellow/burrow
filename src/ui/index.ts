@@ -1,12 +1,16 @@
 import { CLIENT } from './client';
-import { STYLE } from './style';
+import { FONTS, STYLE } from './style';
+import { TERM_VERSION } from './term.generated';
 
 export const page = () => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0f14">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="${FONTS}">
+<script>try{const t=localStorage.getItem("burrow-theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
 <title>burrow</title>
 <style>${STYLE}</style>
 </head>
@@ -15,13 +19,13 @@ export const page = () => `<!doctype html>
   <aside class="side">
     <div class="brand">
       <b>bur<span>row</span></b>
-      <span style="display:flex;gap:6px">
-        <button class="primary" id="new-side">New thread</button>
-        <button class="ghost narrow" id="side-close" aria-label="Close">✕</button>
+      <span style="display:flex;gap:2px;align-items:center">
+        <button class="narrow" id="side-close" aria-label="Close">✕</button>
+        <button class="new" id="new-side" title="New thread" aria-label="New thread">+</button>
       </span>
     </div>
     <nav class="list" id="list" aria-label="Threads"></nav>
-    <div class="who" id="whoami"></div>
+    <div class="who"><span id="whoami"></span><button id="theme" title="Switch light or dark" aria-label="Theme">◐</button></div>
   </aside>
   <main class="main">
     <header class="bar" id="bar"></header>
@@ -29,19 +33,12 @@ export const page = () => `<!doctype html>
     <div class="composer" id="composer">
       <div class="composer-inner">
         <textarea id="text" rows="1" placeholder="Ask the agent to do something in its computer"></textarea>
-        <button class="primary" id="send">Send</button>
+        <div class="composer-foot"><div class="hint" id="hint"></div><button id="send" aria-label="Send">↑</button></div>
       </div>
-      <div class="hint" id="hint"></div>
     </div>
   </main>
   <aside class="panel">
-    <div class="tabs">
-      <button data-tab="terminal" class="on">Terminal</button>
-      <button data-tab="files">Files</button>
-      <button data-tab="history">History</button>
-      <span style="flex:1"></span>
-      <button class="ghost narrow panel-toggle" id="panel-close" aria-label="Close">✕</button>
-    </div>
+    <div class="tabs" id="tabs"></div>
     <div class="pane" id="pane"></div>
   </aside>
 </div>
@@ -53,6 +50,7 @@ export const page = () => `<!doctype html>
     <div class="actions"><button type="button" id="new-cancel">Cancel</button><button class="primary" id="new-go" type="submit">Create</button></div>
   </form>
 </dialog>
+<script>window.__TERM_SRC = '/assets/term-${TERM_VERSION}.js';</script>
 <script>${CLIENT}</script>
 </body>
 </html>`;

@@ -4,6 +4,7 @@ import { mcp } from './mcp';
 import { type Burrow, burrow } from './service';
 import type { Env } from './thread';
 import { page } from './ui/index';
+import { TERM_JS, TERM_VERSION } from './ui/term.generated';
 
 export { Directory } from './directory';
 export { Thread } from './thread';
@@ -113,6 +114,39 @@ app.post('/api/threads/:name/fork', async (c) => {
 
   return c.json(await c.var.api.fork(c.req.param('name'), input.name, 'web'), 201);
 });
+
+app.get('/api/threads/:name/terminal', async (c) =>
+  c.req.header('Upgrade')?.toLowerCase() === 'websocket'
+    ? c.var.api.socket(c.req.param('name'), 'terminal', c.req.raw)
+    : c.text('Expected a WebSocket upgrade', 426),
+);
+
+app.get('/api/threads/:name/browser', async (c) =>
+  c.req.header('Upgrade')?.toLowerCase() === 'websocket'
+    ? c.var.api.socket(c.req.param('name'), 'browser', c.req.raw)
+    : c.text('Expected a WebSocket upgrade', 426),
+);
+
+app.post('/api/threads/:name/surfaces', async (c) => {
+  const input = await body<{ kind: string }>(c.req.raw);
+
+  return c.json(
+    input.kind === 'browser'
+      ? await c.var.api.addBrowser(c.req.param('name'))
+      : await c.var.api.addTerminal(c.req.param('name')),
+  );
+});
+
+app.delete('/api/threads/:name/surfaces/:id', async (c) =>
+  c.json(await c.var.api.closeSurface(c.req.param('name'), c.req.param('id'))),
+);
+
+app.get(`/assets/term-${TERM_VERSION}.js`, (c) =>
+  c.body(TERM_JS, 200, {
+    'content-type': 'text/javascript; charset=utf-8',
+    'cache-control': 'public, max-age=31536000, immutable',
+  }),
+);
 
 app.get('/api/bases', async (c) => c.json(await c.var.api.bases()));
 

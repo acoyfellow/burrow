@@ -38,6 +38,15 @@ export type Message = {
   readonly toolCallId?: string;
 };
 
+export type BrowserTools = {
+  readonly open: (url: string) => Promise<string>;
+  readonly snapshot: () => Promise<string>;
+  readonly click: (ref: string) => Promise<string>;
+  readonly type: (text: string, ref?: string) => Promise<string>;
+  readonly key: (key: string) => Promise<string>;
+  readonly evaluate: (expression: string) => Promise<string>;
+};
+
 export type Children = {
   readonly spawn: (task: string) => Promise<string>;
   readonly result: (name: string) => Promise<string>;
@@ -49,15 +58,35 @@ const PROMPT = [
   'The shell has bash, coreutils, busybox (grep, sed, awk, wget, tar), and a patched git that refuses force pushes.',
   'There is no python or node. The computer is yours alone and its disk persists across pauses.',
   'For a separate side task, start_child gives it to a new thread with its own computer; wait_child returns its answer.',
+  'You also have a real Chromium browser in the same computer. It sees localhost, so you can open a dev server you started.',
+  'browser_open loads a URL; browser_snapshot lists clickable elements as refs (e1, e2, ...) plus page text; browser_click and browser_type act on a ref; browser_key presses a key; browser_eval runs JavaScript. The human watches the same browser live.',
   'Do the work, check it with a command, then reply in one or two short sentences.',
 ].join('\n');
+
+const noBrowser = async () => {
+  throw new Error('This thread has no browser');
+};
+
+export const NO_BROWSER: BrowserTools = {
+  open: noBrowser,
+  snapshot: noBrowser,
+  click: noBrowser,
+  type: noBrowser,
+  key: noBrowser,
+  evaluate: noBrowser,
+};
 
 const text = (value: string) => ({ content: [{ type: 'text' as const, text: value }] });
 
 const clip = (value: string, max = 12_000) =>
   value.length > max ? `${value.slice(0, max)}\n[... ${value.length - max} more chars]` : value;
 
-const tools = (computer: () => Promise<Computer>, ledger: Ledger, children: Children) => [
+const tools = (
+  computer: () => Promise<Computer>,
+  ledger: Ledger,
+  children: Children,
+  browser: BrowserTools,
+) => [
   defineTool({
     name: 'run',
     description: 'Run a shell command in /workspace and return its exit code and output.',
@@ -113,6 +142,54 @@ const tools = (computer: () => Promise<Computer>, ledger: Ledger, children: Chil
     executionMode: 'parallel',
     execute: async (args) => text(await children.result(args.name)),
   }),
+  defineTool({
+    name: 'browser_open',
+    description: 'Open a URL in the browser. Bare hosts like localhost:3000 get http://.',
+    parameters: Type.Object({ url: Type.String() }),
+    replay: 'unsafe',
+    executionMode: 'sequential',
+    execute: async (args) => text(await browser.open(args.url)),
+  }),
+  defineTool({
+    name: 'browser_snapshot',
+    description: 'List visible clickable and typeable elements as refs, plus the page text.',
+    parameters: Type.Object({}),
+    replay: 'unsafe',
+    executionMode: 'sequential',
+    execute: async () => text(clip(await browser.snapshot())),
+  }),
+  defineTool({
+    name: 'browser_click',
+    description: 'Click an element by ref from the latest snapshot.',
+    parameters: Type.Object({ ref: Type.String() }),
+    replay: 'unsafe',
+    executionMode: 'sequential',
+    execute: async (args) => text(await browser.click(args.ref)),
+  }),
+  defineTool({
+    name: 'browser_type',
+    description: 'Type text. If ref is given, focus that element first.',
+    parameters: Type.Object({ text: Type.String(), ref: Type.Optional(Type.String()) }),
+    replay: 'unsafe',
+    executionMode: 'sequential',
+    execute: async (args) => text(await browser.type(args.text, args.ref)),
+  }),
+  defineTool({
+    name: 'browser_key',
+    description: 'Press one key, such as Enter, Tab, Escape, ArrowDown, or Backspace.',
+    parameters: Type.Object({ key: Type.String() }),
+    replay: 'unsafe',
+    executionMode: 'sequential',
+    execute: async (args) => text(await browser.key(args.key)),
+  }),
+  defineTool({
+    name: 'browser_eval',
+    description: 'Run a JavaScript expression in the page and return the result as text.',
+    parameters: Type.Object({ expression: Type.String() }),
+    replay: 'unsafe',
+    executionMode: 'sequential',
+    execute: async (args) => text(clip(await browser.evaluate(args.expression))),
+  }),
 ];
 
 const textOf = (content: unknown): string => {
@@ -167,6 +244,7 @@ export const openAgent = async (
   children: Children,
   settings: HarnessSettings = {},
   seed: () => string | null = () => null,
+  browser: BrowserTools = NO_BROWSER,
 ): Promise<Agent> => {
   const models = createModels(model.options);
 
@@ -188,7 +266,7 @@ export const openAgent = async (
           { tag: false },
         ),
       ],
-      tools: tools(computer, ledger, children),
+      tools: tools(computer, ledger, children, browser),
     }),
   );
 

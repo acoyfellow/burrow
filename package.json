@@ -10,23 +10,26 @@
     "url": "git+https://github.com/acoyfellow/burrow.git"
   },
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "typecheck": "tsc -p .",
+    "dev": "node scripts/build-term.mjs && wrangler dev",
+    "deploy": "node scripts/build-term.mjs && wrangler deploy",
+    "typecheck": "node scripts/build-term.mjs && tsc -p .",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
-    "check": "bash scripts/check.sh"
+    "check": "node scripts/build-term.mjs && bash scripts/check.sh",
+    "build:term": "node scripts/build-term.mjs"
   },
   "dependencies": {
     "@cloudflare/sandbox": "1.0.0",
     "@earendil-works/pi-ai": "1.1.0",
     "@earendil-works/pi-durable": "1.1.0",
+    "cloudterm": "github:acoyfellow/cloudterm#251fe22",
     "hono": "4.13.13"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@cloudflare/workers-types": "^5.20261010.1",
+    "esbuild": "^0.28.2",
     "typescript": "^5.9.3",
     "vitest": "^5.0.3",
     "wrangler": "4.149.0"

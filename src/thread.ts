@@ -1,6 +1,14 @@
 import { DurableObject } from 'cloudflare:workers';
 import type { AgentEvent, HarnessSettings } from '@earendil-works/pi-durable';
-import { type Agent, type Children, type Message, type ModelChoice, openAgent } from './agent';
+import {
+  type Agent,
+  type BrowserTools,
+  type Children,
+  type Message,
+  type ModelChoice,
+  openAgent,
+} from './agent';
+import { Browser, type PageState } from './browser';
 import {
   type Computer,
   type Entry,
@@ -10,8 +18,16 @@ import {
   WORKSPACE,
 } from './computer';
 import type { Directory, ThreadUpdate } from './directory';
-import { type ExecRecord, Ledger, type Origin, type Pair, type Phase } from './ledger';
+import {
+  type ExecRecord,
+  Ledger,
+  type Origin,
+  type Pair,
+  type Phase,
+  type Surface,
+} from './ledger';
 import { workersAI } from './model';
+import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
 
 export type ThreadView = {
   readonly name: string;
@@ -24,6 +40,7 @@ export type ThreadView = {
   readonly messages: Message[];
   readonly pairs: Pair[];
   readonly execs: ExecRecord[];
+  readonly surfaces: Surface[];
 };
 
 export type CreateOptions = {
@@ -64,13 +81,31 @@ export type LiveEvent =
       readonly busy: boolean;
       readonly running: boolean;
     }
-  | { readonly type: 'exec'; readonly record: ExecRecord };
+  | { readonly type: 'exec'; readonly record: ExecRecord }
+  | { readonly type: 'surfaces'; readonly surfaces: Surface[] }
+  | { readonly type: 'page'; readonly page: PageState };
 
 const IMAGE = 'computer';
 
 const DIRECTORY = 'all';
 
 const IDLE_CHECK_MS = 1000;
+
+const KEY_CODES: Record<string, number> = {
+  Enter: 13,
+  Tab: 9,
+  Escape: 27,
+  Backspace: 8,
+  ArrowUp: 38,
+  ArrowDown: 40,
+  ArrowLeft: 37,
+  ArrowRight: 39,
+  Delete: 46,
+  Home: 36,
+  End: 35,
+  PageUp: 33,
+  PageDown: 34,
+};
 
 const MANUAL_KEEP_TOKENS = 200;
 
@@ -121,6 +156,8 @@ export class Thread extends DurableObject<Env> {
   private readonly listeners = new Set<(event: LiveEvent) => void>();
 
   private unwatch: (() => void) | undefined;
+
+  private browser: Promise<Browser> | undefined;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -254,6 +291,86 @@ export class Thread extends DurableObject<Env> {
     };
   }
 
+  private surfacesChanged(next: Surface[]) {
+    this.ledger.surfaces = next;
+    this.emit({ type: 'surfaces', surfaces: next });
+  }
+
+  private ensureBrowserSurface() {
+    const current = this.ledger.surfaces;
+
+    if (!current.some((s) => s.kind === 'browser'))
+      this.surfacesChanged([...current, { id: 'b1', kind: 'browser', title: 'browser' }]);
+  }
+
+  private openBrowser(): Promise<Browser> {
+    const existing = this.browser;
+
+    if (existing !== undefined)
+      return existing.then((b) => {
+        if (b.alive) return b;
+
+        this.browser = undefined;
+
+        return this.openBrowser();
+      });
+
+    this.browser = (async () => {
+      await this.awake();
+
+      const container = this.ctx.container;
+
+      if (container === undefined) throw new Error('This Durable Object has no container binding');
+
+      const browser = await Browser.launch(container);
+
+      browser.pages.add((page) => this.emit({ type: 'page', page }));
+      this.ensureBrowserSurface();
+
+      return browser;
+    })().catch((cause) => {
+      this.browser = undefined;
+      throw cause;
+    });
+
+    return this.browser;
+  }
+
+  private browserTools(): BrowserTools {
+    const page = (p: PageState) => `${p.title === '' ? '(no title)' : p.title}\n${p.url}`;
+
+    return {
+      open: async (url) => page(await (await this.openBrowser()).open(url)),
+      snapshot: async () => (await this.openBrowser()).snapshot(),
+      click: async (ref) => {
+        const browser = await this.openBrowser();
+
+        await browser.clickRef(ref);
+        await new Promise((r) => setTimeout(r, 400));
+
+        return `clicked ${ref}; now at ${page(browser.page)}`;
+      },
+      type: async (text, ref) => {
+        const browser = await this.openBrowser();
+
+        if (ref !== undefined) await browser.clickRef(ref);
+        await browser.type(text);
+
+        return `typed ${text.length} chars`;
+      },
+      key: async (key) => {
+        const browser = await this.openBrowser();
+
+        await browser.key({ type: 'keyDown', key, code: key, keyCode: KEY_CODES[key] });
+        await browser.key({ type: 'keyUp', key, code: key, keyCode: KEY_CODES[key] });
+        await new Promise((r) => setTimeout(r, 300));
+
+        return `pressed ${key}; now at ${page(browser.page)}`;
+      },
+      evaluate: async (expression) => (await this.openBrowser()).evaluate(expression),
+    };
+  }
+
   private open(): Promise<Agent> {
     this.agent ??= openAgent(
       this.ctx.storage,
@@ -263,6 +380,7 @@ export class Thread extends DurableObject<Env> {
       this.children(),
       this.settings(),
       () => this.ledger.origin.seed,
+      this.browserTools(),
     )
       .then(async (agent) => {
         this.unwatch ??= await agent.watch((events) => {
@@ -421,6 +539,8 @@ export class Thread extends DurableObject<Env> {
     };
 
     this.ledger.record(pair);
+    void this.browser?.then((b) => b.close()).catch(() => undefined);
+    this.browser = undefined;
     await box.destroy();
     this.ledger.phase = 'paused';
     await this.publish();
@@ -461,12 +581,18 @@ export class Thread extends DurableObject<Env> {
       messages: await agent.messages(),
       pairs: this.ledger.pairs(),
       execs: this.ledger.execs(),
+      surfaces: this.ledger.surfaces,
     };
   }
 
   override async fetch(request: Request): Promise<Response> {
-    if (!new URL(request.url).pathname.endsWith('/events'))
-      return new Response('not found', { status: 404 });
+    const url = new URL(request.url);
+
+    if (url.pathname.endsWith('/terminal')) return this.terminalSocket(url);
+
+    if (url.pathname.endsWith('/browser')) return this.browserSocket();
+
+    if (!url.pathname.endsWith('/events')) return new Response('not found', { status: 404 });
 
     await this.open();
 
@@ -498,6 +624,156 @@ export class Thread extends DurableObject<Env> {
         connection: 'keep-alive',
       },
     });
+  }
+
+  async addTerminal(): Promise<Surface[]> {
+    const current = this.ledger.surfaces;
+    let n = 1;
+
+    while (current.some((s) => s.id === `t${n}`)) n += 1;
+
+    this.surfacesChanged([...current, { id: `t${n}`, kind: 'terminal', title: `shell ${n}` }]);
+
+    return this.ledger.surfaces;
+  }
+
+  async addBrowser(): Promise<Surface[]> {
+    this.ensureBrowserSurface();
+
+    return this.ledger.surfaces;
+  }
+
+  async closeSurface(id: string): Promise<Surface[]> {
+    const surface = this.ledger.surfaces.find((s) => s.id === id);
+
+    if (surface === undefined) return this.ledger.surfaces;
+
+    if (surface.kind === 'terminal' && this.ctx.container?.running)
+      await this.computer()
+        .exec(['tmux', 'kill-session', '-t', `=${id}`])
+        .catch(() => undefined);
+
+    if (surface.kind === 'browser') {
+      void this.browser?.then((b) => b.close()).catch(() => undefined);
+      this.browser = undefined;
+    }
+
+    this.surfacesChanged(this.ledger.surfaces.filter((s) => s.id !== id));
+
+    return this.ledger.surfaces;
+  }
+
+  private async terminalSocket(url: URL): Promise<Response> {
+    const id = url.searchParams.get('id') ?? 't1';
+    const size = parseSize(url.searchParams.get('cols') ?? 100, url.searchParams.get('rows') ?? 30);
+
+    if (!SESSION.test(id) || size === null) return new Response('bad terminal', { status: 400 });
+
+    if (!this.ledger.surfaces.some((s) => s.id === id && s.kind === 'terminal'))
+      return new Response('unknown terminal', { status: 404 });
+
+    await this.awake();
+
+    const container = this.ctx.container;
+
+    if (container === undefined) return new Response('no container', { status: 500 });
+
+    const abort = new AbortController();
+    const process = await container.exec(tmuxArgs(id), {
+      pty: size,
+      env: terminalEnv(),
+      cwd: WORKSPACE,
+      signal: abort.signal,
+    });
+    const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
+
+    server.binaryType = 'arraybuffer';
+    server.accept();
+    bridge(server, process, abort);
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  private async browserSocket(): Promise<Response> {
+    const browser = await this.openBrowser();
+    const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
+    const decode = (data: string) => Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+    const frame = (f: { data: string }) => {
+      try {
+        server.send(decode(f.data));
+      } catch {
+        stop();
+      }
+    };
+    const page = (p: PageState) => {
+      try {
+        server.send(JSON.stringify({ page: p }));
+      } catch {
+        stop();
+      }
+    };
+    const stop = () => {
+      browser.frames.delete(frame);
+      browser.pages.delete(page);
+
+      if (browser.frames.size === 0) void browser.cast(false).catch(() => undefined);
+    };
+
+    server.accept();
+    server.send(JSON.stringify({ page: browser.page, viewport: browser.viewport }));
+
+    if (browser.last !== null) frame(browser.last);
+
+    browser.frames.add(frame);
+    browser.pages.add(page);
+    await browser.cast(true);
+
+    server.addEventListener('message', (event) => {
+      void (async () => {
+        const input = JSON.parse(String(event.data)) as {
+          click?: [number, number];
+          scroll?: [number, number, number, number];
+          key?: {
+            type: 'keyDown' | 'keyUp' | 'char';
+            key?: string;
+            code?: string;
+            text?: string;
+            keyCode?: number;
+            modifiers?: number;
+          };
+          text?: string;
+          open?: string;
+          back?: true;
+          reload?: true;
+          viewport?: [number, number];
+        };
+
+        if (input.click) await browser.click(input.click[0], input.click[1]);
+        else if (input.scroll) await browser.scroll(...input.scroll);
+        else if (input.key) await browser.key(input.key);
+        else if (input.text !== undefined) await browser.type(input.text);
+        else if (input.open) await browser.open(input.open);
+        else if (input.back) await browser.back();
+        else if (input.reload) await browser.reload();
+        else if (input.viewport) {
+          const viewport = await browser.resize(input.viewport[0], input.viewport[1]);
+
+          server.send(JSON.stringify({ viewport }));
+        }
+      })().catch((cause) => {
+        try {
+          server.send(
+            JSON.stringify({ error: String(cause instanceof Error ? cause.message : cause) }),
+          );
+        } catch {
+          stop();
+        }
+      });
+    });
+    server.addEventListener('close', stop);
+    server.addEventListener('error', stop);
+
+    return new Response(null, { status: 101, webSocket: client });
   }
 
   async kill(reason: string): Promise<void> {

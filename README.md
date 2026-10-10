@@ -36,7 +36,9 @@ burrow puts both in one [Durable Object](https://developers.cloudflare.com/durab
 | --- | --- |
 | **Start a thread** | Optional git repo. If a warm base exists for that repo, the computer starts from it instead of cloning. |
 | **Watch it work** | Tool calls, their output, and the agent's replies stream into the page as they happen. Leave and come back; the turn keeps going. |
-| **Use its computer** | A terminal and a file browser on the same `/workspace` the agent uses. |
+| **Terminals** | Open as many as you like with **+**. Each is a tmux session in the thread's computer, drawn by [cloudterm](https://github.com/acoyfellow/cloudterm). Close the tab or reload the page; the shell keeps running, and the next attach prints its history. |
+| **Browser** | A real Chromium inside the same computer. It can open `localhost:3000` from a dev server the agent or you started. You click, type, and scroll on a live screencast; the agent drives the same page with browser tools. |
+| **Files** | A file browser on the same `/workspace`. |
 | **Pause** | The disk is saved and the computer is turned off. The next message, command, or file read resumes it. |
 | **Compact** | The transcript is summarised and the disk is saved, recorded together. |
 | **Fork** | A new thread starts from this thread's current disk and a summary of its conversation. |
@@ -117,12 +119,24 @@ The same actions are tools on `POST /mcp` (JSON-RPC):
 
 ## What it does not do
 
-- **It does not restore running processes.** A resumed computer gets its disk back, not its memory.
+- **It does not restore running processes.** A resumed computer gets its disk back, not its memory. Terminal tabs reopen as new shells in the same folders, and the browser starts on a blank page.
 - **It is not multi-user.** One owner per deploy, behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/). The Worker verifies the Access token itself and returns 503 if Access is not configured.
 - **It is not a security boundary for hostile code on its own.** Computers have internet access.
 - **Replies arrive whole, not token by token.** The Workers AI bridge returns complete messages; tool calls and their output stream live.
 - **`run` and `start_child` are `replay: "unsafe"`.** If a thread dies mid-command, Pi Durable does not run the command again.
 - **There is no diff review view.** Use the terminal or the file browser.
+
+## Why the browser runs in the computer
+
+We measured three engines on the same page ([`receipts/browser-eval.json`](receipts/browser-eval.json)):
+
+| Engine | Cold start | Screencast | Click | Opens the computer's `localhost` |
+| --- | --- | --- | --- | --- |
+| Chromium in the thread's computer | ~2 s | ~33 fps | ~46 ms | yes |
+| Browser Run (Chromium) | 0.4–1.9 s | ~30 fps | 57–145 ms | no |
+| Browser Run Kitesurf | ~0.6 s | ~23 fps | 88–146 ms | no |
+
+Only the in-computer browser can open the dev server the agent just started, keeps its cookies for the life of the computer, and adds no second bill. Kitesurf is a good fit later for fast, stateless reads of public pages.
 
 ## Where to change behavior
 
@@ -133,8 +147,11 @@ The same actions are tools on `POST /mcp` (JSON-RPC):
 | [`src/service.ts`](src/service.ts) | Create, fork, and warm bases across threads |
 | [`src/directory.ts`](src/directory.ts) | The thread list and warm bases |
 | [`src/computer.ts`](src/computer.ts) | The Sandbox SDK computer: start, exec, files, snapshots |
+| [`src/terminal.ts`](src/terminal.ts) | Terminals: tmux over a PTY WebSocket. Binary frames are keys; text frames are `{"resize":[cols,rows]}` |
+| [`src/browser.ts`](src/browser.ts) | The browser: Chromium over `--remote-debugging-pipe` (NUL-separated JSON on exec stdio, no open port), screencast, input, and agent tools |
+| [`scripts/build-term.mjs`](scripts/build-term.mjs) | Bundles cloudterm into `/assets/term-<hash>.js` |
 | [`src/ui/`](src/ui) | The web UI |
-| [`computer/Dockerfile`](computer/Dockerfile) | The image: nix-cf-proof plus the sandbox shim and busybox |
+| [`computer/Dockerfile`](computer/Dockerfile) | The image: nix-cf-proof (patched git), the sandbox shim, busybox, and tmux plus Chromium from Alpine |
 
 ## Prior art it builds on
 

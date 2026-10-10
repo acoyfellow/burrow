@@ -1,4 +1,7 @@
 import { Files } from '@cloudflare/sandbox';
+import { SHELL_ENV, WORKSPACE } from './env';
+
+export { SHELL_ENV, WORKSPACE };
 
 export type ExecResult = {
   readonly exitCode: number;
@@ -25,23 +28,10 @@ export type Computer = {
   readonly destroy: () => Promise<void>;
 };
 
-export const WORKSPACE = '/workspace';
-
 export const inWorkspace = (path: string) =>
   path.startsWith('/') ? path : `${WORKSPACE}/${path.replace(/^\.\/?/, '')}`;
 
 const INACTIVITY_MS = 10 * 60 * 1000;
-
-const SHELL_ENV: Record<string, string> = {
-  PATH: '/sandbox/bin:/opt/busybox:/usr/local/bin',
-  HOME: '/root',
-  SSL_CERT_FILE: '/etc/ssl/certs/ca-bundle.crt',
-  GIT_SSL_CAINFO: '/etc/ssl/certs/ca-bundle.crt',
-  GIT_AUTHOR_NAME: 'burrow',
-  GIT_AUTHOR_EMAIL: 'burrow@users.noreply.github.com',
-  GIT_COMMITTER_NAME: 'burrow',
-  GIT_COMMITTER_EMAIL: 'burrow@users.noreply.github.com',
-};
 
 const LOST_LAUNCHES_BEFORE_GIVING_UP = 3;
 

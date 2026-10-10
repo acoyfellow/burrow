@@ -35,6 +35,12 @@ const hex = (buffer: ArrayBuffer) =>
 export const sha256 = async (text: string) =>
   hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)));
 
+export type Surface = {
+  readonly id: string;
+  readonly kind: 'terminal' | 'browser';
+  readonly title: string;
+};
+
 export class Ledger {
   constructor(private readonly sql: SqlStorage) {
     sql.exec(`CREATE TABLE IF NOT EXISTS burrow_kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
@@ -100,6 +106,18 @@ export class Ledger {
   set origin(next: Partial<Origin>) {
     for (const [key, value] of Object.entries(next))
       if (typeof value === 'string') this.put(key, value);
+  }
+
+  get surfaces(): Surface[] {
+    const raw = this.get('surfaces');
+
+    return raw === null
+      ? [{ id: 't1', kind: 'terminal', title: 'shell' }]
+      : (JSON.parse(raw) as Surface[]);
+  }
+
+  set surfaces(next: Surface[]) {
+    this.put('surfaces', JSON.stringify(next));
   }
 
   get busy(): boolean {

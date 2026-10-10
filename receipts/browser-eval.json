@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-10-10",
+  "page": "https://example.com, then a 30 ms repaint loop for the screencast",
+  "engines": {
+    "homegrown": { "where": "Chromium 142 in the thread container, CDP over --remote-debugging-pipe", "note": "local docker, x86 emulated on arm64", "cold_start_ms": 1970, "nav_ms": 1040, "fps": 33.3, "frame_kb": 21.1, "click_ms": 46, "reaches_container_localhost": true, "cost": "container memory only (about 850 MB RSS)" },
+    "browser_run_chromium": { "where": "Browser Run CDP, Chrome 128", "cold_start_ms": [1907, 707, 380], "nav_ms": [351, 144, 158], "fps": [28.3, 31.3, 29.7], "frame_kb": 26.3, "click_ms": [145, 57], "reaches_container_localhost": false, "localhost_error": "net::ERR_BLOCKED_BY_ADMINISTRATOR", "cost": "browser hours + concurrent browsers" },
+    "kitesurf": { "where": "Browser Run CDP ?browser=kitesurf (UA Kitesurf/0.0.1); keep_alive is refused", "cold_start_ms": [589, 588, 627], "nav_ms": [781, 691, 607], "fps": [23, 21.7, 23.7], "frame_kb": 46.7, "click_ms": [88, 132, 146], "reaches_container_localhost": false, "localhost_note": "loads its own localhost, not the container's", "cost": "free in beta, per-account limits; stateless, no long sessions" }
+  },
+  "choice": "homegrown",
+  "why": "Only the in-container browser sees the thread's own dev servers, keeps cookies across a session, and needs no extra bill. Its frame rate and input latency match or beat Browser Run. Kitesurf stays a later option for fast stateless agent reads of public pages."
+}

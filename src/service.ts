@@ -54,6 +54,14 @@ export const burrow = (env: Env) => {
     view: async (name: string) => (await known(name)).view(),
     events: async (name: string, request: Request) =>
       (await known(name)).fetch(new Request('https://thread/events', { signal: request.signal })),
+    socket: async (name: string, kind: 'terminal' | 'browser', request: Request) => {
+      const url = new URL(request.url);
+
+      return (await known(name)).fetch(new Request(`https://thread/${kind}${url.search}`, request));
+    },
+    addTerminal: async (name: string) => (await known(name)).addTerminal(),
+    addBrowser: async (name: string) => (await known(name)).addBrowser(),
+    closeSurface: async (name: string, id: string) => (await known(name)).closeSurface(id),
     start: async (name: string, requestId: string, text: string) =>
       (await known(name)).start(requestId, text),
     send: async (name: string, requestId: string, text: string) =>
