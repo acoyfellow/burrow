@@ -16,9 +16,7 @@ afterAll(async () => {
 });
 
 const get = async (path: string) => {
-  const response = await worker.fetch(
-    `http://coil${path}?run=${crypto.randomUUID().slice(0, 8)}`,
-  );
+  const response = await worker.fetch(`http://coil${path}?run=${crypto.randomUUID().slice(0, 8)}`);
   const body = await response.text();
 
   if (!response.ok) throw new Error(`${path} -> ${response.status}: ${body}`);
