@@ -1,0 +1,19 @@
+test/thread.test.ts
+  s_d58794dec92dc7::t_8bedaf82f54101 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b9924ae140a0cb3a137bc949a0cba0c1c2a2267b",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
