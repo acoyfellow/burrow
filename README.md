@@ -1,32 +1,56 @@
-# coil
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo.svg">
+    <img src="docs/logo-light.svg" width="72" height="72" alt="coil logo">
+  </picture>
+</p>
 
-**One thread, one agent, one computer. On Cloudflare, compacted together.**
+<h1 align="center">coil</h1>
 
-![coil on a desktop: threads on the left, the agent's work in the middle, the thread's history on the right](receipts/shots/desktop.png)
+<p align="center"><b>Every agent thread gets a real computer you share with it.</b><br>
+Same terminals, same browser, same <code>localhost</code>. All on Cloudflare.</p>
 
-An agent that works on code needs two things that last: its conversation and its disk. Most setups keep them in two places. The chat is in a database, the files are in a VM or a shared volume, and nothing ties them together. Kill the process and the chat comes back without its files. Run two threads and they edit the same folder. Pause a thread and you pay for an idle machine, or you lose what was on it.
+<p align="center">
+  <a href="#deploy-your-own">Deploy your own</a> ·
+  <a href="#what-you-can-do">What you can do</a> ·
+  <a href="#how-do-i-know-it-works">Proof</a> ·
+  <a href="#what-it-does-not-do">What it does not do</a>
+</p>
 
-coil puts both in one [Durable Object](https://developers.cloudflare.com/durable-objects/) per thread:
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
+  <img src="docs/hero-light.png" alt="A coil thread. The agent wrote a counter page, served it on localhost:3000, committed it, opened it in the thread's own Chromium, and clicked plus three times. The page on the right shows 3.">
+</picture>
 
-- the agent is a [Pi Durable](https://earendil.com/posts/pi-durable/) harness on the object's SQLite;
-- the computer is a [Cloudflare Container](https://developers.cloudflare.com/containers/) attached to the same object, driven through the [Sandbox SDK](https://developers.cloudflare.com/sandbox/), with its own git checkout in `/workspace`;
-- the image is [nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof)'s Nix build, so every computer has a patched git that cannot force-push;
-- a small ledger in the same SQLite records each pause and each compaction as a **pair**: the transcript summary and the disk snapshot that match it.
+<sub>One prompt. The agent wrote the page, started a server on <code>localhost:3000</code>, committed it, opened it in the thread's browser, clicked <b>+</b> three times, and read back <b>3</b>. You see the same page and can click it too.</sub>
+
+## Why
+
+An agent that writes code needs a place to run it and a way to look at it. Most setups give it a hidden shell and, at best, a screenshot. You cannot type in its terminal, you cannot click in its browser, and when the session ends the disk is gone or out of sync with the chat.
+
+coil gives each thread one [Durable Object](https://developers.cloudflare.com/durable-objects/) and one [Container](https://developers.cloudflare.com/containers/):
+
+- **A shared computer.** Open as many terminals as you want; each is a tmux session the agent can also use. The browser is Chromium inside the same machine, so it opens the dev server the agent just started. You and the agent drive the same page.
+- **Checkpoints that match.** Pause, compact, and fork record the conversation summary and the exact disk together, so a resumed or forked thread never sees files from a different point in time.
+- **Safe by construction.** The image ships a git that cannot force-push. The Worker checks a Cloudflare Access token on every request.
+- **Agents can drive it too.** Everything in the UI is also an HTTP API and an MCP server.
+
+It is an installable PWA: add it to your dock or home screen.
 
 ```text
-            Worker (Access-gated): web UI · HTTP API + SSE · MCP
+            Worker (Access-gated): web UI · HTTP API + SSE · MCP · static PWA shell
                  │ getByName(thread)              │ getByName("all")
    ┌─────────────▼──────────────────────┐   ┌─────▼──────────────┐
    │ Thread Durable Object (per thread) │   │ Directory DO       │
    │                                    │──▶│ thread list, warm  │
    │ Pi Durable ── SQLite ── ledger     │   │ bases per repo     │
-   │   │ run · write_file · read_file   │   └────────────────────┘
-   │   │ start_child · wait_child       │
+   │   │ run · files · browser_* tools  │   └────────────────────┘
    │   ▼                                │
-   │ ctx.container (nix image) /workspace
-   │   pause:  snapshotContainer → destroy
-   │   resume: start({ containerSnapshot })
-   │   fork / child / warm: start from another snapshot
+   │ Container  /workspace              │
+   │   tmux ⇄ PTY WebSocket ⇄ cloudterm │
+   │   Chromium ⇄ CDP pipe ⇄ screencast │
+   │   pause: snapshot → stop           │
+   │   resume / fork: start from a snapshot
    └────────────────────────────────────┘
 ```
 
@@ -45,19 +69,30 @@ coil puts both in one [Durable Object](https://developers.cloudflare.com/durable
 | **Child threads** | The agent can hand a side task to a child thread with its own computer, then wait for its answer. |
 | **Warm bases** | `POST /api/bases {repo, setup}` clones a repo, runs setup once, and snapshots it. |
 
-The phone layout keeps the transcript and composer, with actions behind a menu:
+On a phone you get the transcript and the composer, with the computer and actions behind a menu:
 
-<img src="receipts/shots/phone.png" width="260" alt="coil on a phone"> <img src="receipts/shots/phone-menu.png" width="260" alt="coil on a phone, actions menu open">
+<img src="docs/hero-phone.png" width="260" alt="coil on a phone"> <img src="receipts/shots/v3-phone-terminal.png" width="260" alt="a coil terminal on a phone">
 
-## Run it
+## Deploy your own
 
-You need Bun, Docker (or colima), and a Cloudflare account with Containers (Workers Paid). The image is based on the nix-cf-proof image in your account's registry; change `NIX_IMAGE` in [`computer/Dockerfile`](computer/Dockerfile) to your own build.
+You need Bun, Docker, and a Cloudflare account with Containers (Workers Paid).
+
+1. In Zero Trust, add a self-hosted **Access application** for the hostname you want, and allow only yourself. Copy its **Application Audience (AUD)** tag.
+2. Deploy:
 
 ```sh
-git clone https://github.com/acoyfellow/coil && cd coil
-bun install
-bun run check                                     # typecheck, lint, offline tests in workerd
-npx wrangler dev --var LOCAL_DEV_WITHOUT_ACCESS:1 # real containers in Docker, real Workers AI
+git clone https://github.com/acoyfellow/coil && cd coil && bun install
+bun run ship -- --domain coil.example.com --team https://<team>.cloudflareaccess.com --aud <aud>
+```
+
+`ship` typechecks, lints, runs the tests, builds the computer image, and deploys. If Access is not set up, the Worker answers 503 instead of serving anything.
+
+The image starts from the [nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof) image. Point `NIX_IMAGE` in [`computer/Dockerfile`](computer/Dockerfile) at your own build.
+
+### Run it locally
+
+```sh
+npx wrangler dev --var LOCAL_DEV_WITHOUT_ACCESS:1   # real containers in Docker, real Workers AI
 ```
 
 Open `http://localhost:8787/`, or use the API:
@@ -91,15 +126,26 @@ The same actions are tools on `POST /mcp` (JSON-RPC):
 
 ## How do I know it works?
 
-`bun run check` runs 13 tests offline: four in workerd against the real `Thread` and `Directory` Durable Objects and the real Pi Durable harness, with a scripted model and an in-memory computer ([`test/worker/index.ts`](test/worker/index.ts)), and nine against the Access verifier ([`test/access.test.ts`](test/access.test.ts)).
+`bun run check` runs the offline suite: the real `Thread` and `Directory` Durable Objects and the real Pi Durable harness in workerd, with a scripted model and an in-memory computer ([`test/worker/index.ts`](test/worker/index.ts)); the Access verifier ([`test/access.test.ts`](test/access.test.ts)); the terminal and browser protocols ([`test/surfaces.test.ts`](test/surfaces.test.ts)); and the PWA manifest and service worker ([`test/ui.test.ts`](test/ui.test.ts)).
 
 | Test | Proves |
 | --- | --- |
 | Isolation | A file one thread's agent writes is not visible to another thread |
 | Kill and resume | A thread killed with `ctx.abort()` mid-turn finishes the same request, once |
-| Compaction pairs | Compact, pause, kill, resume: the disk and the summary come back together, and the recorded summary entry is the real one |
+| Compaction pairs | Compact, pause, kill, resume: the disk and the summary come back together |
 | Directory and fork | Threads made over MCP and the web are both listed; a fork reads the parent's file |
 | Access | A missing, malformed, expired, wrong-issuer, wrong-audience, wrong-key, or unknown-key token is refused |
+| Surfaces | tmux attach and history, resize framing, CDP pipe framing, URL handling, the 120 s command limit |
+| PWA | The manifest is installable, every icon exists, and the service worker never caches the API |
+
+The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), replays **15 recorded tmux sessions** (`less`, `vi`, `top`, scroll regions, insert and delete, wide characters, and more) in CI and matches tmux's own `capture-pane` output, cursor included.
+
+| Receipt | What it shows |
+| --- | --- |
+| [`receipts/live-v3.json`](receipts/live-v3.json) | On production: two terminals on separate ttys, reattach keeps history, the browser opens the computer's `localhost`, click to new frame in about 100 ms, the agent drives the browser |
+| [`receipts/lighthouse.json`](receipts/lighthouse.json) | Lighthouse 100 for performance, accessibility, best practices, and SEO; Chrome reports no installability errors |
+| [`receipts/browser-eval.json`](receipts/browser-eval.json) | Why the browser runs inside the computer (below) |
+| [`receipts/reviews/`](receipts/reviews) | Two independent adversarial reviews of the architecture, performance, and OSS readiness |
 
 [`receipts/live-ui.json`](receipts/live-ui.json) is a run on the deployed Worker, behind Access, on Cloudflare Containers with the Nix image:
 
@@ -120,6 +166,9 @@ The same actions are tools on `POST /mcp` (JSON-RPC):
 ## What it does not do
 
 - **It does not restore running processes.** A resumed computer gets its disk back, not its memory. Terminal tabs reopen as new shells in the same folders, and the browser starts on a blank page.
+- **It does not work offline.** The PWA caches the app shell so it opens instantly and shows your last view, but threads, terminals, and the browser need the network.
+- **Terminals have no mouse support.** Scroll back with tmux keys, not the wheel.
+- **Commands the agent runs stop after 120 seconds.** Start long-running servers in the background; you can run anything in a terminal.
 - **It is not multi-user.** One owner per deploy, behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/). The Worker verifies the Access token itself and returns 503 if Access is not configured.
 - **It is not a security boundary for hostile code on its own.** Computers have internet access.
 - **Replies arrive whole, not token by token.** The Workers AI bridge returns complete messages; tool calls and their output stream live.
@@ -150,7 +199,9 @@ Only the in-computer browser can open the dev server the agent just started, kee
 | [`src/terminal.ts`](src/terminal.ts) | Terminals: tmux over a PTY WebSocket. Binary frames are keys; text frames are `{"resize":[cols,rows]}` |
 | [`src/browser.ts`](src/browser.ts) | The browser: Chromium over `--remote-debugging-pipe` (NUL-separated JSON on exec stdio, no open port), screencast, input, and agent tools |
 | [`scripts/build-term.mjs`](scripts/build-term.mjs) | Bundles cloudterm into `/assets/term-<hash>.js` |
-| [`src/ui/`](src/ui) | The web UI |
+| [`src/shell.ts`](src/shell.ts) | The time limit and pipe handling for agent commands |
+| [`src/ui/`](src/ui) | The web UI, the service worker, and the client |
+| [`public/`](public) | The PWA manifest and icons, served as static assets |
 | [`computer/Dockerfile`](computer/Dockerfile) | The image: nix-cf-proof (patched git), the sandbox shim, busybox, and tmux plus Chromium from Alpine |
 
 ## Prior art it builds on

@@ -17,7 +17,8 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "check": "node scripts/build-term.mjs && bash scripts/check.sh",
-    "build:term": "node scripts/build-term.mjs"
+    "build:term": "node scripts/build-term.mjs",
+    "ship": "bash scripts/ship.sh"
   },
   "dependencies": {
     "@cloudflare/sandbox": "1.0.0",
