@@ -4,6 +4,7 @@ import { mcp } from './mcp';
 import { type Coil, coil } from './service';
 import type { Env } from './thread';
 import { page } from './ui/index';
+import { serviceWorker } from './ui/sw';
 import { TERM_JS, TERM_VERSION } from './ui/term.generated';
 
 export { Directory } from './directory';
@@ -145,6 +146,14 @@ app.get(`/assets/term-${TERM_VERSION}.js`, (c) =>
   c.body(TERM_JS, 200, {
     'content-type': 'text/javascript; charset=utf-8',
     'cache-control': 'public, max-age=31536000, immutable',
+  }),
+);
+
+app.get('/sw.js', (c) =>
+  c.body(serviceWorker(TERM_VERSION), 200, {
+    'content-type': 'text/javascript; charset=utf-8',
+    'cache-control': 'no-cache',
+    'service-worker-allowed': '/',
   }),
 );
 

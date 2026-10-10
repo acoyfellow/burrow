@@ -23,7 +23,7 @@
     "@cloudflare/sandbox": "1.0.0",
     "@earendil-works/pi-ai": "1.1.0",
     "@earendil-works/pi-durable": "1.1.0",
-    "cloudterm": "github:acoyfellow/cloudterm#251fe22",
+    "cloudterm": "github:acoyfellow/cloudterm#2fbaeb4",
     "hono": "4.13.13"
   },
   "devDependencies": {

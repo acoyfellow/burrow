@@ -8,7 +8,7 @@
         "@cloudflare/sandbox": "1.0.0",
         "@earendil-works/pi-ai": "1.1.0",
         "@earendil-works/pi-durable": "1.1.0",
-        "cloudterm": "github:acoyfellow/cloudterm#251fe22",
+        "cloudterm": "github:acoyfellow/cloudterm#2fbaeb4",
         "hono": "4.13.13",
       },
       "devDependencies": {
@@ -354,7 +354,7 @@
 
     "chai": ["chai@6.3.0", "", {}, "sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg=="],
 
-    "cloudterm": ["cloudterm@github:acoyfellow/cloudterm#251fe22", { "dependencies": { "@chenglou/pretext": "^0.0.5" } }, "acoyfellow-cloudterm-251fe22", "sha512-lJXokAs0OCS5YOY5d1lpQ29BwCMZ4IF2lS2pj5KAbV8jrdkofW3Otl9+hKbFlRlkRWANwoPq4jZw/UU0Q+6lJQ=="],
+    "cloudterm": ["cloudterm@github:acoyfellow/cloudterm#2fbaeb4", { "dependencies": { "@chenglou/pretext": "^0.0.5" } }, "acoyfellow-cloudterm-2fbaeb4", "sha512-hpaR+nG+eQQGQtE/RiWmmLC3xOOeS0vlUZAJtfHi9eBe8EAPeFU2eH0ERQRcX5Om1FSET6cTt2TtPLEQLEToWQ=="],
 
     "cookie": ["cookie@1.1.1", "", {}, "sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ=="],
 

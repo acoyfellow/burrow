@@ -522,7 +522,18 @@ async function create(e) {
 
 function autosize() { const ta = $('#text'); ta.style.height = 'auto'; ta.style.height = Math.min(200, ta.scrollHeight) + 'px'; }
 
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; const b = $('#install'); if (b) b.hidden = false; });
+window.addEventListener('appinstalled', () => { installPrompt = null; const b = $('#install'); if (b) b.hidden = true; });
+const setOnline = () => document.documentElement.classList.toggle('offline', !navigator.onLine);
+window.addEventListener('online', () => { setOnline(); loadThreads(); if (S.name) { loadView(); connect(); } });
+window.addEventListener('offline', setOnline);
+
 document.addEventListener('DOMContentLoaded', () => {
+  setOnline();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+  $('#install').addEventListener('click', async () => { if (!installPrompt) return; installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; $('#install').hidden = true; });
+  if (new URLSearchParams(location.search).get('new') === '1') { history.replaceState({}, '', '/'); setTimeout(openNew, 0); }
   $('#text').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
   $('#text').addEventListener('input', autosize);
   $('#send').addEventListener('click', send);

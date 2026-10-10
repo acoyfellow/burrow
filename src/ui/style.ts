@@ -44,6 +44,10 @@ textarea{resize:none}
 .brand{display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px;height:42px;flex:none}
 .brand b{font-size:15px;font-weight:600;letter-spacing:-.02em}
 .brand b span{color:var(--orange)}
+.brand .logo{display:inline-flex;align-items:center;gap:7px}
+.brand .logo img{border-radius:5px}
+#install{border:1px solid var(--line2);font-size:12px;padding:2px 8px}
+.offline .bar::after{content:'Offline. Showing the last view; actions resume when you reconnect.';position:fixed;top:6px;left:50%;transform:translateX(-50%);background:var(--orange-soft);color:var(--warn);border:1px solid var(--line2);border-radius:99px;padding:3px 12px;font-size:12px;z-index:40}
 .brand .new{width:28px;height:28px;padding:0;justify-content:center;border-radius:50%;background:var(--text);color:var(--bg);font-size:16px}
 .brand .new:hover:not(:disabled){background:var(--text);color:var(--bg);opacity:.85}
 .list{flex:1;overflow:auto;padding:2px 6px}
@@ -58,7 +62,7 @@ textarea{resize:none}
 .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--line2)}
 .dot.awake{background:var(--ok)}.dot.paused{background:var(--warn)}.dot.busy{background:var(--blue);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.3}}
-.who{padding:6px 8px 6px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none}
+.who{padding:6px 8px calc(6px + env(safe-area-inset-bottom)) 14px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none}
 .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .main{display:flex;flex-direction:column;min-width:0;min-height:0}
@@ -88,7 +92,7 @@ textarea{resize:none}
 .tool.failed summary b{color:var(--bad)}
 .spin{width:11px;height:11px;border:1.5px solid var(--line2);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-.composer{padding:6px 20px 14px;flex:none}
+.composer{padding:6px 20px calc(14px + env(safe-area-inset-bottom));flex:none}
 .composer-inner{max-width:720px;margin:0 auto;border:1px solid var(--line2);border-radius:12px;padding:8px 8px 6px 12px;background:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .composer-inner:focus-within{border-color:var(--blue)}
 .composer textarea{border:0;padding:2px 0;min-height:40px;max-height:200px}

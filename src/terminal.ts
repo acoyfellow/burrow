@@ -30,6 +30,7 @@ export const tmuxArgs = (session: string) => [
   [
     `mkdir -p /root && printf '%s\\n' "$1" > /root/.tmux.conf`,
     `if tmux has-session -t "=$2" 2>/dev/null; then tmux capture-pane -p -e -J -S -3000 -t "=$2"; fi`,
+    `tmux source-file /root/.tmux.conf 2>/dev/null || true`,
     `exec tmux -f /root/.tmux.conf new-session -A -s "$2" -c ${WORKSPACE}`,
   ].join('; '),
   'attach',
