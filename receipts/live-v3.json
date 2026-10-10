@@ -1,0 +1,78 @@
+{
+  "run": "mv2fqpxh",
+  "steps": [
+    {
+      "step": "create",
+      "ok": true,
+      "at": 1791639254807,
+      "ms": 19026,
+      "tools": [
+        "git version 2.55.0",
+        "tmux 3.5a",
+        "Chromium 142.0.7444.59 Alpine Linux"
+      ]
+    },
+    {
+      "step": "two-terminals",
+      "ok": true,
+      "at": 1791639259286,
+      "ms": 4479,
+      "openMs": [
+        499,
+        645
+      ],
+      "ttyA": "/dev/pts/1",
+      "ttyB": "/dev/pts/3"
+    },
+    {
+      "step": "reattach",
+      "ok": true,
+      "at": 1791639263128,
+      "ms": 3842,
+      "historyShown": true,
+      "stateKept": true
+    },
+    {
+      "step": "browser-localhost",
+      "ok": true,
+      "at": 1791639273839,
+      "openMs": 5513,
+      "firstFrameMs": 6048,
+      "loadedMs": 6268,
+      "page": {
+        "url": "http://localhost:8080/",
+        "title": "coil local app"
+      }
+    },
+    {
+      "step": "browser-click",
+      "ok": true,
+      "at": 1791639273839,
+      "clickToFrameMs": 103,
+      "fps": 23.3,
+      "avgFrameKb": 3.2,
+      "execAfter": "ok"
+    },
+    {
+      "step": "agent-browser",
+      "ok": true,
+      "at": 1791639402423,
+      "ms": 128584,
+      "tools": [
+        "browser_open",
+        "browser_snapshot",
+        "browser_click",
+        "browser_eval"
+      ],
+      "answer": "The h1 text says exactly: **clicked**"
+    }
+  ],
+  "thread": "v3-mv2fqpxh",
+  "deployed": "https://coil.coey.dev",
+  "shots": [
+    "receipts/shots/v3-desktop-terminal.png",
+    "receipts/shots/v3-desktop-browser.png",
+    "receipts/shots/v3-phone.png",
+    "receipts/shots/v3-phone-terminal.png"
+  ]
+}

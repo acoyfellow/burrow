@@ -71,6 +71,55 @@ if (ui !== null) {
   need(typeof ui.image === 'string' && ui.image.includes('nix'), 'image is not the nix image');
 }
 
+const v3 = read('receipts/live-v3.json');
+
+if (v3 !== null) {
+  const steps = new Map((v3.steps ?? []).map((step) => [step.step, step]));
+
+  for (const name of [
+    'two-terminals',
+    'reattach',
+    'browser-localhost',
+    'browser-click',
+    'agent-browser',
+  ]) {
+    need(steps.get(name)?.ok === true, `live-v3 step ${name} missing or not ok`);
+  }
+
+  need(steps.get('reattach')?.historyShown === true, 'reattach did not show the earlier output');
+  need(
+    steps.get('two-terminals')?.ttyA !== steps.get('two-terminals')?.ttyB,
+    'the two terminals shared one tty',
+  );
+  need(v3.deployed === 'https://coil.coey.dev', 'live-v3 did not run on the deployed site');
+
+  for (const shot of v3.shots ?? []) need(existsSync(shot), `${shot} missing`);
+  need(
+    (v3.shots ?? []).some((s) => s.includes('phone')),
+    'no phone screenshot',
+  );
+}
+
+const evaluation = read('receipts/browser-eval.json');
+
+if (evaluation !== null) {
+  for (const engine of ['homegrown', 'browser_run_chromium', 'kitesurf']) {
+    const e = evaluation.engines?.[engine];
+    need(
+      e !== undefined &&
+        e.cold_start_ms !== undefined &&
+        e.fps !== undefined &&
+        e.click_ms !== undefined,
+      `browser-eval lacks ${engine}`,
+    );
+    need(
+      typeof e?.reaches_container_localhost === 'boolean',
+      `browser-eval lacks localhost reach for ${engine}`,
+    );
+  }
+  need(typeof evaluation.choice === 'string', 'browser-eval has no choice');
+}
+
 if (problems.length > 0) {
   for (const problem of problems) console.error(`receipt: ${problem}`);
   process.exit(1);

@@ -16,6 +16,8 @@ node scripts/verify-receipts.mjs || fail "receipts do not prove the goal"
 git diff --quiet HEAD -- receipts src || fail "uncommitted changes in receipts or src"
 [ "$(git rev-parse HEAD)" = "$(gh api repos/acoyfellow/coil/commits/main -q .sha)" ] || fail "HEAD is not pushed"
 
-git ls-files --error-unmatch receipts/owner-ok >/dev/null 2>&1 || fail "receipts/owner-ok missing: Jordan has not reviewed the screenshots"
+git ls-files --error-unmatch receipts/live-v3.json >/dev/null 2>&1 || fail "receipts/live-v3.json is not committed"
+grep -q 'surfaces.test.ts' /tmp/coil-gate-check.log || fail "terminal and browser tests did not run"
+git ls-files --error-unmatch receipts/owner-ok-v3 >/dev/null 2>&1 || fail "receipts/owner-ok-v3 missing: Jordan has not reviewed the v3 screenshots"
 
 echo "GATE PASS"
