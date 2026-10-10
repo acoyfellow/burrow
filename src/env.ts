@@ -11,3 +11,10 @@ export const SHELL_ENV: Record<string, string> = {
   GIT_COMMITTER_NAME: 'coil',
   GIT_COMMITTER_EMAIL: 'coil@users.noreply.github.com',
 };
+
+export const inWorkspace = (path: string) =>
+  path.startsWith('/')
+    ? path
+    : path === '.' || path === ''
+      ? WORKSPACE
+      : `${WORKSPACE}/${path.replace(/^(\.\/)+/, '')}`;

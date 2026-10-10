@@ -1,7 +1,7 @@
 import { Files } from '@cloudflare/sandbox';
-import { SHELL_ENV, WORKSPACE } from './env';
+import { inWorkspace, SHELL_ENV, WORKSPACE } from './env';
 
-export { SHELL_ENV, WORKSPACE };
+export { inWorkspace, SHELL_ENV, WORKSPACE };
 
 export type ExecResult = {
   readonly exitCode: number;
@@ -27,9 +27,6 @@ export type Computer = {
   readonly snapshot: (name: string) => Promise<Snapshot>;
   readonly destroy: () => Promise<void>;
 };
-
-export const inWorkspace = (path: string) =>
-  path.startsWith('/') ? path : `${WORKSPACE}/${path.replace(/^\.\/?/, '')}`;
 
 const PLATFORM_INACTIVITY_MS = 60 * 60 * 1000;
 

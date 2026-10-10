@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeUrl, nulFrames } from '../src/browser';
+import { inWorkspace } from '../src/env';
 import {
   bounded,
   boundedShell,
@@ -91,5 +92,16 @@ describe('bounded shell', () => {
   it('gives humans a longer limit than the agent', () => {
     expect(bounded(['ls'], HUMAN_LIMIT_SECONDS)[4]).toBe(String(HUMAN_LIMIT_SECONDS));
     expect(HUMAN_LIMIT_SECONDS).toBeGreaterThan(RUN_LIMIT_SECONDS);
+  });
+});
+
+describe('workspace paths', () => {
+  it('keeps dot-files and dot-folders such as .git', () => {
+    expect(inWorkspace('.git')).toBe('/workspace/.git');
+    expect(inWorkspace('.github/workflows')).toBe('/workspace/.github/workflows');
+    expect(inWorkspace('./src/a.ts')).toBe('/workspace/src/a.ts');
+    expect(inWorkspace('.')).toBe('/workspace');
+    expect(inWorkspace('')).toBe('/workspace');
+    expect(inWorkspace('/etc/hosts')).toBe('/etc/hosts');
   });
 });
