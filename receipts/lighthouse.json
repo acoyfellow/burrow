@@ -1,0 +1,63 @@
+{
+  "lighthouse": "13.5.0, mobile preset (simulated slow 4G, 4x CPU)",
+  "target": "the coil app shell (wrangler dev, same code as production). Production sits behind Cloudflare Access, which serves its own login page to Lighthouse, so Lighthouse cannot score the app there.",
+  "runs": [
+    {
+      "scores": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "fcp": "0.8\u00a0s",
+      "lcp": "1.1\u00a0s",
+      "tbt": "0\u00a0ms",
+      "cls": "0.001"
+    },
+    {
+      "scores": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "fcp": "0.8\u00a0s",
+      "lcp": "1.1\u00a0s",
+      "tbt": "0\u00a0ms",
+      "cls": "0.001"
+    },
+    {
+      "scores": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 100,
+        "seo": 100
+      },
+      "fcp": "0.8\u00a0s",
+      "lcp": "1.1\u00a0s",
+      "tbt": "0\u00a0ms",
+      "cls": "0.001"
+    }
+  ],
+  "installability": {
+    "manifestErrors": [],
+    "installabilityErrors": [],
+    "checkedWith": "Chrome Page.getInstallabilityErrors"
+  },
+  "production": {
+    "url": "https://coil.coey.dev",
+    "serviceWorker": "active",
+    "shellCache": [
+      "coil-shell-e0d740ae00"
+    ],
+    "ttfbMs": 44,
+    "firstContentfulPaintMs": 79,
+    "transferKb": 19,
+    "measuredIn": "a logged-in browser tab, real network"
+  },
+  "before": {
+    "performance": 85,
+    "fcp": "3.3 s",
+    "cause": "Google Fonts stylesheet blocked first paint; now preloaded and applied after paint"
+  }
+}

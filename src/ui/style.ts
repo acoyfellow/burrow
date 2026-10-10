@@ -44,7 +44,8 @@ textarea{resize:none}
 .brand{display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px;height:42px;flex:none}
 .brand b{font-size:15px;font-weight:600;letter-spacing:-.02em}
 .brand b span{color:var(--orange)}
-.brand .logo{display:inline-flex;align-items:center;gap:7px}
+.brand .logo{display:inline-flex;align-items:center}
+.brand .logo img{margin-right:7px}
 .brand .logo img{border-radius:5px}
 #install{border:1px solid var(--line2);font-size:12px;padding:2px 8px}
 .offline .bar::after{content:'Offline. Showing the last view; actions resume when you reconnect.';position:fixed;top:6px;left:50%;transform:translateX(-50%);background:var(--orange-soft);color:var(--warn);border:1px solid var(--line2);border-radius:99px;padding:3px 12px;font-size:12px;z-index:40}
