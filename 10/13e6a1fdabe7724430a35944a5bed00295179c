@@ -1,0 +1,19 @@
+receipts/tweet.md
+  s_5f6d4912d3191a::t_d119b7a468762a 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "1013e6a1fdabe7724430a35944a5bed00295179c",
+  "prompts": {},
+  "sessions": {
+    "s_5f6d4912d3191a": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115b9-60e9-71ec-8331-eb33236fb839",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
