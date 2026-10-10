@@ -28,6 +28,7 @@ import {
 } from './ledger';
 import { workersAI } from './model';
 import { bounded, HUMAN_LIMIT_SECONDS } from './shell';
+import { DEFAULT_SIZE, type Size } from './size';
 import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
 
 export type ThreadView = {
@@ -38,6 +39,8 @@ export type ThreadView = {
   readonly repo: string | null;
   readonly running: boolean;
   readonly origin: Origin;
+  readonly owner: string;
+  readonly size: Size;
   readonly messages: Message[];
   readonly pairs: Pair[];
   readonly execs: ExecRecord[];
@@ -52,6 +55,8 @@ export type CreateOptions = {
   readonly forkedFrom?: string;
   readonly base?: string;
   readonly seed?: string;
+  readonly owner?: string;
+  readonly size?: Size;
 };
 
 export type Env = {
@@ -60,6 +65,7 @@ export type Env = {
   readonly AI: Ai;
   readonly MODEL: string;
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
+  readonly OWNER_EMAIL?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
 };
@@ -288,7 +294,7 @@ export class Thread extends DurableObject<Env> {
 
         if (this.ledger.phase === 'awake') await this.recordLostComputer(from);
 
-        await box.boot(from);
+        await box.boot(from, this.ledger.size);
 
         if (from === undefined && this.ledger.repo !== null) {
           const cloned = await box.exec(
@@ -345,6 +351,8 @@ export class Thread extends DurableObject<Env> {
           createdBy: 'agent',
           parent,
           base: snapshot.id,
+          owner: this.ledger.owner,
+          size: this.ledger.size,
         });
         await child.start(`${name}-task`, task);
 
@@ -471,6 +479,8 @@ export class Thread extends DurableObject<Env> {
 
     if (fresh) {
       this.ledger.repo = options.repo ?? null;
+      this.ledger.owner = options.owner ?? '';
+      this.ledger.size = options.size ?? DEFAULT_SIZE;
       this.ledger.origin = {
         parent: options.parent ?? null,
         forkedFrom: options.forkedFrom ?? null,
@@ -486,6 +496,7 @@ export class Thread extends DurableObject<Env> {
         parent: options.parent ?? null,
         forkedFrom: options.forkedFrom ?? null,
         createdBy: options.createdBy ?? 'api',
+        owner: options.owner ?? '',
       });
     }
 
@@ -706,6 +717,23 @@ export class Thread extends DurableObject<Env> {
     return pair;
   }
 
+  async resize(next: Size): Promise<{ size: Size; restarted: boolean }> {
+    if (next === this.ledger.size) return { size: next, restarted: false };
+
+    if (this.ledger.busy) throw new ThreadBusy('The agent is working. Resize after the turn ends.');
+
+    const wasRunning = this.computer().running();
+
+    if (wasRunning) await this.pause();
+
+    this.ledger.size = next;
+    await this.publish();
+
+    if (wasRunning) await this.awake();
+
+    return { size: next, restarted: wasRunning };
+  }
+
   async forkContext(): Promise<string> {
     const messages = await (await this.open()).messages();
     const compaction = messages.filter((m) => m.kind === 'pi.compaction').at(-1);
@@ -735,6 +763,8 @@ export class Thread extends DurableObject<Env> {
       repo: this.ledger.repo,
       running: this.ctx.container?.running ?? false,
       origin: this.ledger.origin,
+      owner: this.ledger.owner,
+      size: this.ledger.size,
       messages: await agent.messages(),
       pairs: this.ledger.pairs(),
       execs: this.ledger.execs(),

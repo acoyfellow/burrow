@@ -178,6 +178,9 @@ dialog::backdrop{background:rgba(0,0,0,.3)}
 dialog form{display:flex;flex-direction:column;gap:10px;padding:16px}
 dialog h3{margin:0;font-size:15px;font-weight:600}
 dialog label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--dim)}
+dialog select{border:1px solid var(--line2);border-radius:8px;padding:6px 8px;background:var(--bg);color:var(--text);font:inherit;font-size:13px}
+.size-pick{border:1px solid transparent;border-radius:99px;background:var(--raise);color:var(--dim);font:inherit;font-size:11.5px;padding:1px 6px;margin-right:4px;max-width:110px}
+.size-pick:hover{border-color:var(--line2)}
 dialog .actions{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}
 dialog .actions .primary{padding:5px 12px}
 

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { AccessDenied, accessConfig, verifyAccess } from './access';
 import { mcp } from './mcp';
 import { type Coil, coil } from './service';
+import { isSize, SIZES } from './size';
 import type { Env } from './thread';
 import { page } from './ui/index';
 import { serviceWorker } from './ui/sw';
@@ -12,6 +13,8 @@ export { Thread } from './thread';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
+const LOCAL_OWNER = 'local';
+
 type Vars = { Bindings: Env; Variables: { who: string; api: Coil } };
 
 const app = new Hono<Vars>();
@@ -19,7 +22,7 @@ const app = new Hono<Vars>();
 app.use('*', async (c, next) => {
   if (c.env.LOCAL_DEV_WITHOUT_ACCESS === '1' && LOCAL_HOSTS.has(new URL(c.req.url).hostname)) {
     c.set('who', 'local');
-    c.set('api', coil(c.env));
+    c.set('api', coil(c.env, LOCAL_OWNER));
 
     return next();
   }
@@ -31,14 +34,16 @@ app.use('*', async (c, next) => {
   try {
     const identity = await verifyAccess(c.req.header('Cf-Access-Jwt-Assertion') ?? null, config);
 
-    c.set('who', identity.email ?? 'access');
+    if (identity.email === null) return c.text('Forbidden: the Access token has no email', 403);
+
+    c.set('who', identity.email.toLowerCase());
   } catch (cause) {
     if (cause instanceof AccessDenied) return c.text(`Forbidden: ${cause.message}`, 403);
 
     throw cause;
   }
 
-  c.set('api', coil(c.env));
+  c.set('api', coil(c.env, c.var.who));
 
   return next();
 });
@@ -52,7 +57,16 @@ app.get('/t/:name', (c) => c.html(page()));
 app.get('/api/threads', async (c) => c.json(await c.var.api.list()));
 
 app.post('/api/threads', async (c) => {
-  const input = await body<{ name: string; repo: string; title: string; warm: boolean }>(c.req.raw);
+  const input = await body<{
+    name: string;
+    repo: string;
+    title: string;
+    warm: boolean;
+    size: string;
+  }>(c.req.raw);
+
+  if (input.size !== undefined && !isSize(input.size))
+    return c.json({ error: `size must be one of ${SIZES.join(', ')}` }, 400);
 
   return c.json(
     await c.var.api.create({
@@ -61,6 +75,7 @@ app.post('/api/threads', async (c) => {
       title: input.title,
       createdBy: 'web',
       warm: input.warm !== false,
+      size: isSize(input.size) ? input.size : undefined,
     }),
     201,
   );
@@ -109,6 +124,26 @@ app.post('/api/threads/:name/compact', async (c) =>
 app.post('/api/threads/:name/pause', async (c) =>
   c.json(await c.var.api.pause(c.req.param('name'))),
 );
+
+app.post('/api/threads/:name/size', async (c) => {
+  const input = await body<{ size: string }>(c.req.raw);
+
+  if (!isSize(input.size)) return c.json({ error: `size must be one of ${SIZES.join(', ')}` }, 400);
+
+  return c.json(await c.var.api.resize(c.req.param('name'), input.size));
+});
+
+app.get('/api/sizes', (c) => c.json(SIZES));
+
+app.post('/api/adopt-unowned', async (c) => {
+  if (c.env.OWNER_EMAIL === undefined || c.var.who !== c.env.OWNER_EMAIL.toLowerCase())
+    return c.json(
+      { error: 'only the deploy owner can adopt threads made before per-user threads' },
+      403,
+    );
+
+  return c.json({ adopted: await c.env.DIRECTORY.getByName('all').adoptUnowned(c.var.who) });
+});
 
 app.post('/api/threads/:name/fork', async (c) => {
   const input = await body<{ name: string }>(c.req.raw);
@@ -176,7 +211,7 @@ app.onError((error, c) => {
   const message = error instanceof Error ? error.message : String(error);
   const status = /no such file|not found|ENOENT|unknown thread/i.test(message)
     ? 404
-    : /agent is working|command is running/i.test(message)
+    : /agent is working|command is running|name .* is taken/i.test(message)
       ? 409
       : 400;
 

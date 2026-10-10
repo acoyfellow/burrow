@@ -67,6 +67,8 @@ It is an installable PWA: add it to your dock or home screen.
 | **Compact** | The transcript is summarised and the disk is saved, recorded together. |
 | **Fork** | A new thread starts from this thread's current disk and a summary of its conversation. |
 | **Child threads** | The agent can hand a side task to a child thread with its own computer, then wait for its answer. |
+| **Computer size** | Pick `lite` to `standard-4` when you create a thread, or change it later from the bar. A running computer is paused (disk saved) and restarted at the new size; programs that were running stop. |
+| **Your threads only** | Each person behind Access has their own thread list, and children and forks belong to whoever started them. |
 | **Warm bases** | `POST /api/bases {repo, setup}` clones a repo, runs setup once, and snapshots it. |
 
 On a phone you get the transcript and the composer, with the computer and actions behind a menu:
@@ -122,12 +124,13 @@ The same actions are tools on `POST /mcp` (JSON-RPC):
 | Tool | Does |
 | --- | --- |
 | `thread_list` | All threads, newest activity first. |
-| `thread_create` | New thread: its own agent and its own computer. Optional `repo`. |
+| `thread_create` | New thread: its own agent and its own computer. Optional `repo` and `size`. |
 | `thread_send` | One agent turn; returns the answer. The same `requestId` does not run the turn twice. |
 | `thread_exec` | A shell command in the thread's `/workspace`. |
 | `thread_read_file` | Read a file from the thread's computer. |
 | `thread_compact` | Compact the transcript and snapshot the disk as one pair. |
 | `thread_pause` | Snapshot the disk and stop the computer. |
+| `thread_resize` | Change the container size: `lite`, `standard-1` (default), `standard-2`, `standard-3`, `standard-4`. |
 | `thread_fork` | New thread from this thread's disk and a summary of its conversation. |
 | `thread_status` | Phase, transcript, pairs, and recent commands. |
 | `base_prepare` | Clone a repo, run setup once, snapshot it for warm starts. |
@@ -143,6 +146,8 @@ The same actions are tools on `POST /mcp` (JSON-RPC):
 | Compaction pairs | Compact, pause, kill, resume: the disk and the summary come back together |
 | Directory and fork | Threads made over MCP and the web are both listed; a fork reads the parent's file |
 | Access | A missing, malformed, expired, wrong-issuer, wrong-audience, wrong-key, or unknown-key token is refused |
+| Owners | A second Access user cannot list, view, read, run, pause, or fork another user's thread, or take its name |
+| Size | A thread starts at the size it was created with; resizing restarts it at the new size with the same disk |
 | Surfaces | tmux attach and history, resize framing, CDP pipe framing, URL handling, the 120 s command limit |
 | PWA | The manifest is installable, every icon exists, and the service worker never caches the API |
 
@@ -183,7 +188,7 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 - **It does not work offline.** The PWA caches the app shell so it opens instantly and shows your last view, but threads, terminals, and the browser need the network.
 - **Terminals have no mouse support.** Scroll back with tmux keys, not the wheel.
 - **Commands the agent runs stop after 120 seconds.** Start long-running servers in the background; you can run anything in a terminal.
-- **It is not multi-user.** One owner per deploy, behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/). The Worker verifies the Access token itself and returns 503 if Access is not configured.
+- **It is not a team workspace.** Everyone your [Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy lets in gets their own threads, keyed on the email in the Access token: you cannot see, open, or drive anyone else's thread, and a name someone else took is refused. There is no sharing or handing a thread to a colleague yet. Warm bases are shared by repo URL. Workers AI and container usage for everyone is billed to the deploying account. The Worker verifies the Access token itself, refuses tokens without an email, and returns 503 if Access is not configured.
 - **It is not a security boundary for hostile code on its own.** Computers have internet access.
 - **Replies arrive whole, not token by token.** The Workers AI bridge returns complete messages; tool calls and their output stream live.
 - **`run` and `start_child` are `replay: "unsafe"`.** If a thread dies mid-command, Pi Durable does not run the command again.

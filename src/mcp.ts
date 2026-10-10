@@ -1,4 +1,5 @@
 import type { Coil } from './service';
+import { isSize, SIZES } from './size';
 
 type Rpc = {
   jsonrpc: '2.0';
@@ -26,6 +27,8 @@ const obj = (
 
 const NAME = { type: 'string', description: 'Thread name' };
 
+const SIZE = { type: 'string', enum: [...SIZES], description: 'Container size' };
+
 const TOOLS = [
   {
     name: 'thread_list',
@@ -36,7 +39,12 @@ const TOOLS = [
     name: 'thread_create',
     description:
       'Create a thread: its own agent and its own Linux computer. Optional repo is a git URL; if a warm base exists for it, the computer starts from that.',
-    inputSchema: obj({ name: NAME, repo: { type: 'string' }, title: { type: 'string' } }),
+    inputSchema: obj({
+      name: NAME,
+      repo: { type: 'string' },
+      title: { type: 'string' },
+      size: SIZE,
+    }),
   },
   {
     name: 'thread_send',
@@ -68,6 +76,12 @@ const TOOLS = [
     inputSchema: obj({ name: NAME }, ['name']),
   },
   {
+    name: 'thread_resize',
+    description:
+      'Change the container size of a thread. A running computer is paused (disk saved) and restarted at the new size; a paused one uses it on its next start.',
+    inputSchema: obj({ name: NAME, size: SIZE }, ['name', 'size']),
+  },
+  {
     name: 'thread_fork',
     description:
       'Start a new thread from this thread’s current disk and a summary of its conversation.',
@@ -86,6 +100,8 @@ const TOOLS = [
   },
 ];
 
+const sizeArg = (value: unknown) => (isSize(value) ? value : undefined);
+
 const call = async (api: Coil, tool: string, args: Record<string, unknown>): Promise<unknown> => {
   switch (tool) {
     case 'thread_list':
@@ -96,6 +112,7 @@ const call = async (api: Coil, tool: string, args: Record<string, unknown>): Pro
         repo: opt(args.repo) ?? null,
         title: opt(args.title),
         createdBy: 'mcp',
+        size: sizeArg(args.size),
       });
     case 'thread_send':
       return api.send(
@@ -111,6 +128,13 @@ const call = async (api: Coil, tool: string, args: Record<string, unknown>): Pro
       return api.compact(str(args.name, 'name'));
     case 'thread_pause':
       return api.pause(str(args.name, 'name'));
+    case 'thread_resize': {
+      const size = sizeArg(args.size);
+
+      if (size === undefined) throw new Error(`size must be one of ${SIZES.join(', ')}`);
+
+      return api.resize(str(args.name, 'name'), size);
+    }
     case 'thread_fork':
       return api.fork(str(args.name, 'name'), opt(args.forkName), 'mcp');
     case 'thread_status':

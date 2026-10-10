@@ -97,3 +97,29 @@ test('lifecycle: pause waits for the turn, a lost computer is reported, and an i
   expect(out.idleRunning).toBe(false);
   expect(out.idlePairs.at(-1)).toBe('pause');
 });
+
+test('each Access user sees and controls only their own threads', { timeout: 60_000 }, async () => {
+  const out = await get('/owners');
+
+  expect(out.anaSees.length).toBe(2);
+  expect(out.boSees).toEqual([]);
+  for (const key of ['boView', 'boRead', 'boExec', 'boPause', 'boFork'])
+    expect(out[key]).toMatch(/unknown thread/);
+  expect(out.boTakesName).toMatch(/is taken/);
+  expect(out.anaOwner).toBe('ana@example.com');
+  expect(out.forkOwner).toBe('ana@example.com');
+});
+
+test('container size is set at creation and can change later without losing the disk', {
+  timeout: 60_000,
+}, async () => {
+  const out = await get('/size');
+
+  expect(out.created).toBe('standard-2');
+  expect(out.resized).toEqual({ size: 'standard-4', restarted: true });
+  expect(out.afterResize).toBe('survives-resize');
+  expect(out.same).toEqual({ size: 'standard-4', restarted: false });
+  expect(out.pausedResize).toEqual({ size: 'lite', restarted: false });
+  expect(out.boots).toEqual(['standard-2', 'standard-4', 'lite']);
+  expect(out.finalSize).toBe('lite');
+});

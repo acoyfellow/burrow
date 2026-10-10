@@ -1,4 +1,5 @@
 import type { Snapshot } from './computer';
+import { type Size, sizeOrDefault } from './size';
 
 export type Phase = 'new' | 'awake' | 'paused';
 
@@ -92,6 +93,22 @@ export class Ledger {
 
   claim(name: string) {
     if (this.name === null) this.put('name', name);
+  }
+
+  get owner(): string {
+    return this.get('owner') ?? '';
+  }
+
+  set owner(email: string) {
+    if (this.get('owner') === null) this.put('owner', email);
+  }
+
+  get size(): Size {
+    return sizeOrDefault(this.get('size'));
+  }
+
+  set size(next: Size) {
+    this.put('size', next);
   }
 
   get repo(): string | null {

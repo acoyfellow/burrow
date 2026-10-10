@@ -8,7 +8,7 @@ import type { ModelChoice } from '../../src/agent';
 import type { Computer } from '../../src/computer';
 import { coil } from '../../src/service';
 import { type Env, Thread } from '../../src/thread';
-import { crash, memoryComputer } from '../memory-computer';
+import { bootSizes, crash, memoryComputer } from '../memory-computer';
 
 export { Directory } from '../../src/directory';
 
@@ -75,6 +75,10 @@ export class TestThread extends Thread {
     crash(this.ctx.id.toString());
   }
 
+  async bootSizes() {
+    return bootSizes(this.ctx.id.toString());
+  }
+
   async runAlarm() {
     await this.alarm();
   }
@@ -97,7 +101,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const api = coil(env);
+    const api = coil(env, 'ana@example.com');
+    const other = coil(env, 'bo@example.com');
     const stub = (name: string) => env.THREAD.getByName(name);
     const run = url.searchParams.get('run') ?? crypto.randomUUID().slice(0, 8);
 
@@ -216,6 +221,63 @@ export default {
           () => 'found',
           (error: Error) => error.message,
         ),
+      });
+    }
+
+    if (url.pathname === '/owners') {
+      const mine = `o-${run}`;
+      const refused = (work: Promise<unknown>) =>
+        work.then(
+          () => 'allowed',
+          (error: Error) => error.message,
+        );
+
+      await api.create({ name: mine, createdBy: 'test' });
+      await api.send(mine, 'r1', 'write private.txt containing ana-only');
+
+      const forked = await api.fork(mine, `${mine}-f`, 'web');
+
+      return Response.json({
+        anaSees: (await api.list()).map((t) => t.name).filter((n) => n.startsWith(mine)),
+        boSees: (await other.list()).map((t) => t.name).filter((n) => n.startsWith(mine)),
+        boView: await refused(other.view(mine)),
+        boRead: await refused(other.read(mine, 'private.txt')),
+        boExec: await refused(other.exec(mine, ['bash', '-lc', 'ls'])),
+        boPause: await refused(other.pause(mine)),
+        boFork: await refused(other.fork(mine, undefined, 'web')),
+        boTakesName: await refused(other.create({ name: mine, createdBy: 'test' })),
+        forkOwner: forked.owner,
+        anaOwner: (await api.view(mine)).owner,
+      });
+    }
+
+    if (url.pathname === '/size') {
+      const name = `s-${run}`;
+      const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      const made = await api.create({ name, createdBy: 'test', size: 'standard-2' });
+
+      await api.exec(name, ['bash', '-lc', 'true']);
+      await api.send(name, 'r1', 'write big.txt containing survives-resize');
+
+      const resized = await api.resize(name, 'standard-4');
+      const afterResize = await api.read(name, 'big.txt');
+      const same = await api.resize(name, 'standard-4');
+
+      await api.pause(name);
+
+      const pausedResize = await api.resize(name, 'lite');
+
+      await api.exec(name, ['bash', '-lc', 'true']);
+
+      return Response.json({
+        created: made.size,
+        resized,
+        afterResize,
+        same,
+        pausedResize,
+        boots: await test.bootSizes(),
+        finalSize: (await api.view(name)).size,
       });
     }
 

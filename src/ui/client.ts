@@ -65,6 +65,9 @@ function renderBar() {
   bar.append(h('h1', { title: S.name }, v ? v.title : S.name));
   if (!v) return;
   bar.append(h('span', { class: 'chip ' + phaseOf(v), id: 'phase' }, v.busy ? spinner() : null, phaseLabel(v)));
+  const sizePicker = h('select', { class: 'size-pick', id: 'size', title: 'Computer size. Changing it restarts a running computer; the disk is kept.', disabled: locked, onchange: (e) => resize(e.target.value) },
+    ...SIZES.map((s) => h('option', { value: s, selected: s === v.size }, s)));
+  bar.append(sizePicker);
   const locked = !!S.action || v.busy;
   const button = (key, label, onclick, extra) => h('button', { id: 'act-' + key, disabled: locked || extra, onclick }, S.action === key ? spinner() : null, label);
   const actions = h('div', { class: 'actions', id: 'actions' },
@@ -523,16 +526,29 @@ async function openFile(path) {
   renderPanel();
 }
 
+const SIZES = ['lite', 'standard-1', 'standard-2', 'standard-3', 'standard-4'];
+
+async function resize(size) {
+  const v = S.view;
+  if (!v || size === v.size) return;
+  if (v.running && !confirm('Restart the computer at ' + size + '? The disk is saved first; running programs stop.')) { renderBar(); return; }
+  S.action = 'size'; renderBar(); toast('Changing the computer to ' + size + '…');
+  try { const r = await api('/api/threads/' + S.name + '/size', { method: 'POST', body: JSON.stringify({ size }) }); toast(r.restarted ? 'Restarted at ' + size + '. The disk was kept.' : 'The computer will start at ' + size + '.'); }
+  catch (err) { toast('Could not change the size: ' + err.message, true); }
+  finally { S.action = null; await loadView(); }
+}
+
 function openNew() { $('#new').showModal(); $('#new-repo').focus(); }
 
 async function create(e) {
   e.preventDefault();
   const repo = $('#new-repo').value.trim();
   const title = $('#new-title').value.trim();
+  const size = $('#new-size').value;
   const btn = $('#new-go');
   btn.disabled = true; btn.replaceChildren(spinner(), 'Starting its computer');
   try {
-    const t = await api('/api/threads', { method: 'POST', body: JSON.stringify({ ...(repo ? { repo } : {}), ...(title ? { title } : {}) }) });
+    const t = await api('/api/threads', { method: 'POST', body: JSON.stringify({ ...(repo ? { repo } : {}), ...(title ? { title } : {}), size }) });
     $('#new').close(); $('#new-repo').value = ''; $('#new-title').value = '';
     await loadThreads(); go(t.name);
   } catch (err) { toast('Could not create the thread: ' + err.message, true); }

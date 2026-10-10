@@ -60,6 +60,7 @@ export const page = () => `<!doctype html>
     <h3>New thread</h3>
     <label>Git repository (optional)<input id="new-repo" placeholder="https://github.com/owner/repo" autocomplete="off"></label>
     <label>Title (optional)<input id="new-title" placeholder="What is this thread for?" autocomplete="off"></label>
+    <label>Computer size<select id="new-size"><option value="lite">lite (smallest)</option><option value="standard-1" selected>standard-1 (default)</option><option value="standard-2">standard-2</option><option value="standard-3">standard-3</option><option value="standard-4">standard-4 (largest)</option></select></label>
     <div class="actions"><button type="button" id="new-cancel">Cancel</button><button class="primary" id="new-go" type="submit">Create</button></div>
   </form>
 </dialog>

@@ -8,6 +8,10 @@ const running = new Map<string, Disk>();
 
 export const crash = (owner: string) => running.delete(owner);
 
+const bootedAt = new Map<string, string[]>();
+
+export const bootSizes = (owner: string) => bootedAt.get(owner) ?? [];
+
 const ok = (stdout = ''): ExecResult => ({ exitCode: 0, stdout, stderr: '' });
 
 const live = (owner: string): Disk => {
@@ -26,8 +30,10 @@ const listing = (disk: Disk) =>
 
 export const memoryComputer = (owner: string): Computer => ({
   running: () => running.has(owner),
-  boot: async (from) => {
+  boot: async (from, size) => {
     if (running.has(owner)) return;
+
+    bootedAt.set(owner, [...(bootedAt.get(owner) ?? []), size]);
 
     running.set(owner, new Map(from === undefined ? [] : (snapshots.get(from.id) ?? [])));
   },

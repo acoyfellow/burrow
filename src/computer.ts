@@ -1,5 +1,6 @@
 import { Files } from '@cloudflare/sandbox';
 import { inWorkspace, SHELL_ENV, WORKSPACE } from './env';
+import type { Size } from './size';
 
 export { inWorkspace, SHELL_ENV, WORKSPACE };
 
@@ -19,7 +20,7 @@ export class ComputerLost extends Error {
 
 export type Computer = {
   readonly running: () => boolean;
-  readonly boot: (from: Snapshot | undefined) => Promise<void>;
+  readonly boot: (from: Snapshot | undefined, size: Size) => Promise<void>;
   readonly exec: (argv: readonly string[], cwd?: string) => Promise<ExecResult>;
   readonly readFile: (path: string) => Promise<string>;
   readonly writeFile: (path: string, content: string) => Promise<void>;
@@ -67,12 +68,12 @@ export const sandboxComputer = (container: Container, image: string): Computer =
 
   return {
     running: () => container.running,
-    boot: async (from) => {
+    boot: async (from, size) => {
       if (container.running) return;
 
       const base = {
         enableInternet: true,
-        instance: 'standard-1' as const,
+        instance: size,
         labels: { app: 'coil' },
       };
 

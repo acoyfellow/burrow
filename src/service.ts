@@ -1,3 +1,4 @@
+import { DEFAULT_SIZE, type Size } from './size';
 import type { Env } from './thread';
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
@@ -5,6 +6,8 @@ const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const DIRECTORY = 'all';
 
 export type CreateInput = {
+  readonly owner: string;
+  readonly size?: Size;
   readonly name?: string;
   readonly repo?: string | null;
   readonly title?: string;
@@ -21,7 +24,7 @@ const slug = (text: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 24) || 'thread';
 
-export const coil = (env: Env) => {
+export const coil = (env: Env, owner: string) => {
   const directory = env.DIRECTORY.getByName(DIRECTORY);
 
   const thread = (name: string) => {
@@ -31,25 +34,37 @@ export const coil = (env: Env) => {
   };
 
   const known = async (name: string) => {
-    if ((await directory.get(name)) === null) throw new Error(`unknown thread ${name}`);
+    const summary = await directory.get(name);
+
+    if (summary === null || summary.owner !== owner) throw new Error(`unknown thread ${name}`);
 
     return thread(name);
   };
 
-  const create = async (input: CreateInput) => {
+  const claimed = async (name: string) => {
+    const summary = await directory.get(name);
+
+    if (summary !== null && summary.owner !== owner) throw new Error(`The name ${name} is taken`);
+
+    return thread(name);
+  };
+
+  const create = async (input: Omit<CreateInput, 'owner'>) => {
     const name = input.name ?? fresh(slug(input.title ?? input.repo?.split('/').pop() ?? 'thread'));
     const base = input.repo && input.warm !== false ? await directory.base(input.repo) : null;
 
-    return thread(name).create(name, {
+    return (await claimed(name)).create(name, {
       repo: input.repo ?? null,
       title: input.title,
       createdBy: input.createdBy,
       base: base?.snapshotId,
+      owner,
+      size: input.size ?? DEFAULT_SIZE,
     });
   };
 
   return {
-    list: () => directory.list(),
+    list: () => directory.list(owner),
     create,
     view: async (name: string) => (await known(name)).view(),
     events: async (name: string, request: Request) =>
@@ -71,6 +86,7 @@ export const coil = (env: Env) => {
     list_dir: async (name: string, path: string) => (await known(name)).list(path),
     compact: async (name: string) => (await known(name)).compact(),
     pause: async (name: string) => (await known(name)).pause(),
+    resize: async (name: string, size: Size) => (await known(name)).resize(size),
     answer: async (name: string) => (await known(name)).waitForAnswer(),
     fork: async (name: string, forkName: string | undefined, createdBy: string) => {
       const source = await known(name);
@@ -78,14 +94,17 @@ export const coil = (env: Env) => {
       const snapshot = await source.snapshot();
       const seed = await source.forkContext();
       const target = forkName ?? fresh(`${name.slice(0, 40)}-fork`);
+      const view = await source.view();
 
-      return thread(target).create(target, {
+      return (await claimed(target)).create(target, {
         repo: summary?.repo ?? null,
         title: `Fork of ${summary?.title ?? name}`,
         createdBy,
         forkedFrom: name,
         base: snapshot.id,
         seed,
+        owner,
+        size: view.size,
       });
     },
     bases: () => directory.bases(),
@@ -93,7 +112,7 @@ export const coil = (env: Env) => {
       const name = fresh(`base-${slug(repo.split('/').pop() ?? 'repo')}`);
       const box = thread(name);
 
-      await box.create(name, { repo, title: `Warm base for ${repo}`, createdBy: 'base' });
+      await box.create(name, { repo, title: `Warm base for ${repo}`, createdBy: 'base', owner });
 
       const ran =
         setup.trim() === ''

@@ -9,6 +9,7 @@ export type ThreadSummary = {
   readonly parent: string | null;
   readonly forkedFrom: string | null;
   readonly createdBy: string;
+  readonly owner: string;
   readonly createdAt: number;
   readonly updatedAt: number;
 };
@@ -26,6 +27,7 @@ type Row = {
   parent: string | null;
   forked_from: string | null;
   created_by: string;
+  owner: string;
   created_at: number;
   updated_at: number;
 };
@@ -39,6 +41,7 @@ const fromRow = (row: Row): ThreadSummary => ({
   parent: row.parent,
   forkedFrom: row.forked_from,
   createdBy: row.created_by,
+  owner: row.owner,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -52,6 +55,17 @@ export class Directory extends DurableObject {
     ctx.storage.sql.exec(
       `CREATE TABLE IF NOT EXISTS bases (repo TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL, thread TEXT NOT NULL, setup TEXT NOT NULL, at INTEGER NOT NULL)`,
     );
+    this.migrate();
+  }
+
+  private migrate() {
+    const columns = this.ctx.storage.sql
+      .exec<{ name: string }>('PRAGMA table_info(threads)')
+      .toArray()
+      .map((c) => c.name);
+
+    if (!columns.includes('owner'))
+      this.ctx.storage.sql.exec(`ALTER TABLE threads ADD COLUMN owner TEXT NOT NULL DEFAULT ''`);
   }
 
   upsert(update: ThreadUpdate): void {
@@ -65,11 +79,12 @@ export class Directory extends DurableObject {
       parent: update.parent ?? current?.parent ?? null,
       forkedFrom: update.forkedFrom ?? current?.forkedFrom ?? null,
       createdBy: update.createdBy ?? current?.createdBy ?? 'api',
+      owner: current?.owner || update.owner || '',
     };
 
     this.ctx.storage.sql.exec(
-      `INSERT INTO threads (name, title, phase, busy, repo, parent, forked_from, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET title = excluded.title, phase = excluded.phase, busy = excluded.busy, repo = excluded.repo, parent = excluded.parent, forked_from = excluded.forked_from, updated_at = excluded.updated_at`,
+      `INSERT INTO threads (name, title, phase, busy, repo, parent, forked_from, created_by, owner, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(name) DO UPDATE SET title = excluded.title, phase = excluded.phase, busy = excluded.busy, repo = excluded.repo, parent = excluded.parent, forked_from = excluded.forked_from, owner = excluded.owner, updated_at = excluded.updated_at`,
       update.name,
       next.title,
       next.phase,
@@ -78,6 +93,7 @@ export class Directory extends DurableObject {
       next.parent,
       next.forkedFrom,
       next.createdBy,
+      next.owner,
       current?.createdAt ?? now,
       now,
     );
@@ -91,11 +107,20 @@ export class Directory extends DurableObject {
     return row === undefined ? null : fromRow(row);
   }
 
-  list(limit = 200): ThreadSummary[] {
+  list(owner: string, limit = 200): ThreadSummary[] {
     return this.ctx.storage.sql
-      .exec<Row>('SELECT * FROM threads ORDER BY updated_at DESC LIMIT ?', limit)
+      .exec<Row>(
+        'SELECT * FROM threads WHERE owner = ? ORDER BY updated_at DESC LIMIT ?',
+        owner,
+        limit,
+      )
       .toArray()
       .map(fromRow);
+  }
+
+  adoptUnowned(owner: string): number {
+    return this.ctx.storage.sql.exec(`UPDATE threads SET owner = ? WHERE owner = ''`, owner)
+      .rowsWritten;
   }
 
   remove(name: string): void {
