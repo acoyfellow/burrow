@@ -1,0 +1,37 @@
+README.md
+  s_aaa885f9224222::t_055b23d49ecf7c 155,157,212
+receipts/flow-control.json
+  s_aaa885f9224222::t_5cc324ff28873b 1-17
+receipts/reviews/round-3/architecture-and-performance.md
+  s_aaa885f9224222::t_3be4d300d40282 1-40
+src/thread.ts
+  s_aaa885f9224222::t_d789b312f7fa2e 97-98,279-282,500-509,618,629,645,797-802,851,853-857,861-862,871,909
+test/thread.test.ts
+  s_d58794dec92dc7::t_bdb774909fe19f 87-89
+test/worker/index.ts
+  s_d58794dec92dc7::t_ea8305b90b9d27 249-258,273-275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6d370fe28a99cb726db7beed3a740739c505edfa",
+  "prompts": {},
+  "sessions": {
+    "s_aaa885f9224222": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a11c8a-37e4-7010-8e5b-55d3cf7c925a",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    },
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
