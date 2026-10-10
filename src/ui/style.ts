@@ -29,6 +29,7 @@ export const STYLE = `
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--text);font:13.5px/1.55 var(--sans);font-optical-sizing:auto;-webkit-font-smoothing:antialiased;overflow:hidden}
 button,input,textarea{font:inherit;color:inherit}
+@media (max-width: 500px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),select,textarea,[contenteditable]:not([contenteditable=false]){font-size:16px !important}}
 button{cursor:pointer;border:1px solid transparent;background:transparent;border-radius:6px;padding:3px 8px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;color:var(--dim);font-size:13px}
 button:hover:not(:disabled){background:var(--hover);color:var(--text)}
 button:disabled{opacity:.4;cursor:default}

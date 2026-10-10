@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CLIENT } from '../src/ui/client';
+import { STYLE } from '../src/ui/style';
 import { serviceWorker } from '../src/ui/sw';
 
 describe('browser code', () => {
@@ -39,5 +40,20 @@ describe('web app manifest', () => {
 
     for (const icon of manifest.icons)
       expect(() => readFileSync(`public${icon.src}`)).not.toThrow();
+  });
+});
+
+describe('phone text entry', () => {
+  it('keeps every text-entry control at 16px on phones so iOS Safari does not zoom', () => {
+    const rule = /@media \(max-width: 500px\)\{([^{]+)\{font-size:16px !important\}\}/.exec(STYLE);
+
+    expect(rule).not.toBeNull();
+    for (const selector of [
+      'input:not([type=checkbox])',
+      'select',
+      'textarea',
+      '[contenteditable]',
+    ])
+      expect(rule?.[1]).toContain(selector);
   });
 });
