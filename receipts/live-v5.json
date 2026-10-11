@@ -107,6 +107,16 @@
    "ok": true,
    "detail": "browser_screenshot ran llama-4-scout on a CDP jpeg; it named the page 'Example Domain' but said there is no large heading (weak answer; the page's h1 query also came back empty)",
    "at": "2026-10-11T21:35:03.651664Z"
+  },
+  "thread_crud": {
+   "ok": true,
+   "detail": "v5loop-9366 agent: thread_create 'crud probe' -> crud-probe-7c2faa (owned by the same Access user); thread_list shows it; owner deleted it via DeleteThread and it left the list. Rename/archive/delete also proven in phase B.",
+   "at": "2026-10-11T21:36:05.139518Z"
+  },
+  "thread_isolation": {
+   "ok": true,
+   "detail": "agent thread_read on a thread it does not own -> 'unknown thread not-mine-zz9'; worker test proves another Access user's thread reads as unknown and never lists",
+   "at": "2026-10-11T21:36:05.139518Z"
   }
  },
  "shots": []
