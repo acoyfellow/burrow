@@ -8,6 +8,7 @@ import {
   type Message,
   type ModelChoice,
   openAgent,
+  type ThreadDirectory,
 } from './agent';
 import { Browser, type Frame, type PageState } from './browser';
 import {
@@ -384,6 +385,77 @@ export class Thread extends DurableObject<Env> {
     };
   }
 
+  private threadDirectory(): ThreadDirectory {
+    const self = () => this.ledger.name ?? '';
+    const owned = async (name: string) => {
+      const owner = await this.ownerEmail();
+      const summary = await this.directory.get(name);
+
+      if (summary === null || summary.owner !== owner || name === self())
+        throw new Error(`unknown thread ${name}`);
+
+      return summary;
+    };
+
+    return {
+      list: async () => {
+        const owner = await this.ownerEmail();
+        const rows = (await this.directory.list(owner)).filter(
+          (t) => t.name !== self() && !t.archived,
+        );
+
+        return rows.length === 0
+          ? '(no other threads)'
+          : rows.map((t) => `${t.name}\t${t.busy ? 'working' : t.phase}\t${t.title}`).join('\n');
+      },
+      read: async (name, last) => {
+        await owned(name);
+        const view = await this.env.THREAD.getByName(name).view();
+        const said = view.messages
+          .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.text !== '')
+          .slice(-last)
+          .map((m) => `${m.role}: ${m.text}`)
+          .join('\n\n');
+
+        return `<thread-data name="${name}" state="${view.busy ? 'working' : view.phase}">\n${said}\n</thread-data>`;
+      },
+      send: async (name, message) => {
+        await owned(name);
+        const target = this.env.THREAD.getByName(name);
+
+        if ((await target.view()).busy) return `${name} is working; try again after its turn.`;
+
+        await target.start(
+          `from-${self()}-${crypto.randomUUID().slice(0, 8)}`,
+          `[message from thread ${self()}]\n${message}`,
+        );
+
+        return `sent to ${name}`;
+      },
+      create: async (title, task) => {
+        const owner = await this.ownerEmail();
+        const name = `${
+          title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 24) || 'thread'
+        }-${crypto.randomUUID().slice(0, 6)}`;
+        const target = this.env.THREAD.getByName(name);
+
+        await target.create(name, {
+          title: title.slice(0, 80),
+          createdBy: `thread:${self()}`,
+          owner,
+          size: this.ledger.size,
+        });
+        if (task !== undefined && task.trim() !== '') await target.start(`${name}-task`, task);
+
+        return `created ${name}`;
+      },
+    };
+  }
+
   private surfacesChanged(next: Surface[]) {
     this.ledger.surfaces = next;
     this.emit({ type: 'surfaces', surfaces: next });
@@ -511,6 +583,8 @@ export class Thread extends DurableObject<Env> {
       this.settings(),
       () => this.ledger.origin.seed,
       this.browserTools(),
+      undefined,
+      this.threadDirectory(),
     )
       .then(async (agent) => {
         this.unwatch ??= await agent.watch((events) => {

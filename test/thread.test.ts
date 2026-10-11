@@ -134,3 +134,20 @@ test('agent tools: edit_file changes one exact piece; notes survive in the ledge
   expect(out.toolNames).toEqual(['write_file', 'edit_file', 'notes_write']);
   expect(out.turns).toBe(3);
 });
+
+test('threads drive threads: list, read as data, send, create; another owner stays unknown', {
+  timeout: 60_000,
+}, async () => {
+  const out = await get('/threads');
+
+  expect(out.listed).toContain('tb-');
+  expect(out.listed).not.toContain('tf-');
+  expect(out.read).toContain('<thread-data');
+  expect(out.read).toContain('hello from b');
+  expect(out.sent).toContain('sent to tb-');
+  expect(out.bFiles.split('\n')).toContain('c.txt');
+  expect(out.foreignRead).toContain('unknown thread tf-');
+  expect(out.created).toContain('created made-by-a-');
+  expect(out.madeByA).toEqual(['Made by a']);
+  expect(out.foreignListedForAna).toBe(false);
+});

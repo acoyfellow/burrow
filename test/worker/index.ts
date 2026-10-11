@@ -65,6 +65,19 @@ const scripted = (): ModelChoice => {
           { stopReason: 'toolUse' },
         );
 
+      const call = /^call (\w+) (\{.*\})$/.exec(request);
+
+      if (call !== null && !toolRan(context))
+        return fauxAssistantMessage(fauxToolCall(call[1] ?? '', JSON.parse(call[2] ?? '{}')), {
+          stopReason: 'toolUse',
+        });
+
+      if (call !== null) {
+        const last = context.messages.at(-1)?.content;
+
+        return fauxAssistantMessage(fauxText(`tool said: ${JSON.stringify(last).slice(0, 600)}`));
+      }
+
       const note = /^note (.+)$/.exec(request);
 
       if (note !== null && !toolRan(context))
@@ -304,6 +317,41 @@ export default {
         toolNames,
         turns: view.turns.length,
         usage: view.usage,
+      });
+    }
+
+    if (url.pathname === '/threads') {
+      const a = `ta-${run}`;
+      const b = `tb-${run}`;
+      const foreign = `tf-${run}`;
+
+      await api.create({ name: a, createdBy: 'test' });
+      await api.create({ name: b, createdBy: 'test' });
+      await other.create({ name: foreign, createdBy: 'test' });
+      await api.send(b, 'b1', 'write b.txt containing hello from b');
+
+      const listed = await api.send(a, 'l', 'call thread_list {}');
+      const read = await api.send(a, 'r', `call thread_read {"name":"${b}"}`);
+      const sent = await api.send(
+        a,
+        's',
+        `call thread_send {"name":"${b}","text":"write c.txt containing sent from a"}`,
+      );
+      await api.answer(b);
+      const bFiles = await api.exec(b, ['bash', '-lc', 'ls']);
+      const foreignRead = await api.send(a, 'f', `call thread_read {"name":"${foreign}"}`);
+      const created = await api.send(a, 'c', 'call thread_create {"title":"Made by a"}');
+      const list = await api.list();
+
+      return Response.json({
+        listed: listed.answer,
+        read: read.answer,
+        sent: sent.answer,
+        bFiles: bFiles.stdout,
+        foreignRead: foreignRead.answer,
+        created: created.answer,
+        madeByA: list.filter((t) => t.createdBy === `thread:${a}`).map((t) => t.title),
+        foreignListedForAna: list.some((t) => t.name === foreign),
       });
     }
 
