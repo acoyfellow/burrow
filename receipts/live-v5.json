@@ -117,6 +117,42 @@
    "ok": true,
    "detail": "agent thread_read on a thread it does not own -> 'unknown thread not-mine-zz9'; worker test proves another Access user's thread reads as unknown and never lists",
    "at": "2026-10-11T21:36:05.139518Z"
+  },
+  "markdown_stream": {
+   "ok": true,
+   "detail": "Prod UI renders agent markdown (bold, inline code) live as the retried turn streams; shots during and after",
+   "shot": "receipts/shots/v5-markdown-stream.png",
+   "at": "2026-10-11T21:50:40.425002Z"
+  },
+  "palette": {
+   "ok": true,
+   "detail": "Cmd+K opens the palette; typing 'share' filters to 'Share a read-only link'",
+   "shot": "receipts/shots/v5-palette.png",
+   "at": "2026-10-11T21:50:40.425002Z"
+  },
+  "search": {
+   "ok": true,
+   "detail": "Palette search 'v5 C' lists the 4 matching threads",
+   "shot": "receipts/shots/v5-search.png",
+   "at": "2026-10-11T21:50:40.425002Z"
+  },
+  "edit_retry": {
+   "ok": true,
+   "detail": "Edit put the last user message back in the composer; Retry sent it again as a new turn (user turns 10 to 11) and the agent answered",
+   "shot": "receipts/shots/v5-edit.png",
+   "at": "2026-10-11T21:50:40.425002Z"
+  },
+  "phone_drive": {
+   "ok": true,
+   "detail": "390x844 viewport: typed and sent a message from the phone layout; the agent replied 'phone-ok'",
+   "shot": "receipts/shots/v5-phone-drive.png",
+   "at": "2026-10-11T21:50:40.425002Z"
+  },
+  "notification": {
+   "ok": true,
+   "detail": "Tab treated as hidden with permission granted; when the turn ended, coil raised a notification: thread title, 'The agent finished its turn.', link to the thread",
+   "shot": "receipts/shots/v5-markdown.png",
+   "at": "2026-10-11T21:50:40.425002Z"
   }
  },
  "shots": []
