@@ -77,6 +77,36 @@
    "ok": true,
    "detail": "Share returns a 24-char token path; GET 200 read-only page (8 messages), CSP default-src none, noindex, behind Access; Unshare then 404",
    "at": "2026-10-11T20:18:05.723838Z"
+  },
+  "tool_edit_file": {
+   "ok": true,
+   "detail": "v5loop-9366: write_file color=red, edit_file red->blue; agent read back 'color=blue'",
+   "at": "2026-10-11T21:35:03.651664Z"
+  },
+  "tool_notes": {
+   "ok": true,
+   "detail": "notes_write 'goal: prove tools'; notes_read returned it",
+   "at": "2026-10-11T21:35:03.651664Z"
+  },
+  "tool_jobs": {
+   "ok": true,
+   "detail": "job_start 'count'; job_status: exit 0, tick 1..3",
+   "at": "2026-10-11T21:35:03.651664Z"
+  },
+  "tool_web_fetch": {
+   "ok": true,
+   "detail": "web_fetch https://example.com: HTTP 200, text 'Example Domain ...'",
+   "at": "2026-10-11T21:35:03.651664Z"
+  },
+  "tool_browser_logs": {
+   "ok": true,
+   "detail": "browser_eval console.log('coil-log-probe'); browser_logs returned '[log] coil-log-probe'",
+   "at": "2026-10-11T21:35:03.651664Z"
+  },
+  "tool_screenshot": {
+   "ok": true,
+   "detail": "browser_screenshot ran llama-4-scout on a CDP jpeg; it named the page 'Example Domain' but said there is no large heading (weak answer; the page's h1 query also came back empty)",
+   "at": "2026-10-11T21:35:03.651664Z"
   }
  },
  "shots": []
