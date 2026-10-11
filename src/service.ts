@@ -164,7 +164,13 @@ export const coil = (env: Env, owner: string) => {
     },
     bases: () => directory.bases(),
     adoptDefaultBase: async (source: string) => {
-      const snapshot = await (await known(source)).snapshot();
+      const box = await known(source);
+      const cleaned = await box.exec(['bash', '-lc', CLEAN_WORKSPACE]);
+
+      if (cleaned.exitCode !== 0)
+        throw new Error(`cleaning the base failed: ${cleaned.stderr.slice(0, 300)}`);
+
+      const snapshot = await box.snapshot();
 
       await directory.setBase(DEFAULT_BASE, snapshot.id, source, 'snapshot of a working thread');
 
@@ -197,6 +203,9 @@ export const coil = (env: Env, owner: string) => {
 export type Coil = ReturnType<typeof coil>;
 
 export const DEFAULT_BASE = '';
+
+const CLEAN_WORKSPACE =
+  'find /workspace -mindepth 1 -maxdepth 1 -exec rm -rf {} + && rm -rf /tmp/jobs && mkdir -p /workspace';
 
 export const sharedView = async (env: Env, token: string) => {
   const directory = env.DIRECTORY.getByName(DIRECTORY);
