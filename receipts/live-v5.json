@@ -12,6 +12,46 @@
    "answer": "\"Yes \u2014 and I just did. Both repos are cloned in my terrarium\"",
    "at": "2026-10-11T19:07:28.187609Z",
    "commit": "f0a2c61"
+  },
+  "file_drop": {
+   "ok": true,
+   "detail": "200 /workspace/uploads/note.txt read back 'dropped-file-ok' (v5b-45701)",
+   "at": "2026-10-11T19:53:39.201886Z"
+  },
+  "model_picker": {
+   "ok": true,
+   "detail": "SetModel glm-5.3-flash; ViewThread.model matches (v5b-45701)",
+   "at": "2026-10-11T19:53:39.201886Z"
+  },
+  "usage_meter": {
+   "ok": true,
+   "detail": "input 7334, output 51, context 3947 / 1048576, cost $0.0011 (v5b-45701)",
+   "at": "2026-10-11T19:53:39.201886Z"
+  },
+  "rename": {
+   "ok": true,
+   "detail": "title 'renamed by receipt' (v5b-45701)",
+   "at": "2026-10-11T19:53:39.201886Z"
+  },
+  "archive": {
+   "ok": true,
+   "detail": "archived true in summary and list (v5b-45701)",
+   "at": "2026-10-11T19:53:39.201886Z"
+  },
+  "delete": {
+   "ok": true,
+   "detail": "gone from list after DeleteThread (v5b-45701)",
+   "at": "2026-10-11T19:53:39.201886Z"
+  },
+  "turn_diff": {
+   "ok": true,
+   "detail": "hello-diff.txt | 1 + / 1 file changed (v5b-46035, after fix c-temp-index)",
+   "at": "2026-10-11T19:53:39.201886Z"
+  },
+  "stop": {
+   "ok": true,
+   "detail": "Stop returned in 5s mid 'sleep 100'; turn idle 15-20s later; run tool 'aborted' (v5b-46035)",
+   "at": "2026-10-11T19:53:39.201886Z"
   }
  },
  "shots": []
