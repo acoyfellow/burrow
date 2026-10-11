@@ -72,6 +72,11 @@
    "ok": true,
    "detail": "maxSpend $0.0001: after 1 run stopped 'loop spend limit $0.0001 reached'; owner cap $25 enforced in decide()",
    "at": "2026-10-11T20:14:41.604995Z"
+  },
+  "share_link": {
+   "ok": true,
+   "detail": "Share returns a 24-char token path; GET 200 read-only page (8 messages), CSP default-src none, noindex, behind Access; Unshare then 404",
+   "at": "2026-10-11T20:18:05.723838Z"
   }
  },
  "shots": []
