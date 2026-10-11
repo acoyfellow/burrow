@@ -109,6 +109,7 @@ export const coil = (env: Env, owner: string) => {
     },
     upload: async (name: string, path: string, bytes: ArrayBuffer) =>
       (await known(name)).upload(path, bytes),
+    wake: async (name: string) => (await known(name)).wake(),
     stop: async (name: string) => (await known(name)).stop(),
     setModel: async (name: string, model: string) => (await known(name)).setModel(model),
     rename: async (name: string, title: string) => {

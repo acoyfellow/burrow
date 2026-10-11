@@ -892,6 +892,17 @@ export class Thread extends DurableObject<Env> {
     };
   }
 
+  async wake(): Promise<{ phase: Phase; running: boolean }> {
+    if (!this.computer().running())
+      this.ctx.waitUntil(
+        this.awake()
+          .then(() => undefined)
+          .catch(() => undefined),
+      );
+
+    return { phase: this.ledger.phase, running: this.computer().running() };
+  }
+
   async stop(): Promise<null> {
     const agent = await this.open();
 

@@ -116,6 +116,7 @@ export type CoilApi = {
   readonly addTerminal: (name: string) => Promise<readonly Surface[]>;
   readonly addBrowser: (name: string) => Promise<readonly Surface[]>;
   readonly closeSurface: (name: string, id: string) => Promise<readonly Surface[]>;
+  readonly wake: (name: string) => Promise<{ phase: string; running: boolean }>;
   readonly stop: (name: string) => Promise<null>;
   readonly setModel: (name: string, model: string) => Out<typeof Usage>;
   readonly rename: (name: string, title: string) => Out<typeof ThreadSummary>;
@@ -162,6 +163,7 @@ export const handlersFor = (caller: Caller) => {
     AddSurface: ({ name, kind }) =>
       attempt(() => (kind === 'browser' ? api.addBrowser(name) : api.addTerminal(name))),
     CloseSurface: ({ name, id }) => attempt(() => api.closeSurface(name, id)),
+    Wake: ({ name }) => attempt(() => api.wake(name)),
     Stop: ({ name }) => attempt(() => api.stop(name)),
     Models: () => Effect.succeed(MODELS.map((m) => ({ ...m }))),
     SetModel: ({ name, model }) => attempt(() => api.setModel(name, model)),
