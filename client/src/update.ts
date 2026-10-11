@@ -3,6 +3,7 @@ import { modifyFields } from 'foldkit/struct';
 import { type LiveEvent, SIZES, type Size, type ThreadView } from '../../shared/protocol';
 import {
   AddSurface,
+  AskNotify,
   CloseSurface,
   ConfirmResize,
   CreateThread,
@@ -22,6 +23,7 @@ import {
   RunOp,
   SaveTheme,
   SendMessage,
+  ShowNotifications,
   systemIsDark,
   UploadFiles,
 } from './command';
@@ -35,6 +37,7 @@ import {
   ThreadsState,
   ViewState,
 } from './model';
+import { finishedThreads } from './notify';
 import { paletteItems } from './palette';
 import { pathForThread } from './route';
 import type { CoilClient } from './rpc';
@@ -267,9 +270,24 @@ const forCurrent = (model: Model, name: string, apply: () => UpdateReturn): Upda
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match<UpdateReturn>(message, {
     LoadedWho: ({ who }) => ({ model: modifyFields(model, { who: () => who }) }),
-    LoadedThreads: ({ threads }) => ({
-      model: modifyFields(model, { threads: () => ThreadsState.Ready({ value: threads }) }),
-    }),
+    LoadedThreads: ({ threads }) => {
+      const before = model.threads._tag === 'Ready' ? model.threads.value : [];
+      const finished = finishedThreads(before, threads);
+      const next = modifyFields(model, { threads: () => ThreadsState.Ready({ value: threads }) });
+
+      return finished.length === 0
+        ? { model: next }
+        : { model: next, commands: [ShowNotifications({ items: finished })] };
+    },
+    ClickedNotify: () => ({ model, commands: [AskNotify()] }),
+    ChangedNotify: ({ permission }) =>
+      toast(
+        modifyFields(model, { notify: () => permission }),
+        permission === 'granted'
+          ? 'Notifications on. coil tells you when a thread or loop finishes while this tab is in the background.'
+          : 'Notifications are off for this site.',
+        permission !== 'granted',
+      ),
     FailedThreads: ({ reason }) => ({
       model: modifyFields(model, { threads: () => ThreadsState.Failed({ reason }) }),
     }),

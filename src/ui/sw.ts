@@ -19,6 +19,22 @@ const isShellNavigation = (request, url) =>
 
 const isImmutableAsset = (url) => url.pathname.startsWith('/assets/') || url.pathname.startsWith('/app/') || url.pathname.startsWith('/icons/');
 
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if ('focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);

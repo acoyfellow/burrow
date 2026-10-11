@@ -101,6 +101,7 @@ export const Model = Schema.Struct({
   modelMenuOpen: Schema.Boolean,
   usageOpen: Schema.Boolean,
   showArchived: Schema.Boolean,
+  notify: Schema.Literals(['unsupported', 'default', 'granted', 'denied']),
   uploading: Schema.Number,
   palette: Schema.NullOr(Schema.Struct({ query: Schema.String, index: Schema.Number })),
   addMenuOpen: Schema.Boolean,

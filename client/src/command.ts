@@ -429,3 +429,54 @@ export const KillLoops = Command.define('KillLoops', {
     ),
   ),
 });
+
+type Permission = 'unsupported' | 'default' | 'granted' | 'denied';
+
+export const notifyPermission = (): Permission =>
+  typeof Notification === 'undefined' ? 'unsupported' : (Notification.permission as Permission);
+
+export const AskNotify = Command.define('AskNotify', {
+  messages: [Message.ChangedNotify],
+  execute: Effect.promise(async () => {
+    if (typeof Notification === 'undefined')
+      return Message.ChangedNotify({ permission: 'unsupported' });
+
+    const permission = (await Notification.requestPermission()) as Permission;
+
+    return Message.ChangedNotify({ permission });
+  }),
+});
+
+export const ShowNotifications = Command.define('ShowNotifications', {
+  args: {
+    items: Schema.Array(
+      Schema.Struct({ name: Schema.String, title: Schema.String, why: Schema.String }),
+    ),
+  },
+  messages: [Message.CompletedEffect],
+  execute: ({ items }) =>
+    Effect.promise(async () => {
+      if (notifyPermission() !== 'granted' || !document.hidden) return Message.CompletedEffect();
+
+      const registration = await navigator.serviceWorker?.getRegistration().catch(() => undefined);
+
+      for (const item of items) {
+        const body =
+          item.why === 'loop'
+            ? 'Loop finished. Open it for the digest.'
+            : 'The agent finished its turn.';
+        const options = {
+          body,
+          tag: `coil-${item.name}`,
+          data: { url: `/t/${item.name}` },
+          icon: '/icons/icon-192.png',
+        };
+
+        if (registration !== undefined)
+          await registration.showNotification(item.title || item.name, options);
+        else new Notification(item.title || item.name, options);
+      }
+
+      return Message.CompletedEffect();
+    }),
+});

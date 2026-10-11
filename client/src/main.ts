@@ -2,7 +2,7 @@ import { Schema } from 'effect';
 import type { Update } from 'foldkit';
 import type { Url } from 'foldkit/url';
 import { DEFAULT_SIZE } from '../../shared/protocol';
-import { LoadThreads, LoadView, LoadWho } from './command';
+import { LoadThreads, LoadView, LoadWho, notifyPermission } from './command';
 import type { Message } from './message';
 import { FileView, type Model, Theme, ThreadsState, ViewState } from './model';
 import { threadFromPath } from './route';
@@ -39,6 +39,7 @@ export const initialModel = (flags: Flags): Model => ({
   modelMenuOpen: false,
   usageOpen: false,
   showArchived: false,
+  notify: notifyPermission(),
   uploading: 0,
   palette: null,
   addMenuOpen: false,

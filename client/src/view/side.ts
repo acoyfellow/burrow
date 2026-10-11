@@ -184,6 +184,15 @@ export const side = (h: H, model: Model): Html =>
           h.span([h.Id('whoami')], [model.who]),
           h.button(
             [
+              h.Id('notify'),
+              h.Hidden(model.notify !== 'default'),
+              h.Title('Get a notification when a thread or loop finishes'),
+              h.OnClick(Message.ClickedNotify()),
+            ],
+            ['Notify me'],
+          ),
+          h.button(
+            [
               h.Id('install'),
               h.Hidden(!model.installable),
               h.Title('Install coil as an app'),

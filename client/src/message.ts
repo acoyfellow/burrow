@@ -59,6 +59,8 @@ export const Message = defineMessageUnion({
   ToggledUsage: {},
   ToggledArchived: {},
   ClickedKillLoops: {},
+  ClickedNotify: {},
+  ChangedNotify: { permission: Schema.Literals(['unsupported', 'default', 'granted', 'denied']) },
   KilledLoops: { names: Schema.Array(Schema.String) },
   PressedShortcut: { key: Schema.String },
   UpdatedPalette: { query: Schema.String },
