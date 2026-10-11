@@ -1,0 +1,61 @@
+client/src/command.ts
+  s_d58794dec92dc7::t_0742ef30e25086 6,306-348
+client/src/main.ts
+  s_d58794dec92dc7::t_53ab4555b57118 39-41
+client/src/message.ts
+  s_d58794dec92dc7::t_2f67becb327a51 13,47-52
+client/src/model.ts
+  s_d58794dec92dc7::t_076566ba07c855 44-53,100-102
+client/src/story.test.ts
+  s_d58794dec92dc7::t_7a1736f9952130 34-35
+client/src/update.ts
+  s_d58794dec92dc7::t_e7bf40ee9081c9 19,404-430,432
+client/src/view/bar.ts
+  s_d58794dec92dc7::t_7f9c36d78c8ae1 40-52,116-141
+client/src/view/composer.ts
+  s_d58794dec92dc7::t_2c10ff2cfe937a 6-7,48,50-69
+client/src/view/meter.ts
+  s_d58794dec92dc7::t_2b445572a21907 1-112
+client/src/view/side.ts
+  s_d58794dec92dc7::t_5d03b37cca2a27 41-91
+scripts/build-icons.mjs
+  s_d58794dec92dc7::t_c1afe52e068db7 12-15
+scripts/v5-gate.sh
+  s_d58794dec92dc7::t_61abdc413c934a 1-57
+shared/models.ts
+  s_d58794dec92dc7::t_ad960c309e6824 1-63
+shared/protocol.ts
+  s_d58794dec92dc7::t_1184fe10916aa8 30-32,99-118,133-134,280-297
+src/agent.ts
+  s_d58794dec92dc7::t_d14735216d57a3 241-276,396-408
+src/directory.ts
+  s_d58794dec92dc7::t_c7e478aa446b5e 15-17,36-38,53-55,78-85,100-102,106-107,119-121,125-135
+src/ledger.ts
+  s_d58794dec92dc7::t_d7dda020d87ceb 164-171
+src/rpc.ts
+  s_d58794dec92dc7::t_37c94cdba472d8 4,27,119-123,165-170
+src/service.ts
+  s_d58794dec92dc7::t_5e51070954cd1c 110-135
+src/thread.ts
+  s_d58794dec92dc7::t_2a72769b83544b 3,49-59,243,562,777-829,847-848
+src/ui/style.ts
+  s_d58794dec92dc7::t_2a22e523c850c7 210-228
+test/client.test.ts
+  s_d58794dec92dc7::t_69c2916864c852 23-24,39-41,160-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "a51d6e239416c770a71c0d88514c30a56c9439a6",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
