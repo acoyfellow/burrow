@@ -1,0 +1,21 @@
+src/agent.ts
+  s_d58794dec92dc7::t_2d899f4ce5a630 409
+src/terrarium.ts
+  s_d58794dec92dc7::t_788076f80acd69 15,87-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "0059d0fb69f62fe3534dc4a831f1e0aac351e168",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
