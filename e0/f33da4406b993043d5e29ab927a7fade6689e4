@@ -1,0 +1,35 @@
+receipts/reviews/v5-1.md
+  s_bddf4eb8848d16::t_f95325850fa603 1-33
+src/ledger.ts
+  s_d58794dec92dc7::t_6a953e9a34fe10 203-210
+src/thread.ts
+  s_d58794dec92dc7::t_8a3fdc43cd027a 47-48,448,450-451,652-677,681-682,1093,1095,1097-1101,1103-1108,1119,1132-1134,1151-1152,1186-1187
+test/thread.test.ts
+  s_d58794dec92dc7::t_e07766eff003cb 181-193
+test/worker/index.ts
+  s_d58794dec92dc7::t_040f7de4fe4820 7,145-166,454-483
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e0f33da4406b993043d5e29ab927a7fade6689e4",
+  "prompts": {},
+  "sessions": {
+    "s_bddf4eb8848d16": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a0de5b-f971-75f6-97ad-8153da509084",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    },
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
