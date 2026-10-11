@@ -33,6 +33,16 @@ const PLATFORM_INACTIVITY_MS = 60 * 60 * 1000;
 
 const LOST_LAUNCHES_BEFORE_GIVING_UP = 3;
 
+const READY_WAIT_MS = 180_000;
+
+const READY_POLL_MS = 1_000;
+
+const STARTING = /not been started|not running|starting/i;
+
+const isStarting = (cause: unknown) => STARTING.test(String(cause));
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const decode = (bytes: ArrayBuffer | Uint8Array | string | undefined): string =>
   bytes === undefined ? '' : typeof bytes === 'string' ? bytes : new TextDecoder().decode(bytes);
 
@@ -41,11 +51,17 @@ export const sandboxComputer = (container: Container, image: string): Computer =
 
   const launch = async (argv: readonly string[], cwd: string) => {
     let failures = 0;
+    const deadline = Date.now() + READY_WAIT_MS;
 
     for (;;) {
       try {
         return await container.exec([...argv], { cwd, env: SHELL_ENV });
       } catch (cause) {
+        if (isStarting(cause) && Date.now() < deadline) {
+          await pause(READY_POLL_MS);
+          continue;
+        }
+
         failures += 1;
 
         if (failures >= LOST_LAUNCHES_BEFORE_GIVING_UP) throw new ComputerLost(String(cause));
