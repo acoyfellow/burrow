@@ -148,6 +148,7 @@ export const LoopState = Schema.Struct({
   startedCost: Schema.Number,
   nextAt: Schema.Number,
   stoppedBecause: Schema.NullOr(Schema.String),
+  loopId: Schema.optional(Schema.String),
 });
 
 export const ThreadView = Schema.Struct({

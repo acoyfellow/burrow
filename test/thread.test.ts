@@ -191,3 +191,9 @@ test('a stopped loop stays stopped even if a tick was in flight; loop turns cann
   expect(out.stoppedBecause).toBe('stopped by the owner');
   expect(out.digests).toBe(1);
 });
+
+test('looping threads cannot send work to other threads', { timeout: 60_000 }, async () => {
+  const out = await get('/loop-send');
+
+  expect(out.sent).toContain('cannot send work');
+});

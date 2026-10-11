@@ -150,6 +150,16 @@ export class TestThread extends Thread {
     return this.ledger.loop;
   }
 
+  async childSendForTest(name: string) {
+    return (this as unknown as { threadDirectory: () => ThreadDirectory })
+      .threadDirectory()
+      .send(name, 'do work')
+      .then(
+        (ok: string) => ok,
+        (error: unknown) => String(error),
+      );
+  }
+
   async childCreateForTest(task: string) {
     return (this as unknown as { threadDirectory: () => ThreadDirectory })
       .threadDirectory()
@@ -449,6 +459,24 @@ export default {
         killed,
         afterKill: { enabled: afterKill?.enabled, stoppedBecause: afterKill?.stoppedBecause },
       });
+    }
+
+    if (url.pathname === '/loop-send') {
+      const name = `lsend-${run}`;
+      const other = `lother-${run}`;
+      const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      await api.create({ name, createdBy: 'test' });
+      await api.create({ name: other, createdBy: 'test' });
+      await api.startLoop(name, {
+        prompt: 'x',
+        everySeconds: 3600,
+        maxRuns: 2,
+        maxSpend: 1,
+        gate: null,
+      });
+
+      return Response.json({ sent: await test.childSendForTest(other) });
     }
 
     if (url.pathname === '/loop-race') {

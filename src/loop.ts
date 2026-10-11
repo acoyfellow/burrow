@@ -18,6 +18,7 @@ export type LoopState = LoopSpec & {
   readonly startedCost: number;
   readonly nextAt: number;
   readonly stoppedBecause: string | null;
+  readonly loopId?: string;
 };
 
 export const MIN_EVERY_SECONDS = 30;

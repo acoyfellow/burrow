@@ -58,6 +58,8 @@ const fromRow = (row: Row): ThreadSummary => ({
   looping: row.looping === 1,
 });
 
+export const TURN_RESERVE = 0.5;
+
 export class Directory extends DurableObject {
   constructor(ctx: DurableObjectState, env: unknown) {
     super(ctx, env as never);
@@ -182,13 +184,35 @@ export class Directory extends DurableObject {
 
   spendFor(owner: string): number {
     const row = this.ctx.storage.sql
-      .exec<{ total: number | null }>(
-        'SELECT SUM(spend) AS total FROM threads WHERE owner = ?',
+      .exec<{ total: number | null; working: number | null }>(
+        'SELECT SUM(spend) AS total, SUM(busy) AS working FROM threads WHERE owner = ?',
         owner,
       )
       .toArray()[0];
 
-    return row?.total ?? 0;
+    return (row?.total ?? 0) + (row?.working ?? 0) * TURN_RESERVE;
+  }
+
+  agentThreadsFor(owner: string): number {
+    return (
+      this.ctx.storage.sql
+        .exec<{ n: number }>(
+          "SELECT COUNT(*) AS n FROM threads WHERE owner = ? AND created_by LIKE 'thread:%'",
+          owner,
+        )
+        .toArray()[0]?.n ?? 0
+    );
+  }
+
+  workingFor(owner: string): number {
+    return (
+      this.ctx.storage.sql
+        .exec<{ n: number }>(
+          'SELECT COUNT(*) AS n FROM threads WHERE owner = ? AND busy = 1',
+          owner,
+        )
+        .toArray()[0]?.n ?? 0
+    );
   }
 
   get(name: string): ThreadSummary | null {

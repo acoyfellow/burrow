@@ -46,6 +46,10 @@ const OWNER_SPEND_CAP = 25;
 
 const MAX_CHILDREN_PER_THREAD = 20;
 
+const MAX_AGENT_THREADS_PER_OWNER = 40;
+
+const MAX_WORKING_PER_OWNER = 8;
+
 const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
 
 export type ThreadView = {
@@ -434,6 +438,9 @@ export class Thread extends DurableObject<Env> {
         return `<thread-data name="${name}" state="${view.busy ? 'working' : view.phase}">\n${said}\n</thread-data>`;
       },
       send: async (name, message) => {
+        if (this.ledger.loop?.enabled === true)
+          throw new Error('A looping thread cannot send work to other threads');
+
         await owned(name);
         const target = this.env.THREAD.getByName(name);
 
@@ -655,21 +662,29 @@ export class Thread extends DurableObject<Env> {
     if (withTask && this.ledger.loop?.enabled === true)
       throw new Error('A looping thread cannot start other threads with a task');
 
-    const made = this.ledger.childrenMade;
-
-    if (made >= MAX_CHILDREN_PER_THREAD)
+    if (this.ledger.childrenMade >= MAX_CHILDREN_PER_THREAD)
       throw new Error(`This thread already created ${MAX_CHILDREN_PER_THREAD} threads`);
+
+    this.ledger.childrenMade += 1;
+
+    if ((await this.directory.agentThreadsFor(owner)) >= MAX_AGENT_THREADS_PER_OWNER)
+      throw new Error(
+        `Agents already created ${MAX_AGENT_THREADS_PER_OWNER} threads for this owner`,
+      );
 
     if ((await this.directory.spendFor(owner)) >= OWNER_SPEND_CAP)
       throw new Error(`Owner spend cap $${OWNER_SPEND_CAP} reached`);
-
-    this.ledger.childrenMade = made + 1;
   }
 
   private async assertOwnerBudget(): Promise<void> {
     const owner = this.ledger.owner;
 
     if (owner === null || owner === '') return;
+
+    if ((await this.directory.workingFor(owner)) >= MAX_WORKING_PER_OWNER)
+      throw new Error(
+        `${MAX_WORKING_PER_OWNER} threads are already working for this owner. Wait or stop one.`,
+      );
 
     if ((await this.directory.spendFor(owner)) >= OWNER_SPEND_CAP)
       throw new Error(
@@ -1085,6 +1100,7 @@ export class Thread extends DurableObject<Env> {
       startedCost: (await this.usage()).cost,
       nextAt: Date.now(),
       stoppedBecause: null,
+      loopId: crypto.randomUUID(),
     };
 
     this.ledger.loop = loop;
@@ -1112,7 +1128,8 @@ export class Thread extends DurableObject<Env> {
       current !== null &&
       current.enabled &&
       current.runs.length === snapshot.runs.length &&
-      current.startedCost === snapshot.startedCost
+      current.startedCost === snapshot.startedCost &&
+      current.loopId === snapshot.loopId
     );
   }
 
