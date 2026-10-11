@@ -63,7 +63,7 @@ const PROMPT = [
   'You are a coding agent working inside your own Linux computer. The repository is in /workspace.',
   'Tools: run executes a shell command there; write_file creates or replaces a file; read_file reads one.',
   'The shell has bash, coreutils, busybox (grep, sed, awk, wget, tar), and a patched git that refuses force pushes.',
-  'node, npm, python3, curl, ripgrep (rg) and jq are installed. The computer is yours alone and its disk persists across pauses.',
+  'There is no python or node. The computer is yours alone and its disk persists across pauses.',
   'For a separate side task, start_child gives it to a new thread with its own computer; wait_child returns its answer.',
   'You also have a real Chromium browser in the same computer. It sees localhost, so you can open a dev server you started.',
   'browser_open loads a URL; browser_snapshot lists clickable elements as refs (e1, e2, ...) plus page text; browser_click and browser_type act on a ref; browser_key presses a key; browser_eval runs JavaScript; browser_screenshot asks a vision model about what the page looks like; browser_logs reads the console. The human watches the same browser live.',

@@ -4,7 +4,7 @@ FROM ${SANDBOX_TOOLS_IMAGE} AS sandbox-tools
 FROM docker.io/library/busybox:1.37-musl AS busybox
 FROM docker.io/library/alpine:3.22 AS surfaces
 ARG APK_PLAIN_HTTP=0
-RUN if [ "$APK_PLAIN_HTTP" = 1 ]; then sed -i 's/https/http/' /etc/apk/repositories; fi && apk add --no-cache tmux chromium font-noto ncurses-terminfo-base nodejs npm python3 curl ripgrep jq
+RUN if [ "$APK_PLAIN_HTTP" = 1 ]; then sed -i 's/https/http/' /etc/apk/repositories; fi && apk add --no-cache tmux chromium font-noto ncurses-terminfo-base
 
 FROM ${NIX_IMAGE}
 COPY --from=sandbox-tools /usr/local/bin/sandbox-shim /usr/local/bin/sandbox-shim
