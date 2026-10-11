@@ -116,6 +116,16 @@ export const ModelOption = Schema.Struct({
   vision: Schema.Boolean,
 });
 
+export const Turn = Schema.Struct({
+  seq: Schema.Number,
+  at: Schema.Number,
+  prompt: Schema.String,
+  stat: Schema.String,
+  diff: Schema.String,
+});
+
+export type Turn = typeof Turn.Type;
+
 export const ThreadView = Schema.Struct({
   name: Schema.String,
   title: Schema.String,
@@ -132,6 +142,7 @@ export const ThreadView = Schema.Struct({
   surfaces: Schema.Array(Surface),
   model: Schema.String,
   usage: Usage,
+  turns: Schema.Array(Turn),
 });
 
 export type ThreadView = typeof ThreadView.Type;

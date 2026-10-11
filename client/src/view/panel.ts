@@ -173,6 +173,21 @@ const threadLink = (h: H, name: string, text: string): Html =>
     [text],
   );
 
+const lineClass = (line: string): string => {
+  if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('diff ')) return 'dh';
+  if (line.startsWith('@@')) return 'dk';
+  if (line.startsWith('+')) return 'da';
+  if (line.startsWith('-')) return 'dd';
+
+  return '';
+};
+
+const diffView = (h: H, diff: string): Html =>
+  h.pre(
+    [h.Class('diff')],
+    diff.split('\n').map((line) => h.span([h.Class(lineClass(line))], [`${line}\n`])),
+  );
+
 const history = (h: H, model: Model, view: ThreadView): Html => {
   const origin = view.origin;
   const threads = model.threads._tag === 'Ready' ? model.threads.value : [];
@@ -227,6 +242,28 @@ const history = (h: H, model: Model, view: ThreadView): Html => {
             ],
           ),
           h.div([h.Class('d')], [`${phaseLabel(kid)} · ${ago(model.now, kid.updatedAt)}`]),
+        ],
+      ),
+    ),
+    ...view.turns.map((turn) =>
+      h.keyed('details')(
+        `turn-${turn.seq}`,
+        [h.Class('tl turn'), h.DataAttribute('turn', String(turn.seq))],
+        [
+          h.summary(
+            [],
+            [
+              h.div(
+                [h.Class('h')],
+                [
+                  turn.stat === '' ? 'Turn, no file changes' : 'Turn changed files',
+                  h.span([h.Class('faint')], [ago(model.now, turn.at)]),
+                ],
+              ),
+              h.div([h.Class('d')], [turn.prompt]),
+            ],
+          ),
+          ...(turn.diff === '' ? [] : [diffView(h, turn.diff)]),
         ],
       ),
     ),

@@ -368,3 +368,39 @@ export const FocusPalette = Command.define('FocusPalette', {
     return Message.CompletedEffect();
   }),
 });
+
+const pendingFiles: File[] = [];
+
+export const rememberFiles = (files: readonly File[]) => {
+  pendingFiles.push(...files);
+};
+
+const safeName = (name: string) =>
+  name
+    .replace(/[^\w.-]+/g, '-')
+    .replace(/^[.-]+/, '')
+    .slice(0, 120) || 'file';
+
+export const UploadFiles = Command.define('UploadFiles', {
+  args: { name: Schema.String },
+  messages: [Message.UploadedFiles],
+  execute: ({ name }) =>
+    Effect.promise(async () => {
+      const files = pendingFiles.splice(0);
+      const paths: string[] = [];
+      const failed: string[] = [];
+
+      for (const file of files) {
+        const response = await fetch(
+          `/api/threads/${name}/upload?file=${encodeURIComponent(safeName(file.name))}`,
+          { method: 'PUT', body: file },
+        ).catch(() => null);
+        const body = response?.ok ? ((await response.json()) as { path?: string }) : null;
+
+        if (typeof body?.path === 'string') paths.push(body.path);
+        else failed.push(file.name);
+      }
+
+      return Message.UploadedFiles({ name, paths, failed });
+    }),
+});

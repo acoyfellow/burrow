@@ -31,6 +31,12 @@ export const Message = defineMessageUnion({
 
   UpdatedDraft: { value: Schema.String },
   SubmittedDraft: {},
+  DroppedFiles: { count: Schema.Number },
+  UploadedFiles: {
+    name: Schema.String,
+    paths: Schema.Array(Schema.String),
+    failed: Schema.Array(Schema.String),
+  },
   ClickedEdit: { text: Schema.String },
   ClickedRetry: { text: Schema.String },
   SentMessage: { name: Schema.String },

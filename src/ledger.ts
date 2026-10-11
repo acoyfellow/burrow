@@ -42,11 +42,22 @@ export type Surface = {
   readonly title: string;
 };
 
+export type Turn = {
+  readonly seq: number;
+  readonly at: number;
+  readonly prompt: string;
+  readonly stat: string;
+  readonly diff: string;
+};
+
 export class Ledger {
   constructor(private readonly sql: SqlStorage) {
     sql.exec(`CREATE TABLE IF NOT EXISTS coil_kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
     sql.exec(
       `CREATE TABLE IF NOT EXISTS coil_pairs (at INTEGER NOT NULL, reason TEXT NOT NULL, snapshot_id TEXT NOT NULL, snapshot_size INTEGER NOT NULL, summary_entry TEXT)`,
+    );
+    sql.exec(
+      `CREATE TABLE IF NOT EXISTS coil_turns (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, prompt TEXT NOT NULL, base TEXT NOT NULL, stat TEXT NOT NULL DEFAULT '', diff TEXT NOT NULL DEFAULT '', done INTEGER NOT NULL DEFAULT 0)`,
     );
     sql.exec(
       `CREATE TABLE IF NOT EXISTS coil_exec (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, argv TEXT NOT NULL, exit_code INTEGER NOT NULL, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL, output TEXT NOT NULL, by TEXT NOT NULL DEFAULT 'human')`,
@@ -175,6 +186,43 @@ export class Ledger {
 
   set titled(next: boolean) {
     this.put('titled', next ? '1' : '0');
+  }
+
+  startTurn(prompt: string, base: string): void {
+    this.sql.exec(
+      'INSERT INTO coil_turns (at, prompt, base) VALUES (?, ?, ?)',
+      Date.now(),
+      prompt.slice(0, 200),
+      base,
+    );
+  }
+
+  openTurn(): { seq: number; base: string } | null {
+    return (
+      this.sql
+        .exec<{ seq: number; base: string }>(
+          'SELECT seq, base FROM coil_turns WHERE done = 0 ORDER BY seq DESC LIMIT 1',
+        )
+        .toArray()[0] ?? null
+    );
+  }
+
+  finishTurn(seq: number, stat: string, diff: string): void {
+    this.sql.exec(
+      'UPDATE coil_turns SET stat = ?, diff = ?, done = 1 WHERE seq = ?',
+      stat,
+      diff,
+      seq,
+    );
+  }
+
+  turns(limit = 30): Turn[] {
+    return this.sql
+      .exec<Turn>(
+        'SELECT seq, at, prompt, stat, diff FROM coil_turns WHERE done = 1 ORDER BY seq DESC LIMIT ?',
+        limit,
+      )
+      .toArray();
   }
 
   nextChild(): number {

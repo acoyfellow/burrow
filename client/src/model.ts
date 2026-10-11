@@ -100,6 +100,7 @@ export const Model = Schema.Struct({
   modelMenuOpen: Schema.Boolean,
   usageOpen: Schema.Boolean,
   showArchived: Schema.Boolean,
+  uploading: Schema.Number,
   palette: Schema.NullOr(Schema.Struct({ query: Schema.String, index: Schema.Number })),
   addMenuOpen: Schema.Boolean,
   drawer: Drawer,

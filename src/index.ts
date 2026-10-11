@@ -20,11 +20,49 @@ const THREAD_SOCKET = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/(terminal|bro
 
 const THREAD_EVENTS = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/events$/;
 
+const THREAD_UPLOAD = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/upload$/;
+
+const UPLOAD_LIMIT = 10 * 1024 * 1024;
+
+const UPLOAD_NAME = /^[\w.-]{1,120}$/;
+
 const PAGE = /^\/(t\/[a-z0-9][a-z0-9-]{0,62})?\/?$/;
 
 type Owner = Caller & { readonly api: Coil };
 
 type Admission = { readonly caller: Owner } | { readonly refused: Response };
+
+const receiveUpload = async (request: Request, caller: Owner, name: string): Promise<Response> => {
+  const file = new URL(request.url).searchParams.get('file') ?? '';
+  const length = Number(request.headers.get('content-length') ?? 'NaN');
+
+  if (!UPLOAD_NAME.test(file) || file.startsWith('.'))
+    return Response.json(
+      { error: 'file names are letters, digits, dot, dash, underscore' },
+      { status: 400 },
+    );
+
+  if (!(length <= UPLOAD_LIMIT))
+    return Response.json({ error: 'files are limited to 10 MB' }, { status: 413 });
+
+  const bytes = await request.arrayBuffer();
+
+  if (bytes.byteLength > UPLOAD_LIMIT)
+    return Response.json({ error: 'files are limited to 10 MB' }, { status: 413 });
+
+  try {
+    const path = await caller.api.upload(name, `uploads/${file}`, bytes);
+
+    return Response.json({ path });
+  } catch (cause) {
+    const reason = cause instanceof Error ? cause.message : String(cause);
+
+    return Response.json(
+      { error: reason },
+      { status: reason.startsWith('unknown thread') ? 404 : 500 },
+    );
+  }
+};
 
 const isLocalDev = (request: Request, env: Env) =>
   env.LOCAL_DEV_WITHOUT_ACCESS === '1' && LOCAL_HOSTS.has(new URL(request.url).hostname);
@@ -100,6 +138,11 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
 
   if (socket?.[1] !== undefined && socket[2] !== undefined)
     return upgrade(request, caller, socket[1], socket[2] === 'browser' ? 'browser' : 'terminal');
+
+  const upload = THREAD_UPLOAD.exec(pathname);
+
+  if (upload?.[1] !== undefined && request.method === 'PUT')
+    return receiveUpload(request, caller, upload[1]);
 
   const events = THREAD_EVENTS.exec(pathname);
 

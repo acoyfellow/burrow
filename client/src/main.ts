@@ -39,6 +39,7 @@ export const initialModel = (flags: Flags): Model => ({
   modelMenuOpen: false,
   usageOpen: false,
   showArchived: false,
+  uploading: 0,
   palette: null,
   addMenuOpen: false,
   drawer: 'none',

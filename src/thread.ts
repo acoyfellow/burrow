@@ -26,11 +26,14 @@ import {
   type Pair,
   type Phase,
   type Surface,
+  type Turn,
 } from './ledger';
 import { workersAI } from './model';
 import { bounded, HUMAN_LIMIT_SECONDS } from './shell';
 import { DEFAULT_SIZE, type Size } from './size';
 import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
+
+const TURN_DIFF_LIMIT = 60_000;
 
 export type ThreadView = {
   readonly name: string;
@@ -48,6 +51,7 @@ export type ThreadView = {
   readonly surfaces: Surface[];
   readonly model: string;
   readonly usage: Usage;
+  readonly turns: Turn[];
 };
 
 export type Usage = {
@@ -525,6 +529,7 @@ export class Thread extends DurableObject<Env> {
     try {
       const agent = await this.open();
 
+      await this.markTurn(input);
       await agent.submit(requestId, input);
       this.ledger.busy = true;
     } finally {
@@ -555,7 +560,55 @@ export class Thread extends DurableObject<Env> {
     return agent.lastAnswer();
   }
 
+  private async gitTree(): Promise<string> {
+    const ran = await this.computer().exec([
+      'bash',
+      '-lc',
+      'git rev-parse --git-dir >/dev/null 2>&1 || exit 0; export GIT_INDEX_FILE=$(mktemp); git add -A >/dev/null 2>&1; git write-tree; rm -f "$GIT_INDEX_FILE"',
+    ]);
+
+    return ran.exitCode === 0 ? ran.stdout.trim() : '';
+  }
+
+  private async markTurn(input: string) {
+    if (!this.computer().running()) {
+      this.ledger.startTurn(input, '');
+      return;
+    }
+
+    this.ledger.startTurn(input, await this.gitTree().catch(() => ''));
+  }
+
+  private async closeTurn() {
+    const open = this.ledger.openTurn();
+
+    if (open === null) return;
+
+    if (open.base === '' || !this.computer().running()) {
+      this.ledger.finishTurn(open.seq, '', '');
+      return;
+    }
+
+    const now = await this.gitTree().catch(() => '');
+
+    if (now === '' || now === open.base) {
+      this.ledger.finishTurn(open.seq, '', '');
+      return;
+    }
+
+    const stat = await this.computer().exec(['git', 'diff', '--stat', open.base, now]);
+    const diff = await this.computer().exec(['git', 'diff', open.base, now]);
+
+    this.ledger.finishTurn(
+      open.seq,
+      stat.stdout.slice(0, 4000),
+      diff.stdout.slice(0, TURN_DIFF_LIMIT),
+    );
+  }
+
   private async settle() {
+    await this.closeTurn().catch(() => undefined);
+
     if (!this.ledger.busy) return;
 
     this.ledger.busy = false;
@@ -635,6 +688,15 @@ export class Thread extends DurableObject<Env> {
     this.emit({ type: 'exec', record });
 
     return { ...result, seq: record.seq };
+  }
+
+  upload(path: string, bytes: ArrayBuffer): Promise<string> {
+    return this.using(async () => {
+      await (await this.awake()).writeFile(path, bytes);
+      this.ledger.lastActivity = Date.now();
+
+      return `${WORKSPACE}/${path}`;
+    });
   }
 
   readFile(path: string): Promise<string> {
@@ -846,6 +908,7 @@ export class Thread extends DurableObject<Env> {
       surfaces: this.ledger.surfaces,
       model: this.currentModel(),
       usage: await this.usage(),
+      turns: this.ledger.turns(),
     };
   }
 

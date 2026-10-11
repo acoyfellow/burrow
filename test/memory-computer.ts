@@ -56,7 +56,10 @@ export const memoryComputer = (owner: string): Computer => ({
     return value;
   },
   writeFile: async (path, content) => {
-    live(owner).set(inWorkspace(path), content);
+    live(owner).set(
+      inWorkspace(path),
+      typeof content === 'string' ? content : new TextDecoder().decode(content),
+    );
   },
   list: async () =>
     [...live(owner).keys()].map((path) => ({

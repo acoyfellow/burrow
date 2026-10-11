@@ -22,6 +22,7 @@ import {
   SaveTheme,
   SendMessage,
   systemIsDark,
+  UploadFiles,
 } from './command';
 import { Message } from './message';
 import {
@@ -334,6 +335,26 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
     UpdatedDraft: ({ value }) => ({ model: modifyFields(model, { draft: () => value }) }),
     SubmittedDraft: () => send(model),
+    DroppedFiles: ({ count }) =>
+      model.name === null || count === 0
+        ? { model }
+        : {
+            model: modifyFields(model, { uploading: (n) => n + count }),
+            commands: [UploadFiles({ name: model.name })],
+          },
+    UploadedFiles: ({ name, paths, failed }) => {
+      const done = modifyFields(model, {
+        uploading: (n) => Math.max(0, n - paths.length - failed.length),
+        draft: (draft) =>
+          name !== model.name || paths.length === 0
+            ? draft
+            : `${draft}${draft === '' || draft.endsWith('\n') ? '' : '\n'}Attached: ${paths.join(', ')}\n`,
+      });
+
+      return failed.length === 0
+        ? toast(done, `Uploaded ${paths.length} file${paths.length === 1 ? '' : 's'}.`)
+        : toast(done, `Could not upload ${failed.join(', ')}.`, true);
+    },
     ClickedEdit: ({ text }) => ({
       model: modifyFields(model, { draft: () => text }),
       commands: [FocusComposer()],

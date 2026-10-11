@@ -230,6 +230,11 @@ dialog .actions .primary{padding:5px 12px}
 .palette-list button.on,.palette-list button:hover{background:var(--raise)}
 .palette-hint,.palette-empty{font:11.5px var(--mono);color:var(--dim)}
 .palette-empty{padding:10px}
+.turn summary{list-style:none;cursor:pointer}
+.turn summary::-webkit-details-marker{display:none}
+.diff{margin:6px 0 0;padding:8px;max-height:50vh;overflow:auto;background:var(--raise);border-radius:6px;font:11.5px/1.45 var(--mono);white-space:pre}
+.diff .da{color:#1a7f37}.diff .dd{color:#cf222e}.diff .dk{color:var(--dim)}.diff .dh{font-weight:600}
+[data-theme=dark] .diff .da{color:#3fb950}[data-theme=dark] .diff .dd{color:#f85149}
 .meter{display:flex;align-items:center;gap:4px;min-width:0}
 .pop-wrap{position:relative;display:inline-flex}
 .pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border:1px solid var(--line2);border-radius:999px;background:transparent;font:11.5px var(--mono);color:var(--dim);white-space:nowrap}

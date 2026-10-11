@@ -1,5 +1,6 @@
 import { Option } from 'effect';
 import type { Html } from 'foldkit/html';
+import { rememberFiles } from '../command';
 import { Message } from '../message';
 import type { Model } from '../model';
 import { viewOf } from '../update';
@@ -10,6 +11,8 @@ const hint = (model: Model): string => {
   const view = viewOf(model);
 
   if (view === null) return '';
+  if (model.uploading > 0)
+    return `Uploading ${model.uploading} file${model.uploading === 1 ? '' : 's'}…`;
   if (view.busy) return 'Working. You can leave; it keeps going.';
   if (view.phase === 'paused') return 'Paused. Sending resumes it from the saved disk.';
 
@@ -25,6 +28,12 @@ export const composer = (h: H, model: Model): Html => {
       h.Class('composer'),
       h.Id('composer'),
       h.Style({ display: model.name === null ? 'none' : '' }),
+      h.AllowDrop(),
+      h.OnDropFiles((files) => {
+        rememberFiles(files);
+
+        return Message.DroppedFiles({ count: files.length });
+      }),
     ],
     [
       h.div(
