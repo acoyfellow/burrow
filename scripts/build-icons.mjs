@@ -13,6 +13,7 @@ const USED = {
   rename: 'pencil',
   archive: 'archive',
   trash: 'trash-2',
+  share: 'share-2',
 };
 
 const inner = (name) => {

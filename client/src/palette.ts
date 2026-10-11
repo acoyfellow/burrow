@@ -46,6 +46,16 @@ const actionsFor = (model: Model): PaletteItem[] => {
       hint: 'command',
       message: Message.ClickedOp({ name, op: { _tag: 'Archive', archived: true } }),
     },
+    {
+      label: 'Share a read-only link',
+      hint: 'command',
+      message: Message.ClickedOp({ name, op: { _tag: 'Share' } }),
+    },
+    {
+      label: 'Stop every loop (kill switch)',
+      hint: 'command',
+      message: Message.ClickedKillLoops(),
+    },
     { label: 'Compact', hint: 'command', message: Message.ClickedAction({ action: 'compact' }) },
     { label: 'Fork', hint: 'command', message: Message.ClickedAction({ action: 'fork' }) },
     { label: 'Pause', hint: 'command', message: Message.ClickedAction({ action: 'pause' }) },

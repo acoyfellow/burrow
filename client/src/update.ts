@@ -10,6 +10,7 @@ import {
   FocusComposer,
   FocusPalette,
   Install,
+  KillLoops,
   LoadDir,
   LoadFile,
   LoadThreads,
@@ -487,6 +488,17 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       return chosen === undefined ? { model: closed } : update(closed, chosen.message);
     },
     ClosedPalette: () => ({ model: modifyFields(model, { palette: () => null }) }),
+    ClickedKillLoops: () => ({ model, commands: [KillLoops()] }),
+    KilledLoops: ({ names }) =>
+      withCommands(
+        toast(
+          model,
+          names.length === 0
+            ? 'No loops were running.'
+            : `Stopped ${names.length} loop${names.length === 1 ? '' : 's'}: ${names.join(', ')}.`,
+        ),
+        [LoadThreads()],
+      ),
     ToggledArchived: () => ({ model: modifyFields(model, { showArchived: (on) => !on }) }),
 
     ClickedTab: ({ tab }) => selectTab(model, tab),

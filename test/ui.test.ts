@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { sharedPage } from '../src/ui/shared';
 import { STYLE } from '../src/ui/style';
 import { serviceWorker } from '../src/ui/sw';
 
@@ -62,4 +63,16 @@ describe('phone text entry', () => {
     ])
       expect(rule?.[1]).toContain(selector);
   });
+});
+
+it('the shared page escapes thread text', () => {
+  const html = sharedPage({
+    title: '<b>t</b>',
+    model: 'm',
+    messages: [{ id: '1', kind: 'm', role: 'assistant', text: '<script>alert(1)</script>' }],
+  } as never);
+
+  expect(html).not.toContain('<script>alert');
+  expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  expect(html).toContain('&lt;b&gt;t&lt;/b&gt;');
 });

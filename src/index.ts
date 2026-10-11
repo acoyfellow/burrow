@@ -3,9 +3,10 @@ import { AccessDenied, accessConfig, verifyAccess } from './access';
 import { mcp } from './mcp';
 import { serveRest } from './rest';
 import { type Caller, handlersFor, isRpcPath, rpcHandler } from './rpc';
-import { type Coil, coil } from './service';
+import { type Coil, coil, sharedView } from './service';
 import type { Env } from './thread';
 import { page } from './ui/index';
+import { sharedPage } from './ui/shared';
 import { serviceWorker } from './ui/sw';
 import { TERM_JS, TERM_VERSION } from './ui/term.generated';
 
@@ -25,6 +26,8 @@ const THREAD_UPLOAD = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/upload$/;
 const UPLOAD_LIMIT = 10 * 1024 * 1024;
 
 const UPLOAD_NAME = /^[\w.-]{1,120}$/;
+
+const SHARED = /^\/s\/([A-Za-z0-9_-]{16,40})$/;
 
 const PAGE = /^\/(t\/[a-z0-9][a-z0-9-]{0,62})?\/?$/;
 
@@ -153,6 +156,24 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
       (await serveRest(request, handlersFor(caller))) ??
       Response.json({ error: 'not found' }, { status: 404 })
     );
+
+  const shared = SHARED.exec(pathname);
+
+  if (shared?.[1] !== undefined && request.method === 'GET') {
+    const view = await sharedView(env, shared[1]);
+
+    return view === null
+      ? new Response('This link does not exist or was turned off.', { status: 404 })
+      : new Response(sharedPage(view), {
+          headers: {
+            'content-type': 'text/html; charset=utf-8',
+            'cache-control': 'no-store',
+            'x-robots-tag': 'noindex',
+            'referrer-policy': 'no-referrer',
+            'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'",
+          },
+        });
+  }
 
   if (PAGE.test(pathname) && request.method === 'GET')
     return new Response(page(), {

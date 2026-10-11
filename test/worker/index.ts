@@ -6,7 +6,7 @@ import {
 } from '@earendil-works/pi-ai/providers/faux';
 import type { ModelChoice } from '../../src/agent';
 import type { Computer } from '../../src/computer';
-import { coil } from '../../src/service';
+import { coil, sharedView } from '../../src/service';
 import { type Env, Thread } from '../../src/thread';
 import { bootSizes, crash, memoryComputer } from '../memory-computer';
 
@@ -426,6 +426,32 @@ export default {
         digest: view.execs.find((e) => e.argv.join(' ') === 'coil loop-digest')?.output ?? '',
         killed,
         afterKill: { enabled: afterKill?.enabled, stoppedBecause: afterKill?.stoppedBecause },
+      });
+    }
+
+    if (url.pathname === '/share') {
+      const name = `share-${run}`;
+
+      await api.create({ name, createdBy: 'test' });
+      await api.send(name, 's1', 'write a.txt containing <script>alert(1)</script>');
+      const { path } = await api.share(name);
+      const again = await api.share(name);
+      const token = path.split('/').pop() ?? '';
+      const page = await sharedView(env, token);
+      const foreignShare = await other.share(name).then(
+        () => 'shared',
+        (e: unknown) => String(e),
+      );
+      await api.unshare(name);
+      const after = await sharedView(env, token);
+
+      return Response.json({
+        path,
+        same: again.path === path,
+        title: page?.title,
+        messages: page?.messages.length,
+        foreignShare,
+        afterUnshare: after === null,
       });
     }
 

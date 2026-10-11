@@ -58,6 +58,8 @@ export const Message = defineMessageUnion({
   ToggledModelMenu: {},
   ToggledUsage: {},
   ToggledArchived: {},
+  ClickedKillLoops: {},
+  KilledLoops: { names: Schema.Array(Schema.String) },
   PressedShortcut: { key: Schema.String },
   UpdatedPalette: { query: Schema.String },
   MovedPalette: { delta: Schema.Number },

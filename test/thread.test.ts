@@ -166,3 +166,15 @@ test('a loop runs three times, stops at its gate, writes a digest; the kill swit
   expect(out.killed).toEqual([expect.stringMatching(/^kill-/)]);
   expect(out.afterKill).toEqual({ enabled: false, stoppedBecause: 'kill switch' });
 });
+
+test('share links: owner-only, stable, read-only view, turned off by unshare', {
+  timeout: 60_000,
+}, async () => {
+  const out = await get('/share');
+
+  expect(out.path).toMatch(/^\/s\/[A-Za-z0-9_-]{20,}$/);
+  expect(out.same).toBe(true);
+  expect(out.messages).toBeGreaterThan(0);
+  expect(out.foreignShare).toContain('unknown thread');
+  expect(out.afterUnshare).toBe(true);
+});

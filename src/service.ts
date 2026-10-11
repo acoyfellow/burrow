@@ -121,6 +121,17 @@ export const coil = (env: Env, owner: string) => {
 
       return names;
     },
+    share: async (name: string) => {
+      await known(name);
+
+      return { path: `/s/${await directory.share(name, owner)}` };
+    },
+    unshare: async (name: string) => {
+      await known(name);
+      await directory.unshare(name, owner);
+
+      return null;
+    },
     stop: async (name: string) => (await known(name)).stop(),
     setModel: async (name: string, model: string) => (await known(name)).setModel(model),
     rename: async (name: string, title: string) => {
@@ -173,3 +184,16 @@ export const coil = (env: Env, owner: string) => {
 };
 
 export type Coil = ReturnType<typeof coil>;
+
+export const sharedView = async (env: Env, token: string) => {
+  const directory = env.DIRECTORY.getByName(DIRECTORY);
+  const share = await directory.shared(token);
+
+  if (share === null) return null;
+
+  const summary = await directory.get(share.name);
+
+  if (summary === null || summary.owner !== share.owner) return null;
+
+  return env.THREAD.getByName(share.name).view();
+};

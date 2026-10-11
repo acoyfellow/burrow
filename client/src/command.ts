@@ -331,6 +331,18 @@ export const RunOp = Command.define('RunOp', {
         case 'Archive':
           yield* client.Archive({ name, archived: op.archived });
           return done(op.archived ? 'Archived.' : 'Restored.');
+        case 'Share': {
+          const { path } = yield* client.Share({ name });
+          const url = `${globalThis.location.origin}${path}`;
+
+          yield* Effect.promise(
+            () => navigator.clipboard?.writeText(url).catch(() => undefined) ?? Promise.resolve(),
+          );
+
+          return done(
+            `Share link copied: ${url}. Only people your Access policy allows can open it.`,
+          );
+        }
         case 'Delete': {
           const sure = yield* Effect.sync(() =>
             globalThis.confirm(`Delete ${name}? Its computer, disk and chat are removed for good.`),
@@ -403,4 +415,17 @@ export const UploadFiles = Command.define('UploadFiles', {
 
       return Message.UploadedFiles({ name, paths, failed });
     }),
+});
+
+export const KillLoops = Command.define('KillLoops', {
+  messages: [Message.KilledLoops, Message.FailedOp],
+  execute: Effect.gen(function* () {
+    const client = yield* CoilClient;
+
+    return Message.KilledLoops({ names: yield* client.StopAllLoops() });
+  }).pipe(
+    Effect.catch((error) =>
+      Effect.succeed(Message.FailedOp({ name: '', reason: reasonOf(error) })),
+    ),
+  ),
 });

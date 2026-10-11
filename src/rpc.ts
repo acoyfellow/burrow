@@ -123,6 +123,8 @@ export type CoilApi = {
   readonly stopLoop: (name: string) => Promise<typeof LoopState.Type | null>;
   readonly getLoop: (name: string) => Promise<typeof LoopState.Type | null>;
   readonly stopAllLoops: () => Promise<readonly string[]>;
+  readonly share: (name: string) => Promise<{ path: string }>;
+  readonly unshare: (name: string) => Promise<null>;
   readonly stop: (name: string) => Promise<null>;
   readonly setModel: (name: string, model: string) => Out<typeof Usage>;
   readonly rename: (name: string, title: string) => Out<typeof ThreadSummary>;
@@ -174,6 +176,8 @@ export const handlersFor = (caller: Caller) => {
     StopLoop: ({ name }) => attempt(() => api.stopLoop(name)),
     GetLoop: ({ name }) => attempt(() => api.getLoop(name)),
     StopAllLoops: () => attempt(() => api.stopAllLoops()),
+    Share: ({ name }) => attempt(() => api.share(name)),
+    Unshare: ({ name }) => attempt(() => api.unshare(name)),
     Stop: ({ name }) => attempt(() => api.stop(name)),
     Models: () => Effect.succeed(MODELS.map((m) => ({ ...m }))),
     SetModel: ({ name, model }) => attempt(() => api.setModel(name, model)),

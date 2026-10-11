@@ -47,6 +47,7 @@ export const ThreadOp = Schema.Union([
   Schema.TaggedStruct('Rename', {}),
   Schema.TaggedStruct('Archive', { archived: Schema.Boolean }),
   Schema.TaggedStruct('Delete', {}),
+  Schema.TaggedStruct('Share', {}),
 ]);
 
 export type ThreadOp = typeof ThreadOp.Type;

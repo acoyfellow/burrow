@@ -65,6 +65,9 @@ export class Directory extends DurableObject {
       `CREATE TABLE IF NOT EXISTS threads (name TEXT PRIMARY KEY, title TEXT NOT NULL, phase TEXT NOT NULL, busy INTEGER NOT NULL DEFAULT 0, repo TEXT, parent TEXT, forked_from TEXT, created_by TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
     );
     ctx.storage.sql.exec(
+      `CREATE TABLE IF NOT EXISTS shares (token TEXT PRIMARY KEY, name TEXT NOT NULL, owner TEXT NOT NULL, created_at INTEGER NOT NULL)`,
+    );
+    this.ctx.storage.sql.exec(
       `CREATE TABLE IF NOT EXISTS bases (repo TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL, thread TEXT NOT NULL, setup TEXT NOT NULL, at INTEGER NOT NULL)`,
     );
     this.migrate();
@@ -136,6 +139,45 @@ export class Directory extends DurableObject {
       .exec<{ name: string }>('SELECT name FROM threads WHERE owner = ? AND looping = 1', owner)
       .toArray()
       .map((row) => row.name);
+  }
+
+  share(name: string, owner: string): string {
+    const existing = this.ctx.storage.sql
+      .exec<{ token: string }>('SELECT token FROM shares WHERE name = ? AND owner = ?', name, owner)
+      .toArray()[0];
+
+    if (existing !== undefined) return existing.token;
+
+    const bytes = crypto.getRandomValues(new Uint8Array(18));
+    const token = btoa(String.fromCharCode(...bytes))
+      .replace(/[+]/g, '-')
+      .replace(/[/]/g, '_')
+      .replace(/=+$/, '');
+
+    this.ctx.storage.sql.exec(
+      'INSERT INTO shares (token, name, owner, created_at) VALUES (?, ?, ?, ?)',
+      token,
+      name,
+      owner,
+      Date.now(),
+    );
+
+    return token;
+  }
+
+  unshare(name: string, owner: string): void {
+    this.ctx.storage.sql.exec('DELETE FROM shares WHERE name = ? AND owner = ?', name, owner);
+  }
+
+  shared(token: string): { name: string; owner: string } | null {
+    return (
+      this.ctx.storage.sql
+        .exec<{ name: string; owner: string }>(
+          'SELECT name, owner FROM shares WHERE token = ?',
+          token,
+        )
+        .toArray()[0] ?? null
+    );
   }
 
   spendFor(owner: string): number {
