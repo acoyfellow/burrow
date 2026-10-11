@@ -289,9 +289,9 @@ describe('the palette and message tools', () => {
       Command.resolve(RunOp, Message.CompletedOp({ name: 'demo', note: 'Stopped.', gone: false })),
       model((current) => expect(current.palette).toBeNull()),
       Command.resolveAll(
-        [LoadThreads, Message.CompletedEffect()],
-        [LoadView, Message.CompletedEffect()],
-        [ExpireToast, Message.CompletedEffect()],
+        [LoadThreads, Message.LoadedThreads({ threads: [] })],
+        [LoadView, Message.FailedView({ name: 'demo', reason: 'x' })],
+        [ExpireToast, Message.ExpiredToast({ id: 0 })],
       ),
     );
   });
@@ -307,7 +307,7 @@ describe('the palette and message tools', () => {
       Command.expectHas(SendMessage),
       model((current) => expect(current.draft).toBe('')),
       Command.resolve(SendMessage, Message.SentMessage({ name: 'demo' })),
-      Command.resolveAll([LoadThreads, Message.CompletedEffect()]),
+      Command.resolveAll([LoadThreads, Message.LoadedThreads({ threads: [] })]),
     );
   });
 });
