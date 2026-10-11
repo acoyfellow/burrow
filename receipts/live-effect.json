@@ -1,0 +1,96 @@
+{
+  "at": "2026-10-11T13:20:36.875268Z",
+  "site": "https://coil.coey.dev",
+  "thread": "fx-24558-0563e9",
+  "steps": [
+    {
+      "name": "threads_list",
+      "ok": true,
+      "detail": "{\"errors\":0,\"groups\":[\"Running 4\",\"Paused 14\"],\"who\":\"coeyman@gmail.com\"}"
+    },
+    {
+      "name": "open_hero-mv2hzd5x",
+      "ok": true,
+      "detail": "{\"msgs\":7,\"acts\":4,\"phase\":\"running\"}"
+    },
+    {
+      "name": "open_demo-mv2hthho",
+      "ok": true,
+      "detail": "{\"msgs\":6,\"acts\":4,\"phase\":\"running\"}"
+    },
+    {
+      "name": "no_script_errors",
+      "ok": true,
+      "detail": "No browser errors"
+    },
+    {
+      "name": "create_thread",
+      "ok": true,
+      "detail": "/t/fx-24558-0563e9"
+    },
+    {
+      "name": "chat_stream",
+      "ok": true,
+      "detail": "{\"busy\":false,\"last\":\"coil-effect-ok\"}"
+    },
+    {
+      "name": "terminal",
+      "ok": true,
+      "detail": "{\"term\":1}"
+    },
+    {
+      "name": "files",
+      "ok": true,
+      "detail": "/workspace \u25b8 .git/ \u00b7 fx.txt"
+    },
+    {
+      "name": "files_git",
+      "ok": true,
+      "detail": "/workspace / .git \u25b8 hooks/ \u25b8 info/ \u25b8 objects/ \u25b8 refs/ \u00b7 config \u00b7 description \u00b7 HEAD"
+    },
+    {
+      "name": "browser",
+      "ok": true,
+      "detail": "{\"frames\":6}"
+    },
+    {
+      "name": "compact",
+      "ok": true,
+      "detail": "Compacted just now disk 1.2 MB \u00b7 fe932057-b01 \u00b7 with summary"
+    },
+    {
+      "name": "resize",
+      "ok": true,
+      "detail": "Size: standard-2"
+    },
+    {
+      "name": "api_behind_access",
+      "ok": true,
+      "detail": "unauthenticated 302"
+    },
+    {
+      "name": "pause",
+      "ok": true,
+      "detail": "Paused just now disk 1 KB \u00b7 cba7a603-1bf Paused 2m ago disk 18.5 MB \u00b7 cf6d2cc7-b4b Compacted 2m ago disk 1.2 MB \u00b7 fe932057-b01 \u00b7 with summary"
+    },
+    {
+      "name": "fork",
+      "ok": true,
+      "detail": "/t/fx-24558-0563e9-fork-8f6095"
+    },
+    {
+      "name": "phone_menu",
+      "ok": true,
+      "detail": "{\"menu\":true,\"sizes\":5,\"hidden\":false}"
+    },
+    {
+      "name": "owner_isolation",
+      "ok": true,
+      "detail": "undefined\n[{\"_tag\":\"Exit\",\"requestId\":\"1\",\"exit\":{\"_tag\":\"Failure\",\"cause\":[{\"_tag\":\"Fail\",\"error\":{\"_tag\":\"UnknownThread\",\"name\":\"hero-mv2hzd5x-not-mine-zz\"}}]}}]"
+    }
+  ],
+  "shots": [
+    "receipts/shots/effect-desktop.png",
+    "receipts/shots/effect-phone.png"
+  ]
+}
