@@ -1,24 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { CLIENT } from '../src/ui/client';
-import { page } from '../src/ui/index';
+import { Context } from 'effect';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ThreadSummary, ThreadView } from '../shared/protocol';
+import { type CoilApi, rpcHandler } from '../src/rpc';
 
-type ViewShape = {
-  name: string;
-  title: string;
-  phase: string;
-  busy: boolean;
-  running: boolean;
-  repo: null;
-  origin: Record<string, null>;
-  owner: string;
-  size: string;
-  messages: { id: string; role: string; kind: string; text: string }[];
-  pairs: never[];
-  execs: never[];
-  surfaces: { id: string; kind: string; title: string }[];
-};
-
-const view = (name: string, phase: string, busy: boolean): ViewShape => ({
+const view = (name: string, phase: 'awake' | 'paused', busy: boolean): ThreadView => ({
   name,
   title: `Thread ${name}`,
   phase,
@@ -37,63 +22,95 @@ const view = (name: string, phase: string, busy: boolean): ViewShape => ({
   surfaces: [{ id: 't1', kind: 'terminal', title: 'shell' }],
 });
 
-const threads = [
-  {
-    name: 'awake-one',
-    title: 'Thread awake-one',
-    phase: 'awake',
-    busy: false,
-    updatedAt: Date.now(),
-  },
-  { name: 'busy-one', title: 'Thread busy-one', phase: 'awake', busy: true, updatedAt: Date.now() },
-  {
-    name: 'paused-one',
-    title: 'Thread paused-one',
-    phase: 'paused',
-    busy: false,
-    updatedAt: Date.now(),
-  },
-];
+const summary = (name: string, phase: string, busy: boolean): ThreadSummary => ({
+  name,
+  title: `Thread ${name}`,
+  phase,
+  busy,
+  repo: null,
+  parent: null,
+  forkedFrom: null,
+  createdBy: 'web',
+  owner: 'you@example.com',
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+});
 
-const views: Record<string, ViewShape> = {
+const views: Record<string, ThreadView> = {
   'awake-one': view('awake-one', 'awake', false),
   'busy-one': view('busy-one', 'awake', true),
   'paused-one': view('paused-one', 'paused', false),
 };
 
-const json = (body: unknown) =>
-  new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
+const threads = [
+  summary('awake-one', 'awake', false),
+  summary('busy-one', 'awake', true),
+  summary('paused-one', 'paused', false),
+];
 
-const fakeFetch = async (input: RequestInfo | URL) => {
-  const path = new URL(String(input), 'https://coil.test').pathname;
+const fakeApi = (calls: string[]): CoilApi =>
+  ({
+    list: async () => threads,
+    view: async (name: string) => {
+      const found = views[name];
 
-  if (path === '/api/threads') return json(threads);
-  if (path === '/api/whoami') return json({ who: 'you@example.com' });
-  if (path === '/api/bases') return json([]);
+      if (found === undefined) throw new Error(`unknown thread ${name}`);
 
-  const name = /^\/api\/threads\/([^/]+)$/.exec(path)?.[1];
+      return found;
+    },
+    resize: async (name: string, size: string) => {
+      calls.push(`resize ${name} ${size}`);
 
-  if (name !== undefined && views[name] !== undefined) return json(views[name]);
+      return { size, restarted: false };
+    },
+    list_dir: async () => [],
+    start: async (name: string, requestId: string) => {
+      calls.push(`start ${name}`);
 
-  return new Response(new ReadableStream(), { headers: { 'content-type': 'text/event-stream' } });
+      return { requestId };
+    },
+  }) as unknown as CoilApi;
+
+const settle = async () => {
+  for (let round = 0; round < 20; round += 1)
+    await new Promise((resolve) => setTimeout(resolve, 10));
 };
 
-const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+const waitFor = async (ready: () => boolean, timeoutMs = 3000) => {
+  const deadline = Date.now() + timeoutMs;
 
-const boot = async (path: string) => {
+  while (!ready() && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 20));
+};
+
+const boot = async (path: string, calls: string[] = []) => {
   const errors: string[] = [];
-  const html = page();
-  const body = /<body[^>]*>([\s\S]*)<\/body>/.exec(html)?.[1] ?? '';
+  const handler = rpcHandler({ who: 'you@example.com', api: fakeApi(calls) });
+  const realFetch = globalThis.fetch;
 
+  vi.resetModules();
   window.history.replaceState({}, '', path);
-  document.body.innerHTML = body.replace(/<script[\s\S]*?<\/script>/g, '');
-  Object.assign(window, {
-    fetch: fakeFetch,
+  document.body.innerHTML = '<div id="root"></div>';
+  Object.assign(globalThis, {
+    fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(
+        String(input instanceof Request ? input.url : input),
+        window.location.origin,
+      );
+
+      if (url.pathname.startsWith('/api/rpc'))
+        return handler(new Request(url, input instanceof Request ? input : init), Context.empty());
+
+      return realFetch(input, init);
+    },
     EventSource: class {
+      static CLOSED = 2;
+      readyState = 1;
+      onmessage = null;
+      onerror = null;
       close() {}
-      addEventListener() {}
     },
     WebSocket: class {
+      static OPEN = 1;
       readyState = 0;
       send() {}
       close() {}
@@ -102,26 +119,26 @@ const boot = async (path: string) => {
       observe() {}
       disconnect() {}
     },
-    __TERM_SRC: '/assets/term-test.js',
   });
   window.addEventListener('error', (event) => errors.push(String(event.error ?? event.message)));
   window.addEventListener('unhandledrejection', (event) => errors.push(String(event.reason)));
 
-  try {
-    new Function(CLIENT)();
-    document.dispatchEvent(new Event('DOMContentLoaded'));
-  } catch (cause) {
-    errors.push(String(cause));
-  }
-
+  await import('../client/src/entry');
+  await waitFor(
+    () => document.querySelector('.app') !== null && document.querySelector('.skeleton') === null,
+  );
   await settle();
 
   return errors;
 };
 
-describe('the web client loads conversations', () => {
+describe('the foldkit client loads conversations', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   for (const name of Object.keys(views)) {
@@ -131,6 +148,11 @@ describe('the web client loads conversations', () => {
       expect(errors).toEqual([]);
       expect(document.body.textContent).toContain(`answer from ${name}`);
       expect(document.querySelector('#size')).not.toBeNull();
+      expect(
+        document.querySelectorAll(
+          '.act-group > .act > svg.icon, .act-group > .size-wrap > .act > svg.icon',
+        ).length,
+      ).toBe(4);
     });
   }
 
@@ -139,5 +161,21 @@ describe('the web client loads conversations', () => {
 
     expect(errors).toEqual([]);
     expect(document.body.textContent).toContain('Thread paused-one');
+  });
+
+  it('picking a size from the size menu resizes the thread through the RPC', async () => {
+    Object.assign(window, { confirm: () => true });
+    await boot('/t/paused-one');
+    document.querySelector<HTMLButtonElement>('#size')?.click();
+    await settle();
+    document.querySelector<HTMLButtonElement>('[data-size="standard-3"]')?.click();
+
+    const toasts = () =>
+      [...document.querySelectorAll('.toast')].map((toast) => toast.textContent ?? '');
+
+    await waitFor(() => toasts().includes('The computer will start at standard-3.'));
+
+    expect(toasts()).toContain('The computer will start at standard-3.');
+    expect(document.querySelector('#size-list')?.hasAttribute('hidden')).toBe(true);
   });
 });

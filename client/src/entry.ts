@@ -1,0 +1,52 @@
+import { Effect } from 'effect';
+import { Runtime } from 'foldkit';
+import { storedTheme } from './command';
+import { Flags, init } from './main';
+import { Message } from './message';
+import { Model } from './model';
+import { threadFromPath } from './route';
+import { CoilClientLive } from './rpc';
+import { subscriptions } from './subscriptions';
+import { update } from './update';
+import { view } from './view';
+
+const NEW_THREAD_QUERY = 'new';
+
+const flags = Effect.sync(() => {
+  const params = new URLSearchParams(globalThis.location.search);
+  const openNew = params.get(NEW_THREAD_QUERY) === '1';
+
+  if (openNew) globalThis.history.replaceState({}, '', '/');
+
+  return {
+    name: threadFromPath(globalThis.location.pathname),
+    now: Date.now(),
+    online: globalThis.navigator.onLine,
+    theme: storedTheme(),
+    openNew,
+  };
+});
+
+const application = Runtime.makeApplication({
+  Model,
+  Flags,
+  init,
+  update,
+  view,
+  subscriptions,
+  routing: {
+    onUrlRequest: (request) =>
+      request._tag === 'Internal'
+        ? Message.NavigatedTo({ name: threadFromPath(request.url.pathname) })
+        : Message.CompletedEffect(),
+    onUrlChange: (url) => Message.NavigatedTo({ name: threadFromPath(url.pathname) }),
+  },
+  resources: CoilClientLive,
+  container: document.getElementById('root'),
+  devTools: false,
+});
+
+Runtime.run(application, { flags });
+
+if ('serviceWorker' in navigator && globalThis.location.protocol === 'https:')
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => undefined);

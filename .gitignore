@@ -7,3 +7,5 @@ node_modules/
 src/ui/term.generated.ts
 wrangler.local.jsonc
 src/ui/icons.generated.ts
+src/ui/app.generated.ts
+public/app/

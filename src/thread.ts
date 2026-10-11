@@ -63,6 +63,7 @@ export type Env = {
   readonly THREAD: DurableObjectNamespace<Thread>;
   readonly DIRECTORY: DurableObjectNamespace<Directory>;
   readonly AI: Ai;
+  readonly ASSETS: Fetcher;
   readonly MODEL: string;
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;

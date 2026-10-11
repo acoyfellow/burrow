@@ -1,14 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CLIENT } from '../src/ui/client';
 import { STYLE } from '../src/ui/style';
 import { serviceWorker } from '../src/ui/sw';
 
 describe('browser code', () => {
-  it('the client script parses', () => {
-    expect(() => new Function(CLIENT)).not.toThrow();
-  });
-
   it('the service worker parses and never caches the API', () => {
     const source = serviceWorker('test');
 

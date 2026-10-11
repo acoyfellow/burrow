@@ -1,0 +1,149 @@
+import type { Html } from 'foldkit/html';
+import { SIZES, type ThreadView } from '../../../shared/protocol';
+import { Message } from '../message';
+import type { Action, Model } from '../model';
+import { viewOf } from '../update';
+import { type H, icon, phaseKey, phaseLabel, spinner } from './parts';
+
+type ActionButton = {
+  readonly key: Action;
+  readonly label: string;
+  readonly hint: string;
+  readonly disabled: boolean;
+  readonly message: Message;
+};
+
+const actionButton = (
+  h: H,
+  model: Model,
+  locked: boolean,
+  button: ActionButton,
+  extra: Html[] = [],
+): Html =>
+  h.button(
+    [
+      h.Class('act'),
+      h.Id(button.key === 'size' ? 'size' : `act-${button.key}`),
+      h.Title(button.hint),
+      h.AriaLabel(button.label),
+      h.Disabled(locked || button.disabled),
+      h.OnClick(button.message),
+      ...(button.key === 'size' ? [h.AriaHasPopup('menu')] : []),
+    ],
+    [
+      model.action === button.key ? spinner(h) : icon(h, button.key),
+      h.span([h.Class('act-label')], [button.label]),
+      ...extra,
+    ],
+  );
+
+const sizeMenu = (h: H, model: Model, view: ThreadView): Html =>
+  h.div(
+    [h.Class('size-list'), h.Id('size-list'), h.Role('menu'), h.Hidden(!model.sizeMenuOpen)],
+    SIZES.map((size) =>
+      h.button(
+        [
+          h.Role('menuitemradio'),
+          h.AriaChecked(size === view.size),
+          h.DataAttribute('size', size),
+          h.Class(size === view.size ? 'on' : ''),
+          h.OnClick(Message.PickedSize({ size })),
+        ],
+        [h.span([h.Class('tick')], size === view.size ? [icon(h, 'check')] : []), size],
+      ),
+    ),
+  );
+
+const actions = (h: H, model: Model, view: ThreadView): Html => {
+  const locked = model.action !== null || view.busy;
+  const button = (spec: ActionButton) => actionButton(h, model, locked, spec);
+
+  return h.div(
+    [h.Class(`actions${model.menuOpen ? ' open' : ''}`), h.Id('actions')],
+    [
+      h.div(
+        [h.Class('act-group')],
+        [
+          button({
+            key: 'compact',
+            label: 'Compact',
+            hint: 'Compact: summarise the conversation and save the disk',
+            disabled: false,
+            message: Message.ClickedAction({ action: 'compact' }),
+          }),
+          button({
+            key: 'pause',
+            label: 'Pause',
+            hint: 'Pause: save the disk and turn the computer off',
+            disabled: view.phase === 'paused' || view.phase === 'new',
+            message: Message.ClickedAction({ action: 'pause' }),
+          }),
+          button({
+            key: 'fork',
+            label: 'Fork',
+            hint: 'Fork: start a new thread from this disk',
+            disabled: false,
+            message: Message.ClickedAction({ action: 'fork' }),
+          }),
+          h.span(
+            [h.Class('size-wrap'), h.DataAttribute('popover', 'size')],
+            [
+              actionButton(h, model, model.action !== null, {
+                key: 'size',
+                label: `Size: ${view.size}`,
+                hint: `Computer size (${view.size}). Changing it restarts a running computer; the disk is kept.`,
+                disabled: view.busy,
+                message: Message.ToggledSizeMenu(),
+              }),
+              sizeMenu(h, model, view),
+            ],
+          ),
+        ],
+      ),
+      h.button(
+        [
+          h.Class('act panel-toggle'),
+          h.AriaLabel('Computer'),
+          h.OnClick(Message.OpenedDrawer({ drawer: 'panel' })),
+        ],
+        [icon(h, 'computer'), h.span([h.Class('act-label')], ['Computer'])],
+      ),
+    ],
+  );
+};
+
+export const bar = (h: H, model: Model): Html => {
+  const threads = h.button(
+    [
+      h.Class('narrow'),
+      h.AriaLabel('Threads'),
+      h.OnClick(Message.OpenedDrawer({ drawer: 'side' })),
+    ],
+    ['☰'],
+  );
+
+  if (model.name === null)
+    return h.header([h.Class('bar'), h.Id('bar')], [threads, h.h1([], ['Threads'])]);
+
+  const view = viewOf(model);
+
+  if (view === null)
+    return h.header(
+      [h.Class('bar'), h.Id('bar')],
+      [threads, h.h1([h.Title(model.name)], [model.name])],
+    );
+
+  return h.header(
+    [h.Class('bar'), h.Id('bar')],
+    [
+      threads,
+      h.h1([h.Title(model.name)], [view.title]),
+      h.span(
+        [h.Class(`chip ${phaseKey(view)}`), h.Id('phase')],
+        [...(view.busy ? [spinner(h)] : []), phaseLabel(view)],
+      ),
+      h.button([h.Class('more'), h.AriaLabel('Actions'), h.OnClick(Message.ToggledMenu())], ['⋯']),
+      actions(h, model, view),
+    ],
+  );
+};

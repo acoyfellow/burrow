@@ -1,19 +1,25 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "lib": [
       "ES2023",
-      "DOM"
+      "DOM",
+      "DOM.Iterable"
     ],
-    "types": []
+    "types": [],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true
   },
   "include": [
-    "test/client.test.ts",
-    "src/ui/client.ts",
-    "src/ui/index.ts",
-    "src/ui/style.ts",
-    "src/ui/term.generated.ts",
-    "src/flow.ts"
-  ],
-  "exclude": []
+    "client/src",
+    "shared",
+    "src/ui/icons.generated.ts",
+    "src/flow.ts",
+    "test/client.test.ts"
+  ]
 }

@@ -32,3 +32,4 @@ writeFileSync(
 );
 console.log(`term.js ${js.length} bytes, style ${css.length} bytes`);
 await import('./build-icons.mjs');
+await import('./build-client.mjs');

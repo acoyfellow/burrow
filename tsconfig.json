@@ -18,7 +18,8 @@
   },
   "include": [
     "src",
-    "test"
+    "test",
+    "shared"
   ],
   "exclude": [
     "test/client.test.ts"

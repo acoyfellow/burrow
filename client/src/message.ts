@@ -1,0 +1,84 @@
+import { Schema } from 'effect';
+import { defineMessageUnion } from 'foldkit/message';
+import {
+  DirEntry,
+  LiveEvent,
+  Pair,
+  Size,
+  Surface,
+  SurfaceKind,
+  ThreadSummary,
+  ThreadView,
+} from '../../shared/protocol';
+import { Action, Theme } from './model';
+
+export const Message = defineMessageUnion({
+  LoadedWho: { who: Schema.String },
+  LoadedThreads: { threads: Schema.Array(ThreadSummary) },
+  FailedThreads: { reason: Schema.String },
+  ClickedRetryThreads: {},
+  Ticked: { now: Schema.Number },
+
+  NavigatedTo: { name: Schema.NullOr(Schema.String) },
+  ClickedThread: { name: Schema.String },
+  LoadedView: { name: Schema.String, view: ThreadView },
+  FailedView: { name: Schema.String, reason: Schema.String },
+  ClickedRetryView: {},
+  RefreshedView: { name: Schema.String, view: ThreadView },
+
+  ReceivedEvent: { name: Schema.String, event: LiveEvent },
+  StreamClosed: { name: Schema.String },
+
+  UpdatedDraft: { value: Schema.String },
+  SubmittedDraft: {},
+  SentMessage: { name: Schema.String },
+  FailedSend: { name: Schema.String, text: Schema.String, reason: Schema.String },
+
+  ClickedAction: { action: Action },
+  CompletedAction: { name: Schema.String, action: Action, note: Schema.String },
+  FailedAction: { name: Schema.String, action: Action, reason: Schema.String },
+  ForkedInto: { view: ThreadView },
+  PausedThread: { name: Schema.String, pair: Schema.NullOr(Pair) },
+  PickedSize: { size: Size },
+  ClickedSize: { size: Size },
+  ToggledSizeMenu: {},
+  ToggledMenu: {},
+  ClickedOutside: {},
+
+  ClickedTab: { tab: Schema.String },
+  ToggledAddMenu: {},
+  ClickedAddSurface: { kind: SurfaceKind },
+  ChangedSurfaces: { name: Schema.String, surfaces: Schema.Array(Surface) },
+  AddedSurface: { name: Schema.String, kind: SurfaceKind, surfaces: Schema.Array(Surface) },
+  ClickedCloseSurface: { id: Schema.String },
+  FailedSurface: { reason: Schema.String },
+
+  ClickedDir: { path: Schema.String },
+  LoadedDir: { name: Schema.String, path: Schema.String, entries: Schema.Array(DirEntry) },
+  ClickedFile: { path: Schema.String },
+  LoadedFile: { name: Schema.String, path: Schema.String, text: Schema.String },
+  FailedFiles: { name: Schema.String, reason: Schema.String },
+  ClosedFile: {},
+
+  OpenedDrawer: { drawer: Schema.Literals(['side', 'panel']) },
+  ClosedDrawer: {},
+
+  ClickedNewThread: {},
+  ClosedNewThread: {},
+  UpdatedNewRepo: { value: Schema.String },
+  UpdatedNewTitle: { value: Schema.String },
+  UpdatedNewSize: { value: Schema.String },
+  SubmittedNewThread: {},
+  CreatedThread: { view: ThreadView },
+  FailedCreate: { reason: Schema.String },
+
+  ExpiredToast: { id: Schema.Number },
+  ChangedOnline: { online: Schema.Boolean },
+  ClickedTheme: {},
+  AppliedTheme: { theme: Theme },
+  BecameInstallable: { installable: Schema.Boolean },
+  ClickedInstall: {},
+  CompletedEffect: {},
+});
+
+export type Message = typeof Message.Type;

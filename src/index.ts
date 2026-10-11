@@ -1,8 +1,9 @@
-import { Hono } from 'hono';
+import { Context } from 'effect';
 import { AccessDenied, accessConfig, verifyAccess } from './access';
 import { mcp } from './mcp';
+import { serveRest } from './rest';
+import { type Caller, handlersFor, isRpcPath, rpcHandler } from './rpc';
 import { type Coil, coil } from './service';
-import { isSize, SIZES } from './size';
 import type { Env } from './thread';
 import { page } from './ui/index';
 import { serviceWorker } from './ui/sw';
@@ -15,197 +16,122 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 const LOCAL_OWNER = 'local';
 
-type Vars = { Bindings: Env; Variables: { who: string; api: Coil } };
+const THREAD_SOCKET = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/(terminal|browser)$/;
 
-const app = new Hono<Vars>();
+const THREAD_EVENTS = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/events$/;
 
-app.use('*', async (c, next) => {
-  if (c.env.LOCAL_DEV_WITHOUT_ACCESS === '1' && LOCAL_HOSTS.has(new URL(c.req.url).hostname)) {
-    c.set('who', 'local');
-    c.set('api', coil(c.env, LOCAL_OWNER));
+const PAGE = /^\/(t\/[a-z0-9][a-z0-9-]{0,62})?\/?$/;
 
-    return next();
-  }
+type Owner = Caller & { readonly api: Coil };
 
-  const config = accessConfig(c.env.ACCESS_TEAM_DOMAIN, c.env.ACCESS_AUD);
+type Admission = { readonly caller: Owner } | { readonly refused: Response };
 
-  if (config === null) return c.text('Access is not configured', 503);
+const isLocalDev = (request: Request, env: Env) =>
+  env.LOCAL_DEV_WITHOUT_ACCESS === '1' && LOCAL_HOSTS.has(new URL(request.url).hostname);
+
+const admit = async (request: Request, env: Env): Promise<Admission> => {
+  if (isLocalDev(request, env))
+    return { caller: { who: LOCAL_OWNER, api: coil(env, LOCAL_OWNER) } };
+
+  const config = accessConfig(env.ACCESS_TEAM_DOMAIN, env.ACCESS_AUD);
+
+  if (config === null)
+    return { refused: new Response('Access is not configured', { status: 503 }) };
 
   try {
-    const identity = await verifyAccess(c.req.header('Cf-Access-Jwt-Assertion') ?? null, config);
+    const identity = await verifyAccess(request.headers.get('Cf-Access-Jwt-Assertion'), config);
 
-    if (identity.email === null) return c.text('Forbidden: the Access token has no email', 403);
+    if (identity.email === null)
+      return { refused: new Response('Forbidden: the Access token has no email', { status: 403 }) };
 
-    c.set('who', identity.email.toLowerCase());
+    const who = identity.email.toLowerCase();
+
+    return { caller: { who, api: coil(env, who) } };
   } catch (cause) {
-    if (cause instanceof AccessDenied) return c.text(`Forbidden: ${cause.message}`, 403);
+    if (cause instanceof AccessDenied)
+      return { refused: new Response(`Forbidden: ${cause.message}`, { status: 403 }) };
 
     throw cause;
   }
+};
 
-  c.set('api', coil(c.env, c.var.who));
+const isCrossOriginWrite = (request: Request) => {
+  const origin = request.headers.get('Origin');
+  const isWrite = request.method !== 'GET' && request.method !== 'HEAD';
 
-  return next();
-});
+  return isWrite && origin !== null && origin !== new URL(request.url).origin;
+};
 
-const body = async <T>(request: Request): Promise<Partial<T>> =>
-  (await request.json().catch(() => ({}))) as Partial<T>;
+const script = (body: string, cache: string) =>
+  new Response(body, {
+    headers: {
+      'content-type': 'text/javascript; charset=utf-8',
+      'cache-control': cache,
+      'service-worker-allowed': '/',
+    },
+  });
 
-app.get('/', (c) => c.html(page()));
-app.get('/t/:name', (c) => c.html(page()));
+const upgrade = (request: Request, caller: Owner, name: string, kind: 'terminal' | 'browser') =>
+  request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
+    ? caller.api.socket(name, kind, request)
+    : Promise.resolve(new Response('Expected a WebSocket upgrade', { status: 426 }));
 
-app.get('/api/threads', async (c) => c.json(await c.var.api.list()));
+const failed = (cause: unknown) => {
+  const message = cause instanceof Error ? cause.message : String(cause);
+  const status = /unknown thread|not found/i.test(message) ? 404 : 400;
 
-app.post('/api/threads', async (c) => {
-  const input = await body<{
-    name: string;
-    repo: string;
-    title: string;
-    warm: boolean;
-    size: string;
-  }>(c.req.raw);
+  return Response.json({ error: message }, { status });
+};
 
-  if (input.size !== undefined && !isSize(input.size))
-    return c.json({ error: `size must be one of ${SIZES.join(', ')}` }, 400);
+const route = async (request: Request, env: Env, caller: Owner): Promise<Response> => {
+  const url = new URL(request.url);
+  const { pathname } = url;
 
-  return c.json(
-    await c.var.api.create({
-      name: input.name,
-      repo: input.repo ?? null,
-      title: input.title,
-      createdBy: 'web',
-      warm: input.warm !== false,
-      size: isSize(input.size) ? input.size : undefined,
-    }),
-    201,
-  );
-});
+  if (isRpcPath(pathname)) return rpcHandler(caller)(request, Context.empty());
 
-app.get('/api/threads/:name', async (c) => c.json(await c.var.api.view(c.req.param('name'))));
+  if (pathname === '/mcp' && request.method === 'POST') return mcp(request, caller.api);
 
-app.get('/api/threads/:name/events', async (c) => c.var.api.events(c.req.param('name'), c.req.raw));
+  if (pathname === `/assets/term-${TERM_VERSION}.js`)
+    return script(TERM_JS, 'public, max-age=31536000, immutable');
 
-app.post('/api/threads/:name/messages', async (c) => {
-  const input = await body<{ text: string; wait: boolean }>(c.req.raw);
-  const requestId = c.req.header('Idempotency-Key') ?? crypto.randomUUID();
-  const text = input.text ?? '';
+  if (pathname === '/sw.js') return script(serviceWorker(TERM_VERSION), 'no-cache');
 
-  if (text.trim() === '') return c.json({ error: 'text is required' }, 400);
+  const socket = THREAD_SOCKET.exec(pathname);
 
-  if (input.wait === true)
-    return c.json({ requestId, ...(await c.var.api.send(c.req.param('name'), requestId, text)) });
+  if (socket?.[1] !== undefined && socket[2] !== undefined)
+    return upgrade(request, caller, socket[1], socket[2] === 'browser' ? 'browser' : 'terminal');
 
-  return c.json(await c.var.api.start(c.req.param('name'), requestId, text), 202);
-});
+  const events = THREAD_EVENTS.exec(pathname);
 
-app.post('/api/threads/:name/exec', async (c) => {
-  const input = await body<{ argv: string[]; command: string }>(c.req.raw);
+  if (events?.[1] !== undefined) return caller.api.events(events[1], request);
 
-  return c.json(
-    await c.var.api.exec(
-      c.req.param('name'),
-      input.argv ?? ['bash', '-lc', input.command ?? 'true'],
-    ),
-  );
-});
+  if (pathname.startsWith('/api/'))
+    return (
+      (await serveRest(request, handlersFor(caller))) ??
+      Response.json({ error: 'not found' }, { status: 404 })
+    );
 
-app.get('/api/threads/:name/files', async (c) => {
-  const path = c.req.query('path') ?? '.';
+  if (PAGE.test(pathname) && request.method === 'GET')
+    return new Response(page(), {
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
+    });
 
-  return c.req.query('list') === '1'
-    ? c.json(await c.var.api.list_dir(c.req.param('name'), path))
-    : c.text(await c.var.api.read(c.req.param('name'), path));
-});
+  return env.ASSETS.fetch(request);
+};
 
-app.post('/api/threads/:name/compact', async (c) =>
-  c.json(await c.var.api.compact(c.req.param('name'))),
-);
+export default {
+  async fetch(request, env) {
+    const admission = await admit(request, env);
 
-app.post('/api/threads/:name/pause', async (c) =>
-  c.json(await c.var.api.pause(c.req.param('name'))),
-);
+    if ('refused' in admission) return admission.refused;
 
-app.post('/api/threads/:name/size', async (c) => {
-  const input = await body<{ size: string }>(c.req.raw);
+    if (isCrossOriginWrite(request))
+      return new Response('cross-origin request refused', { status: 403 });
 
-  if (!isSize(input.size)) return c.json({ error: `size must be one of ${SIZES.join(', ')}` }, 400);
-
-  return c.json(await c.var.api.resize(c.req.param('name'), input.size));
-});
-
-app.get('/api/sizes', (c) => c.json(SIZES));
-
-app.post('/api/threads/:name/fork', async (c) => {
-  const input = await body<{ name: string }>(c.req.raw);
-
-  return c.json(await c.var.api.fork(c.req.param('name'), input.name, 'web'), 201);
-});
-
-app.get('/api/threads/:name/terminal', async (c) =>
-  c.req.header('Upgrade')?.toLowerCase() === 'websocket'
-    ? c.var.api.socket(c.req.param('name'), 'terminal', c.req.raw)
-    : c.text('Expected a WebSocket upgrade', 426),
-);
-
-app.get('/api/threads/:name/browser', async (c) =>
-  c.req.header('Upgrade')?.toLowerCase() === 'websocket'
-    ? c.var.api.socket(c.req.param('name'), 'browser', c.req.raw)
-    : c.text('Expected a WebSocket upgrade', 426),
-);
-
-app.post('/api/threads/:name/surfaces', async (c) => {
-  const input = await body<{ kind: string }>(c.req.raw);
-
-  return c.json(
-    input.kind === 'browser'
-      ? await c.var.api.addBrowser(c.req.param('name'))
-      : await c.var.api.addTerminal(c.req.param('name')),
-  );
-});
-
-app.delete('/api/threads/:name/surfaces/:id', async (c) =>
-  c.json(await c.var.api.closeSurface(c.req.param('name'), c.req.param('id'))),
-);
-
-app.get(`/assets/term-${TERM_VERSION}.js`, (c) =>
-  c.body(TERM_JS, 200, {
-    'content-type': 'text/javascript; charset=utf-8',
-    'cache-control': 'public, max-age=31536000, immutable',
-  }),
-);
-
-app.get('/sw.js', (c) =>
-  c.body(serviceWorker(TERM_VERSION), 200, {
-    'content-type': 'text/javascript; charset=utf-8',
-    'cache-control': 'no-cache',
-    'service-worker-allowed': '/',
-  }),
-);
-
-app.get('/api/bases', async (c) => c.json(await c.var.api.bases()));
-
-app.post('/api/bases', async (c) => {
-  const input = await body<{ repo: string; setup: string }>(c.req.raw);
-
-  if (typeof input.repo !== 'string' || input.repo === '')
-    return c.json({ error: 'repo is required' }, 400);
-
-  return c.json(await c.var.api.prepare(input.repo, input.setup ?? ''), 201);
-});
-
-app.get('/api/whoami', (c) => c.json({ who: c.var.who }));
-
-app.post('/mcp', (c) => mcp(c.req.raw, c.var.api));
-
-app.onError((error, c) => {
-  const message = error instanceof Error ? error.message : String(error);
-  const status = /no such file|not found|ENOENT|unknown thread/i.test(message)
-    ? 404
-    : /agent is working|command is running|name .* is taken/i.test(message)
-      ? 409
-      : 400;
-
-  return c.json({ error: message }, status);
-});
-
-export default app;
+    try {
+      return await route(request, env, admission.caller);
+    } catch (cause) {
+      return failed(cause);
+    }
+  },
+} satisfies ExportedHandler<Env>;

@@ -26,6 +26,7 @@ export const STYLE = `
 :root[data-theme=dark]{color-scheme:dark;${DARK}}
 :root[data-theme=light]{color-scheme:light;${LIGHT}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;margin:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--text);font:13.5px/1.55 var(--sans);font-optical-sizing:auto;-webkit-font-smoothing:antialiased;overflow:hidden}
@@ -175,6 +176,16 @@ textarea{resize:none}
 
 dialog{background:var(--bg);color:var(--text);border:1px solid var(--line2);border-radius:12px;padding:0;width:min(440px,92vw);box-shadow:0 20px 50px rgba(0,0,0,.18)}
 dialog::backdrop{background:rgba(0,0,0,.3)}
+.dialog-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:flex-start;justify-content:center;padding-top:12vh;z-index:50}
+.dialog{background:var(--bg);color:var(--text);border:1px solid var(--line2);border-radius:12px;width:min(440px,92vw);box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.dialog form{display:flex;flex-direction:column;gap:10px;padding:16px}
+.dialog h3{margin:0;font-size:15px;font-weight:600}
+.dialog label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--dim)}
+.dialog select{border:1px solid var(--line2);border-radius:8px;padding:6px 8px;background:var(--bg);color:var(--text);font:inherit;font-size:13px}
+.dialog .actions{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}
+.dialog .actions .primary{padding:5px 12px}
+#root,.root{height:100%}
+.feed-end{height:1px}
 dialog form{display:flex;flex-direction:column;gap:10px;padding:16px}
 dialog h3{margin:0;font-size:15px;font-weight:600}
 dialog label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--dim)}

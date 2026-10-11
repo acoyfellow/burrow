@@ -17,7 +17,7 @@ self.addEventListener('activate', (event) => {
 const isShellNavigation = (request, url) =>
   request.mode === 'navigate' && (url.pathname === '/' || url.pathname.startsWith('/t/'));
 
-const isImmutableAsset = (url) => url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/');
+const isImmutableAsset = (url) => url.pathname.startsWith('/assets/') || url.pathname.startsWith('/app/') || url.pathname.startsWith('/icons/');
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
