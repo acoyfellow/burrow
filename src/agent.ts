@@ -111,6 +111,29 @@ const FETCH_LIMIT = 400_000;
 
 const WEB_URL = /^https?:\/{2}/;
 
+const FETCH_TIMEOUT_MS = 15_000;
+
+const readCapped = async (response: Response, limit: number): Promise<string> => {
+  const reader = response.body?.getReader();
+
+  if (reader === undefined) return '';
+
+  const decoder = new TextDecoder();
+  let out = '';
+
+  while (out.length < limit) {
+    const { done, value } = await reader.read();
+
+    if (done) break;
+
+    out += decoder.decode(value, { stream: true });
+  }
+
+  await reader.cancel().catch(() => undefined);
+
+  return out.slice(0, limit);
+};
+
 const toPlain = (html: string): string =>
   html
     .replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, ' ')
@@ -128,8 +151,9 @@ const fetchText = async (url: string): Promise<string> => {
   const response = await fetch(url, {
     headers: { 'user-agent': 'coil-agent', accept: 'text/html,text/plain,application/json' },
     redirect: 'follow',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
-  const body = (await response.text()).slice(0, FETCH_LIMIT);
+  const body = await readCapped(response, FETCH_LIMIT);
   const type = response.headers.get('content-type') ?? '';
 
   return `HTTP ${response.status} ${type}\n${(type.includes('html') ? toPlain(body) : body).trim()}`;
