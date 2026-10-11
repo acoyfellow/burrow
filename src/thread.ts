@@ -892,6 +892,21 @@ export class Thread extends DurableObject<Env> {
     };
   }
 
+  async probe(): Promise<string> {
+    const container = this.ctx.container;
+
+    if (container === undefined) return 'no container binding';
+
+    try {
+      const process = await container.exec(['/sandbox/bin/echo', 'up'], {});
+      const output = await process.output();
+
+      return `exit ${output.exitCode}`;
+    } catch (cause) {
+      return String(cause).slice(0, 300);
+    }
+  }
+
   async wake(): Promise<{ phase: Phase; running: boolean; detail: string }> {
     if (this.ledger.phase !== 'awake' && this.booting === undefined)
       this.ctx.waitUntil(
@@ -910,6 +925,7 @@ export class Thread extends DurableObject<Env> {
       detail: JSON.stringify({
         booting: this.booting !== undefined,
         lastError: this.ledger.wakeError,
+        images: this.ctx.container?.images ?? null,
       }),
     };
   }
