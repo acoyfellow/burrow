@@ -12,7 +12,7 @@
   "scripts": {
     "dev": "node scripts/build-term.mjs && wrangler dev",
     "deploy": "node scripts/build-term.mjs && wrangler deploy",
-    "typecheck": "node scripts/build-term.mjs && tsc -p .",
+    "typecheck": "node scripts/build-term.mjs && tsc -p . && tsc -p tsconfig.client.json",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
@@ -31,6 +31,7 @@
     "@biomejs/biome": "2.5.15",
     "@cloudflare/workers-types": "^5.20261010.1",
     "esbuild": "^0.28.2",
+    "happy-dom": "^20.14.6",
     "typescript": "^5.9.3",
     "vitest": "^5.0.3",
     "wrangler": "4.149.0"

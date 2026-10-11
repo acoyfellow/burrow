@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "types": []
+  },
+  "include": [
+    "test/client.test.ts",
+    "src/ui/client.ts",
+    "src/ui/index.ts",
+    "src/ui/style.ts",
+    "src/ui/term.generated.ts",
+    "src/flow.ts"
+  ],
+  "exclude": []
+}

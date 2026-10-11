@@ -4,7 +4,7 @@ set -euo pipefail
 step() { printf '\n== %s\n' "$1"; }
 
 step "typecheck"
-npx tsc -p .
+npx tsc -p . && npx tsc -p tsconfig.client.json
 
 step "lint and format"
 npx biome check .

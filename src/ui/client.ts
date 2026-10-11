@@ -65,10 +65,10 @@ function renderBar() {
   bar.append(h('h1', { title: S.name }, v ? v.title : S.name));
   if (!v) return;
   bar.append(h('span', { class: 'chip ' + phaseOf(v), id: 'phase' }, v.busy ? spinner() : null, phaseLabel(v)));
+  const locked = !!S.action || v.busy;
   const sizePicker = h('select', { class: 'size-pick', id: 'size', title: 'Computer size. Changing it restarts a running computer; the disk is kept.', disabled: locked, onchange: (e) => resize(e.target.value) },
     ...SIZES.map((s) => h('option', { value: s, selected: s === v.size }, s)));
   bar.append(sizePicker);
-  const locked = !!S.action || v.busy;
   const button = (key, label, onclick, extra) => h('button', { id: 'act-' + key, disabled: locked || extra, onclick }, S.action === key ? spinner() : null, label);
   const actions = h('div', { class: 'actions', id: 'actions' },
     button('compact', 'Compact', () => act('compact', 'Compacting: summarising and saving the disk…', 'Compacted. Summary and disk saved together.')),
