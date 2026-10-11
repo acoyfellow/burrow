@@ -1,4 +1,5 @@
 export type TerrariumConfig = {
+  readonly via?: { fetch: (request: Request) => Promise<Response> };
   readonly url: string;
   readonly token: string;
   readonly accessId?: string;
@@ -18,7 +19,12 @@ const MAX_WAIT_MS = 10 * 60_000;
 const RESULT_LINE = /TERRARIUM_RESULT=.*$/m;
 
 const call = async (config: TerrariumConfig, path: string, init: RequestInit = {}) => {
-  const response = await fetch(`${config.url.replace(/[/]+$/, '')}${path}`, {
+  const send =
+    config.via === undefined
+      ? fetch
+      : (url: string, init: RequestInit) =>
+          config.via?.fetch(new Request(url, init)) as Promise<Response>;
+  const response = await send(`${config.url.replace(/[/]+$/, '')}${path}`, {
     ...init,
     headers: {
       authorization: `Bearer ${config.token}`,

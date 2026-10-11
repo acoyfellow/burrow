@@ -18,4 +18,12 @@ if (withImage === source) {
   process.exit(2);
 }
 
-writeFileSync('wrangler.local.jsonc', withImage);
+const service = process.env.TERRARIUM_SERVICE;
+const withService = service
+  ? withImage.replace(
+      '"ai": {',
+      `"services": [{ "binding": "TERRARIUM", "service": ${JSON.stringify(service)} }],\n  "ai": {`,
+    )
+  : withImage;
+
+writeFileSync('wrangler.local.jsonc', withService);

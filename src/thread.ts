@@ -101,6 +101,7 @@ export type Env = {
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
+  readonly TERRARIUM?: Fetcher;
   readonly TERRARIUM_URL?: string;
   readonly TERRARIUM_TOKEN?: string;
   readonly TERRARIUM_ACCESS_CLIENT_ID?: string;
@@ -918,7 +919,9 @@ export class Thread extends DurableObject<Env> {
   }
 
   private extras(): Extras {
-    const url = this.env.TERRARIUM_URL;
+    const via = this.env.TERRARIUM;
+    const url =
+      this.env.TERRARIUM_URL ?? (via === undefined ? undefined : 'https://terrarium.internal');
     const token = this.env.TERRARIUM_TOKEN;
 
     if (url === undefined || url === '' || token === undefined || token === '')
@@ -929,7 +932,7 @@ export class Thread extends DurableObject<Env> {
 
     return {
       ...DEFAULT_EXTRAS,
-      terrarium: (task) => runTerrarium({ url, token, accessId, accessSecret }, task),
+      terrarium: (task) => runTerrarium({ via, url, token, accessId, accessSecret }, task),
     };
   }
 
