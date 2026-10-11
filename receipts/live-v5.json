@@ -155,5 +155,9 @@
    "at": "2026-10-11T21:50:40.425002Z"
   }
  },
- "shots": []
+ "shots": [],
+ "notes": {
+  "fresh_boot": "Plain threads now boot from a default warm base (empty workspace snapshot). v5plain-22012 created plain, awake after about 30 s, exec ok, workspace empty. 2026-10-11T22:29:47.423742Z",
+  "terrarium": "coil reaches terrarium-control over a service binding and gets a run contract; runs fail inside Terrarium: AI Gateway 2021 insufficient unified billing credits. 2026-10-11T22:29:47.423742Z"
+ }
 }
