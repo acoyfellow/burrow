@@ -200,6 +200,14 @@ export class Ledger {
     this.put('wake_error', next);
   }
 
+  get childrenMade(): number {
+    return Number(this.get('children_made') ?? '0');
+  }
+
+  set childrenMade(next: number) {
+    this.put('children_made', String(next));
+  }
+
   get notes(): string {
     return this.get('notes') ?? '';
   }

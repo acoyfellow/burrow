@@ -4,7 +4,7 @@ import {
   fauxText,
   fauxToolCall,
 } from '@earendil-works/pi-ai/providers/faux';
-import type { ModelChoice } from '../../src/agent';
+import type { ModelChoice, ThreadDirectory } from '../../src/agent';
 import type { Computer } from '../../src/computer';
 import { coil, sharedView } from '../../src/service';
 import { type Env, Thread } from '../../src/thread';
@@ -140,6 +140,28 @@ export class TestThread extends Thread {
     const loop = this.ledger.loop;
 
     if (loop !== null) this.ledger.loop = { ...loop, nextAt: 0 };
+  }
+
+  async raceStopForTest() {
+    const tick = this.loopTickForRace();
+    await this.stopLoop('stopped by the owner');
+    await tick;
+
+    return this.ledger.loop;
+  }
+
+  async childCreateForTest(task: string) {
+    return (this as unknown as { threadDirectory: () => ThreadDirectory })
+      .threadDirectory()
+      .create('child', task)
+      .then(
+        (ok: string) => ok,
+        (error: unknown) => String(error),
+      );
+  }
+
+  private loopTickForRace() {
+    return (this as unknown as { loopStep: () => Promise<void> }).loopStep();
   }
 
   async loopTick() {
@@ -426,6 +448,36 @@ export default {
         digest: view.execs.find((e) => e.argv.join(' ') === 'coil loop-digest')?.output ?? '',
         killed,
         afterKill: { enabled: afterKill?.enabled, stoppedBecause: afterKill?.stoppedBecause },
+      });
+    }
+
+    if (url.pathname === '/loop-race') {
+      const name = `race-${run}`;
+      const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      await api.create({ name, createdBy: 'test' });
+      await api.startLoop(name, {
+        prompt: 'take the next step',
+        everySeconds: 30,
+        maxRuns: 5,
+        maxSpend: 1,
+        gate: null,
+      });
+      await test.forceDueForTest();
+      const blocked = await test.childCreateForTest('do work');
+      const raced = await test.raceStopForTest();
+      await test.forceDueForTest();
+      await test.loopTick();
+      const after = await api.getLoop(name);
+      const view = await api.view(name);
+
+      return Response.json({
+        blocked,
+        racedEnabled: raced?.enabled,
+        afterEnabled: after?.enabled,
+        runs: after?.runs.length,
+        stoppedBecause: after?.stoppedBecause,
+        digests: view.execs.filter((e) => e.argv.join(' ') === 'coil loop-digest').length,
       });
     }
 

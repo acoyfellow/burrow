@@ -44,6 +44,8 @@ const STOP_WAIT_MS = 5_000;
 
 const OWNER_SPEND_CAP = 25;
 
+const MAX_CHILDREN_PER_THREAD = 20;
+
 const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
 
 export type ThreadView = {
@@ -443,7 +445,10 @@ export class Thread extends DurableObject<Env> {
         return `sent to ${name}`;
       },
       create: async (title, task) => {
+        const withTask = task !== undefined && task.trim() !== '';
         const owner = await this.ownerEmail();
+
+        await this.assertChildBudget(owner, withTask);
         const name = `${
           title
             .toLowerCase()
@@ -644,8 +649,36 @@ export class Thread extends DurableObject<Env> {
     return this.view();
   }
 
+  private async assertChildBudget(owner: string, withTask: boolean): Promise<void> {
+    if (withTask && this.ledger.loop?.enabled === true)
+      throw new Error('A looping thread cannot start other threads with a task');
+
+    const made = this.ledger.childrenMade;
+
+    if (made >= MAX_CHILDREN_PER_THREAD)
+      throw new Error(`This thread already created ${MAX_CHILDREN_PER_THREAD} threads`);
+
+    if ((await this.directory.spendFor(owner)) >= OWNER_SPEND_CAP)
+      throw new Error(`Owner spend cap $${OWNER_SPEND_CAP} reached`);
+
+    this.ledger.childrenMade = made + 1;
+  }
+
+  private async assertOwnerBudget(): Promise<void> {
+    const owner = this.ledger.owner;
+
+    if (owner === null || owner === '') return;
+
+    if ((await this.directory.spendFor(owner)) >= OWNER_SPEND_CAP)
+      throw new Error(
+        `Owner spend cap $${OWNER_SPEND_CAP} reached. Stop or delete threads to continue.`,
+      );
+  }
+
   async start(requestId: string, input: string): Promise<{ requestId: string }> {
     while (this.pausing !== undefined) await this.pausing.catch(() => undefined);
+
+    await this.assertOwnerBudget();
 
     this.inFlight += 1;
 
@@ -1057,13 +1090,22 @@ export class Thread extends DurableObject<Env> {
     const loop = this.ledger.loop;
 
     if (loop === null) return null;
+    if (!loop.enabled) return loop;
 
-    const stopped = { ...loop, enabled: false, stoppedBecause: loop.stoppedBecause ?? reason };
+    await this.finishLoop(loop, reason);
 
-    this.ledger.loop = stopped;
-    await this.publish({ looping: false });
+    return this.ledger.loop;
+  }
 
-    return stopped;
+  private loopStillCurrent(snapshot: LoopState): boolean {
+    const current = this.ledger.loop;
+
+    return (
+      current !== null &&
+      current.enabled &&
+      current.runs.length === snapshot.runs.length &&
+      current.startedCost === snapshot.startedCost
+    );
   }
 
   loopState(): LoopState | null {
@@ -1071,10 +1113,10 @@ export class Thread extends DurableObject<Env> {
   }
 
   private async finishLoop(loop: LoopState, reason: string) {
-    const cost = (await this.usage()).cost;
     const stopped = { ...loop, enabled: false, stoppedBecause: reason };
 
     this.ledger.loop = stopped;
+    const cost = (await this.usage()).cost;
     await this.publish({ looping: false, spend: cost });
     await this.ledger.logExec(['coil', 'loop-digest'], 0, digest(stopped, cost), 'agent');
   }
@@ -1087,6 +1129,9 @@ export class Thread extends DurableObject<Env> {
     const cost = (await this.usage()).cost;
     const owner = await this.ownerEmail();
     const ownerSpend = await this.directory.spendFor(owner);
+
+    if (!this.loopStillCurrent(loop)) return;
+
     const decision = decide(loop, Date.now(), cost, this.ledger.busy, ownerSpend, OWNER_SPEND_CAP);
 
     if (decision.kind === 'wait') {
@@ -1103,6 +1148,8 @@ export class Thread extends DurableObject<Env> {
       const gate = await this.execNow(['bash', '-lc', loop.gate ?? 'false']).catch(() => ({
         exitCode: 1,
       }));
+
+      if (!this.loopStillCurrent(loop)) return;
       const runs = loop.runs.map((run, index) =>
         index === loop.runs.length - 1 ? { ...run, gateExit: gate.exitCode } : run,
       );
@@ -1136,6 +1183,8 @@ export class Thread extends DurableObject<Env> {
   }
 
   async stop(): Promise<null> {
+    if (this.ledger.loop?.enabled === true) await this.stopLoop('stopped by the owner');
+
     const agent = await this.open();
     const aborting = agent.stop().then(() => this.settle());
 

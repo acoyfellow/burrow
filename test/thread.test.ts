@@ -178,3 +178,16 @@ test('share links: owner-only, stable, read-only view, turned off by unshare', {
   expect(out.foreignShare).toContain('unknown thread');
   expect(out.afterUnshare).toBe(true);
 });
+
+test('a stopped loop stays stopped even if a tick was in flight; loop turns cannot fan out tasks', {
+  timeout: 60_000,
+}, async () => {
+  const out = await get('/loop-race');
+
+  expect(out.blocked).toContain('cannot start other threads with a task');
+  expect(out.racedEnabled).toBe(false);
+  expect(out.afterEnabled).toBe(false);
+  expect(out.runs).toBeLessThanOrEqual(1);
+  expect(out.stoppedBecause).toBe('stopped by the owner');
+  expect(out.digests).toBe(1);
+});
