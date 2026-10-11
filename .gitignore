@@ -6,3 +6,4 @@ node_modules/
 .guardrail/
 src/ui/term.generated.ts
 wrangler.local.jsonc
+src/ui/icons.generated.ts

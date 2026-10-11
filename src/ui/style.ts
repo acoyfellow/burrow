@@ -179,12 +179,24 @@ dialog form{display:flex;flex-direction:column;gap:10px;padding:16px}
 dialog h3{margin:0;font-size:15px;font-weight:600}
 dialog label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--dim)}
 dialog select{border:1px solid var(--line2);border-radius:8px;padding:6px 8px;background:var(--bg);color:var(--text);font:inherit;font-size:13px}
-.size-pick{border:1px solid transparent;border-radius:99px;background:var(--raise);color:var(--dim);font:inherit;font-size:11.5px;padding:1px 6px;margin-right:4px;max-width:110px}
-.size-pick:hover{border-color:var(--line2)}
 dialog .actions{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}
 dialog .actions .primary{padding:5px 12px}
 
-.bar .actions{display:flex;gap:1px;align-items:center}
+.bar .actions{display:flex;gap:6px;align-items:center}
+.icon{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.act-group{display:flex;gap:2px;align-items:center;padding:2px;border:1px solid var(--line);border-radius:10px;background:var(--raise)}
+.act{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:30px;height:30px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--dim)}
+.act:hover:not(:disabled){background:var(--bg);color:var(--fg)}
+.act:disabled{opacity:.4}
+.act .spin{margin:0}
+.act-label{display:none}
+.size-wrap{position:relative;display:inline-flex}
+.size-list{position:absolute;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;min-width:150px;padding:4px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.15);z-index:20}
+.size-list[hidden]{display:none}
+.size-list button{display:flex;align-items:center;gap:8px;padding:6px 10px;border:0;border-radius:6px;background:transparent;font:12.5px var(--mono);color:var(--fg);text-align:left}
+.size-list button:hover,.size-list button.on{background:var(--raise)}
+.size-list .tick{width:16px;display:inline-flex}
+.tab-main .icon{width:14px;height:14px;margin-right:5px;vertical-align:-2px}
 .bar .actions .panel-toggle{display:none}
 .more{display:none!important}
 .narrow{display:none!important}
@@ -204,7 +216,11 @@ dialog .actions .primary{padding:5px 12px}
   .more{display:inline-flex!important}
   .bar .actions{display:none;position:absolute;top:calc(100% + 4px);right:6px;flex-direction:column;align-items:stretch;background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:4px;z-index:12;min-width:150px;box-shadow:0 12px 30px rgba(0,0,0,.15)}
   .bar .actions.open{display:flex}
-  .bar .actions button{justify-content:flex-start;padding:6px 10px}
+  .act-group{flex-direction:column;align-items:stretch;border:0;padding:0;background:transparent}
+  .act{width:auto;height:auto;justify-content:flex-start;padding:8px 10px;color:var(--fg)}
+  .act-label{display:inline}
+  .size-wrap{flex-direction:column}
+  .size-list{position:static;box-shadow:none;border:0;border-left:2px solid var(--line2);border-radius:0;margin:2px 0 4px 18px;padding:0 0 0 6px}
   .feed{padding:12px 12px 6px}
   .composer{padding:6px 10px 10px}
   .msg.user .body{max-width:92%}

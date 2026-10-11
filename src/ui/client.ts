@@ -1,6 +1,8 @@
 import { TERMINAL_ACK_EVERY_BYTES } from '../flow';
+import { ICONS } from './icons.generated';
 
 export const CLIENT = String.raw`
+const ICONS = ${JSON.stringify(ICONS)};
 const $ = (s, r = document) => r.querySelector(s);
 const h = (tag, attrs = {}, ...kids) => {
   const el = document.createElement(tag);
@@ -27,6 +29,7 @@ const toast = (text, bad) => { const t = h('div', { class: 'toast' + (bad ? ' ba
 const spinner = () => h('span', { class: 'spin' });
 const skeleton = () => h('div', { class: 'skeleton' }, h('div'), h('div'), h('div'));
 const pathFromUrl = () => location.pathname.startsWith('/t/') ? decodeURIComponent(location.pathname.slice(3)) : null;
+const icon = (name) => { const el = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); el.setAttribute('viewBox', '0 0 24 24'); el.setAttribute('class', 'icon'); el.setAttribute('aria-hidden', 'true'); el.innerHTML = ICONS[name] || ''; return el; };
 const freshLive = () => ({ text: '', tools: [], compacting: false });
 
 const S = { threads: null, threadsError: null, name: pathFromUrl(), view: null, viewError: null, live: null,
@@ -66,15 +69,19 @@ function renderBar() {
   if (!v) return;
   bar.append(h('span', { class: 'chip ' + phaseOf(v), id: 'phase' }, v.busy ? spinner() : null, phaseLabel(v)));
   const locked = !!S.action || v.busy;
-  const sizePicker = h('select', { class: 'size-pick', id: 'size', title: 'Computer size. Changing it restarts a running computer; the disk is kept.', disabled: locked, onchange: (e) => resize(e.target.value) },
-    ...SIZES.map((s) => h('option', { value: s, selected: s === v.size }, s)));
-  bar.append(sizePicker);
-  const button = (key, label, onclick, extra) => h('button', { id: 'act-' + key, disabled: locked || extra, onclick }, S.action === key ? spinner() : null, label);
+  const iconButton = (key, label, onclick, extra, hint) => h('button', { class: 'act', id: 'act-' + key, title: hint || label, 'aria-label': label, disabled: locked || extra, onclick }, S.action === key ? spinner() : icon(key), h('span', { class: 'act-label' }, label));
+  const sizeList = h('div', { class: 'size-list', id: 'size-list', role: 'menu', hidden: true },
+    ...SIZES.map((s) => h('button', { role: 'menuitemradio', 'aria-checked': String(s === v.size), 'data-size': s, class: s === v.size ? 'on' : '', onclick: (e) => { e.stopPropagation(); sizeList.hidden = true; actions.classList.remove('open'); if (s !== v.size) resize(s); } }, h('span', { class: 'tick' }, s === v.size ? icon('check') : null), s)));
+  const sizeButton = iconButton('size', 'Size: ' + v.size, (e) => { e.stopPropagation(); sizeList.hidden = !sizeList.hidden; }, false, 'Computer size (' + v.size + '). Changing it restarts a running computer; the disk is kept.');
+  sizeButton.id = 'size';
+  sizeButton.setAttribute('aria-haspopup', 'menu');
   const actions = h('div', { class: 'actions', id: 'actions' },
-    button('compact', 'Compact', () => act('compact', 'Compacting: summarising and saving the disk…', 'Compacted. Summary and disk saved together.')),
-    button('pause', 'Pause', () => act('pause', 'Pausing: saving the disk…', 'Paused. The disk is saved and the computer is off.'), v.phase === 'paused' || v.phase === 'new'),
-    button('fork', 'Fork', fork),
-    h('button', { class: 'panel-toggle', onclick: () => { $('.app').classList.add('show-panel'); actions.classList.remove('open'); } }, 'Computer'));
+    h('div', { class: 'act-group' },
+      iconButton('compact', 'Compact', () => act('compact', 'Compacting: summarising and saving the disk…', 'Compacted. Summary and disk saved together.'), false, 'Compact: summarise the conversation and save the disk'),
+      iconButton('pause', 'Pause', () => act('pause', 'Pausing: saving the disk…', 'Paused. The disk is saved and the computer is off.'), v.phase === 'paused' || v.phase === 'new', 'Pause: save the disk and turn the computer off'),
+      iconButton('fork', 'Fork', fork, false, 'Fork: start a new thread from this disk'),
+      h('span', { class: 'size-wrap' }, sizeButton, sizeList)),
+    h('button', { class: 'act panel-toggle', 'aria-label': 'Computer', onclick: () => { $('.app').classList.add('show-panel'); actions.classList.remove('open'); } }, icon('computer'), h('span', { class: 'act-label' }, 'Computer')));
   bar.append(h('button', { class: 'more', 'aria-label': 'Actions', onclick: () => actions.classList.toggle('open') }, '⋯'), actions);
 }
 
@@ -341,8 +348,8 @@ async function closeSurface(id) {
 function renderTabs() {
   const tabs = $('#tabs');
   const surfaces = S.view ? S.view.surfaces || [] : [];
-  const tab = (id, label, closable) => h('span', { class: 'tab' + (S.tab === id ? ' on' : ''), 'data-tab': id },
-    h('button', { class: 'tab-main', onclick: () => { S.tab = id; renderPanel(); if (id === 'files' && S.entries === null && S.view) openDir(S.path); } }, label),
+  const tab = (id, label, closable, glyph) => h('span', { class: 'tab' + (S.tab === id ? ' on' : ''), 'data-tab': id },
+    h('button', { class: 'tab-main', onclick: () => { S.tab = id; renderPanel(); if (id === 'files' && S.entries === null && S.view) openDir(S.path); } }, glyph ? icon(glyph) : null, label),
     closable ? h('button', { class: 'tab-x', title: 'Close', 'aria-label': 'Close ' + label, onclick: (e) => { e.stopPropagation(); closeSurface(id); } }, '×') : null);
   const menu = h('div', { class: 'add-menu', hidden: true },
     h('button', { onclick: () => { menu.hidden = true; addSurface('terminal'); } }, '▸_  Terminal'),
@@ -352,11 +359,11 @@ function renderTabs() {
       ...surfaces.map((x) => tab(x.id, (x.kind === 'browser' ? '◎ ' : '▸ ') + x.title, true)),
       S.view ? h('span', { class: 'add-wrap' }, h('button', { class: 'tab-add', title: 'New terminal or browser', 'aria-label': 'Add surface', onclick: (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; } }, '+'), menu) : null),
     h('span', { class: 'tab-sep' }),
-    tab('files', 'Files', false),
-    tab('history', 'History', false),
+    tab('files', 'Files', false, 'files'),
+    tab('history', 'History', false, 'history'),
     h('button', { class: 'narrow panel-close', 'aria-label': 'Close', onclick: () => $('.app').classList.remove('show-panel') }, '✕'));
 }
-document.addEventListener('click', () => { const m = $('.add-menu'); if (m) m.hidden = true; });
+document.addEventListener('click', () => { const m = $('.add-menu'); if (m) m.hidden = true; const l = $('#size-list'); if (l) l.hidden = true; });
 
 function renderFiles(pane) {
   const wrap = h('div', { class: 'files' });
