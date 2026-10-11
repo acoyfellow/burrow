@@ -1,0 +1,25 @@
+client/src/markdown.test.ts
+  s_d58794dec92dc7::t_4b2deb02902572 1-26
+client/src/view/feed.ts
+  s_d58794dec92dc7::t_17f964ee6cbc44 7,52,144
+client/src/view/markdown.ts
+  s_d58794dec92dc7::t_ea5da9aa576c1c 1-186
+src/ui/style.ts
+  s_d58794dec92dc7::t_751c52fa9d15b4 210-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e24c90769955408d9ad62b4c774763f3e44188cc",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
