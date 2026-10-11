@@ -750,7 +750,11 @@ export class Thread extends DurableObject<Env> {
   }
 
   override async alarm(): Promise<void> {
-    if (this.ledger.loop?.enabled) await this.loopStep();
+    if (this.ledger.loop?.enabled && !this.ledger.busy) {
+      await this.loopStep();
+
+      if (this.ledger.loop?.enabled) return;
+    }
 
     if (this.ledger.busy) {
       const agent = await this.open();
@@ -767,6 +771,8 @@ export class Thread extends DurableObject<Env> {
 
       await this.settle();
       await this.touch();
+
+      if (this.ledger.loop?.enabled) await this.ctx.storage.setAlarm(Date.now() + IDLE_CHECK_MS);
 
       return;
     }
