@@ -290,7 +290,11 @@ export const CoilRpcs = RpcGroup.make(
   }),
   Rpc.make('Wake', {
     payload: target,
-    success: Schema.Struct({ phase: Schema.String, running: Schema.Boolean }),
+    success: Schema.Struct({
+      phase: Schema.String,
+      running: Schema.Boolean,
+      detail: Schema.String,
+    }),
     error: CoilError,
   }),
   Rpc.make('Stop', { payload: target, success: Schema.Null, error: CoilError }),

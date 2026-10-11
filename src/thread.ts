@@ -892,15 +892,26 @@ export class Thread extends DurableObject<Env> {
     };
   }
 
-  async wake(): Promise<{ phase: Phase; running: boolean }> {
-    if (!this.computer().running())
+  async wake(): Promise<{ phase: Phase; running: boolean; detail: string }> {
+    if (this.ledger.phase !== 'awake' && this.booting === undefined)
       this.ctx.waitUntil(
         this.awake()
-          .then(() => undefined)
-          .catch(() => undefined),
+          .then(() => {
+            this.ledger.wakeError = '';
+          })
+          .catch((cause: unknown) => {
+            this.ledger.wakeError = String(cause).slice(0, 500);
+          }),
       );
 
-    return { phase: this.ledger.phase, running: this.computer().running() };
+    return {
+      phase: this.ledger.phase,
+      running: this.computer().running(),
+      detail: JSON.stringify({
+        booting: this.booting !== undefined,
+        lastError: this.ledger.wakeError,
+      }),
+    };
   }
 
   async stop(): Promise<null> {

@@ -180,6 +180,14 @@ export class Ledger {
     this.put('model', id);
   }
 
+  get wakeError(): string {
+    return this.get('wake_error') ?? '';
+  }
+
+  set wakeError(next: string) {
+    this.put('wake_error', next);
+  }
+
   get notes(): string {
     return this.get('notes') ?? '';
   }
