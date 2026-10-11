@@ -406,7 +406,7 @@ const tools = (
             const receipt = await run(args.task.slice(0, 4000));
 
             return text(
-              `run ${receipt.runId}: ${receipt.status}, receipt ${receipt.verified ? 'verified' : 'NOT verified'}\ncontract ${receipt.contract}\n${receipt.result}`,
+              `run ${receipt.runId}: ${receipt.status}, receipt ${receipt.verified ? 'verified' : 'NOT verified'}\ncontract ${receipt.contract}\n${receipt.result}\nstatus ${receipt.summary ?? ''}`,
             );
           },
         }),

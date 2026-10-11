@@ -12,6 +12,7 @@ export type TerrariumReceipt = {
   readonly verified: boolean;
   readonly contract: string;
   readonly result: string;
+  readonly summary?: string;
 };
 
 const POLL_MS = 5_000;
@@ -83,6 +84,7 @@ export const runTerrarium = async (
     status: String(field(status, 'status') ?? 'timeout'),
     verified: field(status, 'taskContractStatus') === 'verified',
     contract: JSON.stringify(contract ?? {}),
-    result: RESULT_LINE.exec(logs)?.[0] ?? '',
+    result: RESULT_LINE.exec(logs)?.[0] ?? (logs === '' ? '' : `log tail: ${logs.slice(-600)}`),
+    summary: JSON.stringify(status).slice(0, 600),
   };
 };
