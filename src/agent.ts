@@ -46,6 +46,12 @@ export type BrowserTools = {
   readonly type: (text: string, ref?: string) => Promise<string>;
   readonly key: (key: string) => Promise<string>;
   readonly evaluate: (expression: string) => Promise<string>;
+  readonly look: (question: string) => Promise<string>;
+  readonly logs: (clear: boolean) => Promise<string>;
+};
+
+export type Extras = {
+  readonly fetchText: (url: string) => Promise<string>;
 };
 
 export type Children = {
@@ -57,10 +63,11 @@ const PROMPT = [
   'You are a coding agent working inside your own Linux computer. The repository is in /workspace.',
   'Tools: run executes a shell command there; write_file creates or replaces a file; read_file reads one.',
   'The shell has bash, coreutils, busybox (grep, sed, awk, wget, tar), and a patched git that refuses force pushes.',
-  'There is no python or node. The computer is yours alone and its disk persists across pauses.',
+  'node, npm, python3, curl, ripgrep (rg) and jq are installed. The computer is yours alone and its disk persists across pauses.',
   'For a separate side task, start_child gives it to a new thread with its own computer; wait_child returns its answer.',
   'You also have a real Chromium browser in the same computer. It sees localhost, so you can open a dev server you started.',
-  'browser_open loads a URL; browser_snapshot lists clickable elements as refs (e1, e2, ...) plus page text; browser_click and browser_type act on a ref; browser_key presses a key; browser_eval runs JavaScript. The human watches the same browser live.',
+  'browser_open loads a URL; browser_snapshot lists clickable elements as refs (e1, e2, ...) plus page text; browser_click and browser_type act on a ref; browser_key presses a key; browser_eval runs JavaScript; browser_screenshot asks a vision model about what the page looks like; browser_logs reads the console. The human watches the same browser live.',
+  'edit_file changes one exact piece of a file. web_fetch reads a public URL. job_start and job_status run long commands in the background. notes_read and notes_write keep a short notes document that survives compaction and pauses: keep your goal and progress there.',
   'Do the work, check it with a command, then reply in one or two short sentences.',
 ].join('\n');
 
@@ -75,7 +82,47 @@ export const NO_BROWSER: BrowserTools = {
   type: noBrowser,
   key: noBrowser,
   evaluate: noBrowser,
+  look: noBrowser,
+  logs: noBrowser,
 };
+
+const FETCH_LIMIT = 400_000;
+
+const WEB_URL = /^https?:\/{2}/;
+
+const toPlain = (html: string): string =>
+  html
+    .replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s+\n|\n\s+/g, '\n');
+
+const fetchText = async (url: string): Promise<string> => {
+  if (!WEB_URL.test(url)) throw new Error('Only http and https URLs');
+
+  const response = await fetch(url, {
+    headers: { 'user-agent': 'coil-agent', accept: 'text/html,text/plain,application/json' },
+    redirect: 'follow',
+  });
+  const body = (await response.text()).slice(0, FETCH_LIMIT);
+  const type = response.headers.get('content-type') ?? '';
+
+  return `HTTP ${response.status} ${type}\n${(type.includes('html') ? toPlain(body) : body).trim()}`;
+};
+
+export const DEFAULT_EXTRAS: Extras = { fetchText };
+
+const JOB_DIR = '/tmp/jobs';
+
+const JOB_NAME = /^[a-z0-9][a-z0-9-]{0,40}$/;
+
+const NOTES_LIMIT = 20_000;
+
+const shellQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
 const text = (value: string) => ({ content: [{ type: 'text' as const, text: value }] });
 
@@ -87,6 +134,7 @@ const tools = (
   ledger: Ledger,
   children: Children,
   browser: BrowserTools,
+  extras: Extras,
 ) => [
   defineTool({
     name: 'run',
@@ -194,6 +242,152 @@ const tools = (
     executionMode: 'sequential',
     execute: async (args) => text(clip(await browser.evaluate(args.expression))),
   }),
+  defineTool({
+    name: 'browser_screenshot',
+    description:
+      'Take a screenshot of the browser page and have a vision model describe it. Ask a specific question, for example "is the counter showing 3?" or "describe the layout".',
+    parameters: Type.Object({ question: Type.String() }),
+    replay: 'safe',
+    executionMode: 'sequential',
+    execute: async (args) => text(await browser.look(args.question)),
+  }),
+  defineTool({
+    name: 'browser_logs',
+    description:
+      'Return console messages and uncaught errors from the browser page. Set clear to true to empty the log after reading.',
+    parameters: Type.Object({ clear: Type.Optional(Type.Boolean()) }),
+    replay: 'safe',
+    executionMode: 'parallel',
+    execute: async (args) => text(clip(await browser.logs(args.clear ?? false))),
+  }),
+  defineTool({
+    name: 'edit_file',
+    description:
+      'Replace one exact piece of text in a file, relative to /workspace. old_text must appear exactly once. Cheaper and safer than rewriting the whole file.',
+    parameters: Type.Object({
+      path: Type.String(),
+      old_text: Type.String(),
+      new_text: Type.String(),
+    }),
+    replay: 'safe',
+    executionMode: 'sequential',
+    execute: async (args) => {
+      if (args.old_text === '') return text('old_text is empty. Use write_file to create a file.');
+
+      const box = await computer();
+      const current = await box.readFile(args.path);
+      const count = current.split(args.old_text).length - 1;
+
+      if (count === 0)
+        return text(
+          `old_text was not found in ${args.path}. Read the file and copy the text exactly.`,
+        );
+      if (count > 1)
+        return text(
+          `old_text appears ${count} times in ${args.path}. Include more lines so it is unique.`,
+        );
+
+      await box.writeFile(
+        args.path,
+        current.replace(args.old_text, () => args.new_text),
+      );
+
+      return text(`Edited ${args.path}`);
+    },
+  }),
+  defineTool({
+    name: 'web_fetch',
+    description:
+      'Fetch a public http(s) URL and return its text (HTML is reduced to plain text). Use it to read docs.',
+    parameters: Type.Object({ url: Type.String() }),
+    replay: 'safe',
+    executionMode: 'parallel',
+    execute: async (args) => text(clip(await extras.fetchText(args.url))),
+  }),
+  defineTool({
+    name: 'notes_read',
+    description:
+      "Read this thread's notes: a small document you keep for yourself across turns, compactions and pauses.",
+    parameters: Type.Object({}),
+    replay: 'safe',
+    executionMode: 'parallel',
+    execute: async () => text(ledger.notes === '' ? '(no notes yet)' : ledger.notes),
+  }),
+  defineTool({
+    name: 'notes_write',
+    description:
+      "Replace this thread's notes. Keep them short: goals, decisions, open questions, what to do next.",
+    parameters: Type.Object({ content: Type.String() }),
+    replay: 'safe',
+    executionMode: 'sequential',
+    execute: async (args) => {
+      const kept = args.content.slice(0, NOTES_LIMIT);
+
+      ledger.notes = kept;
+
+      return text(`Saved notes (${kept.length} chars)`);
+    },
+  }),
+  defineTool({
+    name: 'job_start',
+    description:
+      'Start a long shell command in the background (builds, test suites, servers). Returns at once. Check it later with job_status.',
+    parameters: Type.Object({ name: Type.String(), command: Type.String() }),
+    replay: 'unsafe',
+    executionMode: 'sequential',
+    execute: async (args) => {
+      if (!JOB_NAME.test(args.name))
+        return text('Job names are lowercase letters, digits and dashes.');
+
+      const box = await computer();
+      const dir = `${JOB_DIR}/${args.name}`;
+      const script = `mkdir -p ${dir} && rm -f ${dir}/exit && printf '%s' ${shellQuote(args.command)} > ${dir}/cmd && cd /workspace && (nohup bash -lc "$(cat ${dir}/cmd)" > ${dir}/log 2>&1; echo $? > ${dir}/exit) > /dev/null 2>&1 & echo started`;
+      const result = await box.exec(['bash', '-lc', script]);
+
+      await ledger.logExec(
+        ['job', args.name, args.command],
+        result.exitCode,
+        result.stdout,
+        'agent',
+      );
+
+      return text(
+        result.exitCode === 0 ? `Started job ${args.name}` : `Could not start: ${result.stderr}`,
+      );
+    },
+  }),
+  defineTool({
+    name: 'job_status',
+    description:
+      'Show a background job: running or its exit code, plus the last lines of its output. Without a name, list all jobs.',
+    parameters: Type.Object({ name: Type.Optional(Type.String()) }),
+    replay: 'safe',
+    executionMode: 'parallel',
+    execute: async (args) => {
+      const box = await computer();
+
+      if (args.name === undefined) {
+        const list = await box.exec([
+          'bash',
+          '-lc',
+          `for d in ${JOB_DIR}/*/; do [ -d "$d" ] || continue; n=$(basename "$d"); if [ -f "$d/exit" ]; then echo "$n exit $(cat "$d/exit")"; else echo "$n running"; fi; done`,
+        ]);
+
+        return text(list.stdout.trim() === '' ? '(no jobs)' : list.stdout);
+      }
+
+      if (!JOB_NAME.test(args.name)) return text('Unknown job name.');
+
+      const dir = `${JOB_DIR}/${args.name}`;
+      const status = await box.exec([
+        'bash',
+        '-lc',
+        `[ -d ${dir} ] || { echo missing; exit 0; }; if [ -f ${dir}/exit ]; then echo "exit $(cat ${dir}/exit)"; else echo running; fi; tail -n 60 ${dir}/log`,
+      ]);
+
+      return text(clip(status.stdout));
+    },
+  }),
 ];
 
 const textOf = (content: unknown): string => {
@@ -285,6 +479,7 @@ export const openAgent = async (
   settings: HarnessSettings = {},
   seed: () => string | null = () => null,
   browser: BrowserTools = NO_BROWSER,
+  extras: Extras = DEFAULT_EXTRAS,
 ): Promise<Agent> => {
   const models = createModels(model.options);
 
@@ -306,7 +501,7 @@ export const openAgent = async (
           { tag: false },
         ),
       ],
-      tools: tools(computer, ledger, children, browser),
+      tools: tools(computer, ledger, children, browser, extras),
     }),
   );
 

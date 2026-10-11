@@ -35,6 +35,8 @@ import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
 
 const TURN_DIFF_LIMIT = 60_000;
 
+const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
+
 export type ThreadView = {
   readonly name: string;
   readonly title: string;
@@ -459,7 +461,44 @@ export class Thread extends DurableObject<Env> {
         return `pressed ${key}; now at ${page(browser.page)}`;
       },
       evaluate: async (expression) => (await this.openBrowser()).evaluate(expression),
+      look: async (question) => {
+        const browser = await this.openBrowser();
+        const shot = await browser.screenshot();
+
+        return `${page(browser.page)}\n${await this.describe(shot, question)}`;
+      },
+      logs: async (clear) => {
+        const lines = (await this.openBrowser()).consoleLogs(clear);
+
+        return lines.length === 0 ? '(no console messages)' : lines.join('\n');
+      },
     };
+  }
+
+  private async describe(jpegBase64: string, question: string): Promise<string> {
+    const result = (await this.env.AI.run(
+      VISION_MODEL as keyof AiModels,
+      {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `This is a screenshot of a web page. ${question}\nAnswer plainly and briefly. Quote visible text exactly.`,
+              },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpegBase64}` } },
+            ],
+          },
+        ],
+        max_tokens: 600,
+      } as never,
+    )) as { response?: string; choices?: { message?: { content?: string } }[] };
+    const answer = result.response ?? result.choices?.[0]?.message?.content ?? '';
+
+    if (answer.trim() === '') throw new Error('The vision model returned nothing');
+
+    return answer.trim();
   }
 
   private open(): Promise<Agent> {

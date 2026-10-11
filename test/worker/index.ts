@@ -53,6 +53,35 @@ const scripted = (): ModelChoice => {
           fauxText('Summary: the thread wrote files into its own computer.'),
         );
 
+      const edit = /^edit (\S+) from (\S+) to (\S+)$/.exec(request);
+
+      if (edit !== null && !toolRan(context))
+        return fauxAssistantMessage(
+          fauxToolCall('edit_file', {
+            path: edit[1] ?? '',
+            old_text: edit[2] ?? '',
+            new_text: edit[3] ?? '',
+          }),
+          { stopReason: 'toolUse' },
+        );
+
+      const note = /^note (.+)$/.exec(request);
+
+      if (note !== null && !toolRan(context))
+        return fauxAssistantMessage(fauxToolCall('notes_write', { content: note[1] ?? '' }), {
+          stopReason: 'toolUse',
+        });
+
+      const job = /^job (\S+) (.+)$/.exec(request);
+
+      if (job !== null && !toolRan(context))
+        return fauxAssistantMessage(
+          fauxToolCall('job_start', { name: job[1] ?? '', command: job[2] ?? '' }),
+          {
+            stopReason: 'toolUse',
+          },
+        );
+
       const file = fileFrom(request);
 
       if (file !== null && !toolRan(context))
@@ -81,6 +110,10 @@ export class TestThread extends Thread {
 
   async runAlarm() {
     await this.alarm();
+  }
+
+  async notesForTest() {
+    return this.ledger.notes;
   }
 
   async forgetActivity() {
@@ -248,6 +281,29 @@ export default {
         boTakesName: await refused(other.create({ name: mine, createdBy: 'test' })),
         forkOwner: forked.owner,
         anaOwner: (await api.view(mine)).owner,
+      });
+    }
+
+    if (url.pathname === '/tools') {
+      const name = `tools-${run}`;
+      const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      await api.create({ name, createdBy: 'test' });
+      await api.send(name, 'w', 'write app.txt containing color=red size=2');
+      await api.send(name, 'e', 'edit app.txt from red to blue');
+      const edited = await api.read(name, 'app.txt');
+
+      await api.send(name, 'n', 'note goal is a blue app');
+      const notes = await test.notesForTest();
+      const view = await api.view(name);
+      const toolNames = view.messages.flatMap((m) => (m.tool === undefined ? [] : [m.tool.name]));
+
+      return Response.json({
+        edited,
+        notes,
+        toolNames,
+        turns: view.turns.length,
+        usage: view.usage,
       });
     }
 

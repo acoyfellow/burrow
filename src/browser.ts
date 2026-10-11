@@ -59,6 +59,8 @@ export const normalizeUrl = (input: string) => {
   return /^(https?|about|data|file):/i.test(url) ? url : `http://${url}`;
 };
 
+const LOG_LINES = 200;
+
 export class Browser {
   private next = 0;
   private readonly waiting = new Map<number, (m: CdpMessage) => void>();
@@ -175,6 +177,43 @@ export class Browser {
     }
 
     if (message.method === 'Page.loadEventFired') void this.refreshPage();
+
+    if (message.method === 'Runtime.consoleAPICalled') {
+      const params = message.params as {
+        type?: string;
+        args?: { value?: unknown; description?: string }[];
+      };
+      const text = (params.args ?? [])
+        .map((arg) => (arg.value === undefined ? (arg.description ?? '') : String(arg.value)))
+        .join(' ');
+
+      this.remember(`[${params.type ?? 'log'}] ${text}`);
+    }
+
+    if (message.method === 'Runtime.exceptionThrown') {
+      const params = message.params as {
+        exceptionDetails?: { text?: string; exception?: { description?: string } };
+      };
+
+      this.remember(
+        `[error] ${params.exceptionDetails?.exception?.description ?? params.exceptionDetails?.text ?? 'exception'}`,
+      );
+    }
+  }
+
+  private logs: string[] = [];
+
+  private remember(line: string) {
+    this.logs.push(line.slice(0, 2000));
+    if (this.logs.length > LOG_LINES) this.logs.splice(0, this.logs.length - LOG_LINES);
+  }
+
+  consoleLogs(clear: boolean): string[] {
+    const lines = [...this.logs];
+
+    if (clear) this.logs = [];
+
+    return lines;
   }
 
   send(

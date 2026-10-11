@@ -180,6 +180,14 @@ export class Ledger {
     this.put('model', id);
   }
 
+  get notes(): string {
+    return this.get('notes') ?? '';
+  }
+
+  set notes(next: string) {
+    this.put('notes', next);
+  }
+
   get titled(): boolean {
     return this.get('titled') === '1';
   }

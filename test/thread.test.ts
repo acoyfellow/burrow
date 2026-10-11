@@ -123,3 +123,14 @@ test('container size is set at creation and can change later without losing the 
   expect(out.boots).toEqual(['standard-2', 'standard-4', 'lite']);
   expect(out.finalSize).toBe('lite');
 });
+
+test('agent tools: edit_file changes one exact piece; notes survive in the ledger', {
+  timeout: 60_000,
+}, async () => {
+  const out = await get('/tools');
+
+  expect(out.edited).toBe('color=blue size=2');
+  expect(out.notes).toBe('goal is a blue app');
+  expect(out.toolNames).toEqual(['write_file', 'edit_file', 'notes_write']);
+  expect(out.turns).toBe(3);
+});
