@@ -1,0 +1,31 @@
+computer/Dockerfile
+  s_d58794dec92dc7::t_64520ad06d9db9 7
+src/agent.ts
+  s_d58794dec92dc7::t_bfd8a832bc4510 49-54,66,69-70,85-114,117-126,137,245-390,482,504
+src/browser.ts
+  s_d58794dec92dc7::t_f4c97682e751f6 62-63,180-216
+src/ledger.ts
+  s_d58794dec92dc7::t_231bc75f74ff93 183-190
+src/thread.ts
+  s_d58794dec92dc7::t_72330617cf86ae 38-39,464-474,478-503
+test/thread.test.ts
+  s_d58794dec92dc7::t_60cffb38f2bb45 126-136
+test/worker/index.ts
+  s_d58794dec92dc7::t_ba5a540197c86a 56-84,115-118,287-309
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "4f5284e0e49c213e2f1c8163885571a6308b9d39",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
