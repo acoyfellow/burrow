@@ -1,0 +1,31 @@
+shared/protocol.ts
+  s_d58794dec92dc7::t_d3478cdf95a0f2 357
+src/agent.ts
+  s_d58794dec92dc7::t_7649eea400561d 24,56,391-413
+src/rpc.ts
+  s_d58794dec92dc7::t_7d9999e68b8aad 135,190
+src/service.ts
+  s_d58794dec92dc7::t_5b0639ee45b9c3 55-59,166-172,199-200
+src/terrarium.ts
+  s_d58794dec92dc7::t_e535aadc6e30be 1-77
+src/thread.ts
+  s_d58794dec92dc7::t_9f71a51d86d735 8-9,39,98-99,596,870-879
+test/terrarium.test.ts
+  s_d58794dec92dc7::t_8fa23af5d733c7 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "5d395403d23bbf0b68273e5c544bee09cf9c24b5",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
