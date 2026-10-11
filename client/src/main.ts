@@ -39,6 +39,7 @@ export const initialModel = (flags: Flags): Model => ({
   modelMenuOpen: false,
   usageOpen: false,
   showArchived: false,
+  palette: null,
   addMenuOpen: false,
   drawer: 'none',
   newThread: { open: flags.openNew, repo: '', title: '', size: DEFAULT_SIZE, creating: false },

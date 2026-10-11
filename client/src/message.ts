@@ -31,6 +31,8 @@ export const Message = defineMessageUnion({
 
   UpdatedDraft: { value: Schema.String },
   SubmittedDraft: {},
+  ClickedEdit: { text: Schema.String },
+  ClickedRetry: { text: Schema.String },
   SentMessage: { name: Schema.String },
   FailedSend: { name: Schema.String, text: Schema.String, reason: Schema.String },
 
@@ -50,6 +52,11 @@ export const Message = defineMessageUnion({
   ToggledModelMenu: {},
   ToggledUsage: {},
   ToggledArchived: {},
+  PressedShortcut: { key: Schema.String },
+  UpdatedPalette: { query: Schema.String },
+  MovedPalette: { delta: Schema.Number },
+  ChosePalette: { index: Schema.Number },
+  ClosedPalette: {},
 
   ClickedTab: { tab: Schema.String },
   ToggledAddMenu: {},

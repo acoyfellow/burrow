@@ -218,6 +218,18 @@ dialog .actions .primary{padding:5px 12px}
 .md pre code{background:transparent;padding:0}
 .md a{color:var(--orange)}
 .md>:last-child{margin-bottom:0}
+.msg-tools{display:flex;gap:4px;justify-content:flex-end;opacity:0;transition:opacity .15s}
+.msg.user:hover .msg-tools,.msg.user:focus-within .msg-tools{opacity:1}
+@media (hover:none){.msg-tools{opacity:1}}
+.msg-tools button{border:0;background:transparent;font-size:11.5px;color:var(--dim);padding:2px 6px;border-radius:6px}
+.msg-tools button:hover{color:var(--fg);background:var(--raise)}
+.palette{width:min(560px,92vw);padding:6px;align-self:flex-start;margin-top:12vh}
+#palette-input{width:100%;border:0;border-bottom:1px solid var(--line2);background:transparent;padding:10px;font-size:15px;color:var(--fg);outline:none}
+.palette-list{display:flex;flex-direction:column;max-height:50vh;overflow:auto;padding-top:4px}
+.palette-list button{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:var(--fg);text-align:left;font-size:13.5px}
+.palette-list button.on,.palette-list button:hover{background:var(--raise)}
+.palette-hint,.palette-empty{font:11.5px var(--mono);color:var(--dim)}
+.palette-empty{padding:10px}
 .meter{display:flex;align-items:center;gap:4px;min-width:0}
 .pop-wrap{position:relative;display:inline-flex}
 .pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border:1px solid var(--line2);border-radius:999px;background:transparent;font:11.5px var(--mono);color:var(--dim);white-space:nowrap}

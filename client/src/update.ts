@@ -7,6 +7,8 @@ import {
   ConfirmResize,
   CreateThread,
   ExpireToast,
+  FocusComposer,
+  FocusPalette,
   Install,
   LoadDir,
   LoadFile,
@@ -31,6 +33,7 @@ import {
   ThreadsState,
   ViewState,
 } from './model';
+import { paletteItems } from './palette';
 import { pathForThread } from './route';
 import type { CoilClient } from './rpc';
 
@@ -331,6 +334,11 @@ export const update = (model: Model, message: Message): UpdateReturn =>
 
     UpdatedDraft: ({ value }) => ({ model: modifyFields(model, { draft: () => value }) }),
     SubmittedDraft: () => send(model),
+    ClickedEdit: ({ text }) => ({
+      model: modifyFields(model, { draft: () => text }),
+      commands: [FocusComposer()],
+    }),
+    ClickedRetry: ({ text }) => send(modifyFields(model, { draft: () => text })),
     SentMessage: ({ name }) =>
       forCurrent(model, name, () => ({
         model: modifyFields(model, { sending: () => false }),
@@ -429,6 +437,35 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     ToggledUsage: () => ({
       model: modifyFields(model, { usageOpen: (open) => !open, modelMenuOpen: () => false }),
     }),
+    PressedShortcut: () => ({
+      model: modifyFields(model, {
+        palette: (open) => (open === null ? { query: '', index: 0 } : null),
+      }),
+      commands: [FocusPalette()],
+    }),
+    UpdatedPalette: ({ query }) => ({
+      model: modifyFields(model, { palette: () => ({ query, index: 0 }) }),
+    }),
+    MovedPalette: ({ delta }) => {
+      if (model.palette === null) return { model };
+
+      const count = paletteItems(model, model.palette.query).length;
+      const index = count === 0 ? 0 : (model.palette.index + delta + count) % count;
+
+      return {
+        model: modifyFields(model, {
+          palette: () => ({ query: model.palette?.query ?? '', index }),
+        }),
+      };
+    },
+    ChosePalette: ({ index }) => {
+      const chosen =
+        model.palette === null ? undefined : paletteItems(model, model.palette.query)[index];
+      const closed = modifyFields(model, { palette: () => null });
+
+      return chosen === undefined ? { model: closed } : update(closed, chosen.message);
+    },
+    ClosedPalette: () => ({ model: modifyFields(model, { palette: () => null }) }),
     ToggledArchived: () => ({ model: modifyFields(model, { showArchived: (on) => !on }) }),
 
     ClickedTab: ({ tab }) => selectTab(model, tab),

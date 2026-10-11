@@ -82,6 +82,31 @@ const message = (h: H, entry: ChatMessage, results: ReadonlyMap<string, string>)
     [
       ...(entry.role === 'user' ? [] : [h.div([h.Class('label')], ['agent'])]),
       entry.role === 'user' ? h.div([h.Class('body')], [entry.text]) : richText(h, entry.text),
+      ...(entry.role === 'user' && entry.id !== 'pending'
+        ? [
+            h.div(
+              [h.Class('msg-tools')],
+              [
+                h.button(
+                  [
+                    h.Class('edit'),
+                    h.Title('Put this text back in the box to edit it'),
+                    h.OnClick(Message.ClickedEdit({ text: entry.text })),
+                  ],
+                  ['Edit'],
+                ),
+                h.button(
+                  [
+                    h.Class('retry'),
+                    h.Title('Send this again as a new turn'),
+                    h.OnClick(Message.ClickedRetry({ text: entry.text })),
+                  ],
+                  ['Retry'],
+                ),
+              ],
+            ),
+          ]
+        : []),
     ],
   );
 };

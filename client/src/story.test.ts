@@ -4,12 +4,15 @@ import type { ThreadView } from '../../shared/protocol';
 import {
   ConfirmResize,
   ExpireToast,
+  FocusComposer,
+  FocusPalette,
   LoadDir,
   LoadThreads,
   LoadView,
   PushUrl,
   Resize,
   RunAction,
+  RunOp,
   SendMessage,
 } from './command';
 import { initialModel } from './main';
@@ -267,6 +270,44 @@ describe('actions', () => {
       given(opened({ busy: true })),
       message(Message.ClickedAction({ action: 'pause' })),
       Command.expectNone(),
+    );
+  });
+});
+
+describe('the palette and message tools', () => {
+  test('cmd-k opens the palette; typing filters; enter runs the chosen command', () => {
+    story(
+      update,
+      given(opened()),
+      message(Message.PressedShortcut({ key: 'palette' })),
+      Command.expectHas(FocusPalette),
+      Command.resolve(FocusPalette, Message.CompletedEffect()),
+      message(Message.UpdatedPalette({ query: 'stop' })),
+      model((current) => expect(current.palette).toEqual({ query: 'stop', index: 0 })),
+      message(Message.ChosePalette({ index: 0 })),
+      Command.expectHas(RunOp),
+      Command.resolve(RunOp, Message.CompletedOp({ name: 'demo', note: 'Stopped.', gone: false })),
+      model((current) => expect(current.palette).toBeNull()),
+      Command.resolveAll(
+        [LoadThreads, Message.CompletedEffect()],
+        [LoadView, Message.CompletedEffect()],
+        [ExpireToast, Message.CompletedEffect()],
+      ),
+    );
+  });
+
+  test('edit puts the text back; retry sends it again', () => {
+    story(
+      update,
+      given(opened()),
+      message(Message.ClickedEdit({ text: 'make it blue' })),
+      model((current) => expect(current.draft).toBe('make it blue')),
+      Command.resolve(FocusComposer, Message.CompletedEffect()),
+      message(Message.ClickedRetry({ text: 'make it blue' })),
+      Command.expectHas(SendMessage),
+      model((current) => expect(current.draft).toBe('')),
+      Command.resolve(SendMessage, Message.SentMessage({ name: 'demo' })),
+      Command.resolveAll([LoadThreads, Message.CompletedEffect()]),
     );
   });
 });

@@ -71,6 +71,18 @@ const installed = windowEvent('appinstalled', () => {
   return Message.BecameInstallable({ installable: false });
 });
 
+const shortcuts = windowEvent('keydown', (event) => {
+  const key = event as KeyboardEvent;
+
+  if ((key.metaKey || key.ctrlKey) && key.key.toLowerCase() === 'k') {
+    key.preventDefault();
+
+    return Message.PressedShortcut({ key: 'palette' });
+  }
+
+  return Message.CompletedEffect();
+});
+
 const now = Effect.clockWith((clock) => clock.currentTimeMillis);
 
 const outsideClicks = Stream.callback<Message>((queue) =>
@@ -123,6 +135,10 @@ export const subscriptions = Subscription.make<Model, Message, CoilClient>()((en
         ),
     },
   ),
+  keys: entry(
+    { on: Schema.Boolean },
+    { modelToDependencies: () => ({ on: true }), dependenciesToStream: () => shortcuts },
+  ),
   install: entry(
     { on: Schema.Boolean },
     {
@@ -133,7 +149,9 @@ export const subscriptions = Subscription.make<Model, Message, CoilClient>()((en
   outside: entry(
     { open: Schema.Boolean },
     {
-      modelToDependencies: (model) => ({ open: model.sizeMenuOpen || model.addMenuOpen }),
+      modelToDependencies: (model) => ({
+        open: model.sizeMenuOpen || model.addMenuOpen || model.modelMenuOpen || model.usageOpen,
+      }),
       dependenciesToStream: ({ open }) => (open ? outsideClicks : Stream.empty),
     },
   ),

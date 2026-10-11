@@ -5,6 +5,7 @@ import type { Model } from '../model';
 import { bar } from './bar';
 import { composer } from './composer';
 import { feed } from './feed';
+import { palette } from './palette';
 import { panel } from './panel';
 import { type H, spinner } from './parts';
 import { side } from './side';
@@ -149,6 +150,7 @@ export const view = (model: Model, h: H): Document => ({
         ],
       ),
       newThreadDialog(h, model),
+      palette(h, model),
       ...toasts(h, model),
     ],
   ),

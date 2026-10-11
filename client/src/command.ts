@@ -345,3 +345,26 @@ export const RunOp = Command.define('RunOp', {
       Effect.catch((error) => Effect.succeed(Message.FailedOp({ name, reason: reasonOf(error) }))),
     ),
 });
+
+export const FocusComposer = Command.define('FocusComposer', {
+  messages: [Message.CompletedEffect],
+  execute: Effect.sync(() => {
+    const box = document.querySelector<HTMLTextAreaElement>('#text');
+
+    box?.focus();
+    box?.setSelectionRange(box.value.length, box.value.length);
+
+    return Message.CompletedEffect();
+  }),
+});
+
+export const FocusPalette = Command.define('FocusPalette', {
+  messages: [Message.CompletedEffect],
+  execute: Effect.sync(() => {
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLInputElement>('#palette-input')?.focus(),
+    );
+
+    return Message.CompletedEffect();
+  }),
+});
