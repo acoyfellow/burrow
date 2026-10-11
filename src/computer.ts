@@ -43,6 +43,20 @@ const isStarting = (cause: unknown) => STARTING.test(String(cause));
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const untilStarted = async <A>(attempt: () => Promise<A>): Promise<A> => {
+  const deadline = Date.now() + READY_WAIT_MS;
+
+  for (;;) {
+    try {
+      return await attempt();
+    } catch (cause) {
+      if (!isStarting(cause) || Date.now() >= deadline) throw cause;
+
+      await pause(READY_POLL_MS);
+    }
+  }
+};
+
 const decode = (bytes: ArrayBuffer | Uint8Array | string | undefined): string =>
   bytes === undefined ? '' : typeof bytes === 'string' ? bytes : new TextDecoder().decode(bytes);
 
@@ -96,7 +110,7 @@ export const sandboxComputer = (container: Container, image: string): Computer =
       container.start(
         from === undefined ? { ...base, image } : { ...base, containerSnapshot: { id: from.id } },
       );
-      await container.setInactivityTimeout(PLATFORM_INACTIVITY_MS);
+      await untilStarted(() => container.setInactivityTimeout(PLATFORM_INACTIVITY_MS));
     },
     exec,
     readFile: async (path) => (await files.readFile(inWorkspace(path))).text(),
