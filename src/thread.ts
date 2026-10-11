@@ -36,6 +36,8 @@ import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
 
 const TURN_DIFF_LIMIT = 60_000;
 
+const STOP_WAIT_MS = 5_000;
+
 const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
 
 export type ThreadView = {
@@ -1006,9 +1008,15 @@ export class Thread extends DurableObject<Env> {
 
   async stop(): Promise<null> {
     const agent = await this.open();
+    const aborting = agent.stop().then(() => this.settle());
 
-    await agent.stop();
-    await this.settle();
+    if (this.computer().running())
+      await this.computer()
+        .exec(['bash', '-c', 'pkill -TERM -f "^timeout --kill-after=5" || true'], '/')
+        .catch(() => undefined);
+
+    await Promise.race([aborting, new Promise((resolve) => setTimeout(resolve, STOP_WAIT_MS))]);
+    this.ctx.waitUntil(aborting.catch(() => undefined));
 
     return null;
   }
