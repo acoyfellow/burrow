@@ -21,6 +21,7 @@ import { openDurableObjectSqliteStorage } from '@earendil-works/pi-durable/stora
 import type { Computer } from './computer';
 import type { Ledger } from './ledger';
 import { boundedShell, RUN_LIMIT_SECONDS, TIMED_OUT_EXIT } from './shell';
+import type { TerrariumReceipt } from './terrarium';
 
 export const CONTEXT = BACKGROUND_CONTEXT;
 
@@ -52,6 +53,7 @@ export type BrowserTools = {
 
 export type Extras = {
   readonly fetchText: (url: string) => Promise<string>;
+  readonly terrarium?: (task: string) => Promise<TerrariumReceipt>;
 };
 
 export type Children = {
@@ -386,6 +388,29 @@ const tools = (
     executionMode: 'parallel',
     execute: async (args) => text(clip(await extras.fetchText(args.url))),
   }),
+  ...(extras.terrarium === undefined
+    ? []
+    : [
+        defineTool({
+          name: 'terrarium_run',
+          description:
+            'Hand one bounded task to Terrarium, which runs it in its own cloud cell and returns a server-verified receipt. Takes minutes. Use it for work that must be proven independently.',
+          parameters: Type.Object({ task: Type.String() }),
+          replay: 'unsafe',
+          executionMode: 'sequential',
+          execute: async (args: { task: string }) => {
+            const run = extras.terrarium;
+
+            if (run === undefined) return text('Terrarium is not configured');
+
+            const receipt = await run(args.task.slice(0, 4000));
+
+            return text(
+              `run ${receipt.runId}: ${receipt.status}, receipt ${receipt.verified ? 'verified' : 'NOT verified'}\ncontract ${receipt.contract}\n${receipt.result}`,
+            );
+          },
+        }),
+      ]),
   defineTool({
     name: 'notes_read',
     description:

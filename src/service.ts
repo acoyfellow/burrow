@@ -52,7 +52,11 @@ export const coil = (env: Env, owner: string) => {
 
   const create = async (input: Omit<CreateInput, 'owner'>) => {
     const name = input.name ?? fresh(slug(input.title ?? input.repo?.split('/').pop() ?? 'thread'));
-    const base = input.repo && input.warm !== false ? await directory.base(input.repo) : null;
+    const base =
+      input.warm === false
+        ? null
+        : ((input.repo ? await directory.base(input.repo) : null) ??
+          (await directory.base(DEFAULT_BASE)));
 
     return (await claimed(name)).create(name, {
       repo: input.repo ?? null,
@@ -159,6 +163,13 @@ export const coil = (env: Env, owner: string) => {
       return null;
     },
     bases: () => directory.bases(),
+    adoptDefaultBase: async (source: string) => {
+      const snapshot = await (await known(source)).snapshot();
+
+      await directory.setBase(DEFAULT_BASE, snapshot.id, source, 'snapshot of a working thread');
+
+      return { repo: DEFAULT_BASE, thread: source, snapshot };
+    },
     prepare: async (repo: string, setup: string) => {
       const name = fresh(`base-${slug(repo.split('/').pop() ?? 'repo')}`);
       const box = thread(name);
@@ -184,6 +195,8 @@ export const coil = (env: Env, owner: string) => {
 };
 
 export type Coil = ReturnType<typeof coil>;
+
+export const DEFAULT_BASE = '';
 
 export const sharedView = async (env: Env, token: string) => {
   const directory = env.DIRECTORY.getByName(DIRECTORY);

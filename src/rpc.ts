@@ -132,6 +132,7 @@ export type CoilApi = {
   readonly remove: (name: string) => Promise<null>;
   readonly bases: () => Promise<readonly (typeof Base.Type)[]>;
   readonly prepare: (repo: string, setup: string) => Out<typeof Prepared>;
+  readonly adoptDefaultBase: (source: string) => Out<typeof Prepared>;
 };
 
 const ThreadSummaryList = Schema.Array(ThreadSummary);
@@ -186,6 +187,7 @@ export const handlersFor = (caller: Caller) => {
     DeleteThread: ({ name }) => attempt(() => api.remove(name)),
     ListBases: () => attempt(() => api.bases()),
     PrepareBase: ({ repo, setup }) => attempt(() => api.prepare(repo, setup)),
+    AdoptDefaultBase: ({ name }) => attempt(() => api.adoptDefaultBase(name)),
   });
 };
 
