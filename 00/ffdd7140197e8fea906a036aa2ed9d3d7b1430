@@ -1,0 +1,23 @@
+scripts/with-image.mjs
+  s_d58794dec92dc7::t_a11471241a90b8 21-29
+src/terrarium.ts
+  s_d58794dec92dc7::t_433268a32bae79 2,22-27
+src/thread.ts
+  s_d58794dec92dc7::t_e6f08c95ab6121 104,922-924,935
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "00ffdd7140197e8fea906a036aa2ed9d3d7b1430",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
