@@ -31,6 +31,8 @@ const thread = (overrides: Partial<ThreadView> = {}): ThreadView => ({
   pairs: [],
   execs: [],
   surfaces: [{ id: 't1', kind: 'terminal', title: 'shell' }],
+  model: '@cf/zai-org/glm-5.3',
+  usage: { input: 0, output: 0, cacheRead: 0, cost: 0, contextTokens: 0, contextWindow: 1048576 },
   ...overrides,
 });
 

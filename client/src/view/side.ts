@@ -38,7 +38,57 @@ const row = (h: H, model: Model, thread: ThreadSummary, child: boolean): Html =>
     ],
   );
 
-const threadList = (h: H, model: Model, threads: readonly ThreadSummary[]): Html[] => {
+const archivedToggle = (h: H, model: Model, count: number): Html[] =>
+  count === 0
+    ? []
+    : [
+        h.button(
+          [
+            h.Class('group archived-toggle'),
+            h.Id('archived-toggle'),
+            h.OnClick(Message.ToggledArchived()),
+          ],
+          [model.showArchived ? `Hide archived ${count}` : `Archived ${count}`],
+        ),
+      ];
+
+const archivedRows = (h: H, model: Model, archived: readonly ThreadSummary[]): Html[] =>
+  model.showArchived
+    ? archived.map((thread) =>
+        h.keyed('div')(
+          `archived-${thread.name}`,
+          [h.Class('item archived'), h.DataAttribute('archived', thread.name)],
+          [
+            h.span([h.Class('t')], [thread.title === '' ? thread.name : thread.title]),
+            h.button(
+              [
+                h.Class('restore'),
+                h.OnClick(
+                  Message.ClickedOp({
+                    name: thread.name,
+                    op: { _tag: 'Archive', archived: false },
+                  }),
+                ),
+              ],
+              ['Restore'],
+            ),
+          ],
+        ),
+      )
+    : [];
+
+const threadList = (h: H, model: Model, all: readonly ThreadSummary[]): Html[] => {
+  const threads = all.filter((thread) => !thread.archived);
+  const archived = all.filter((thread) => thread.archived);
+
+  return [
+    ...activeList(h, model, threads),
+    ...archivedToggle(h, model, archived.length),
+    ...archivedRows(h, model, archived),
+  ];
+};
+
+const activeList = (h: H, model: Model, threads: readonly ThreadSummary[]): Html[] => {
   if (threads.length === 0)
     return [
       h.div(

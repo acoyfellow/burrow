@@ -16,6 +16,7 @@ import {
   RefreshViewSoon,
   Resize,
   RunAction,
+  RunOp,
   SaveTheme,
   SendMessage,
   systemIsDark,
@@ -400,8 +401,35 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       model: modifyFields(model, { menuOpen: (open) => !open, sizeMenuOpen: () => false }),
     }),
     ClickedOutside: () => ({
-      model: modifyFields(model, { sizeMenuOpen: () => false, addMenuOpen: () => false }),
+      model: modifyFields(model, {
+        sizeMenuOpen: () => false,
+        addMenuOpen: () => false,
+        modelMenuOpen: () => false,
+        usageOpen: () => false,
+      }),
     }),
+    ClickedOp: ({ name, op }) => ({
+      model: modifyFields(model, { modelMenuOpen: () => false, menuOpen: () => false }),
+      commands: [RunOp({ name, op })],
+    }),
+    CompletedOp: ({ name, note, gone }) => {
+      const result = toast(model, note);
+      const leaving = gone && model.name === name;
+
+      return withCommands(result, [
+        LoadThreads(),
+        ...(leaving ? [PushUrl({ url: '/' })] : []),
+        ...(!gone && model.name === name ? [LoadView({ name, refresh: true })] : []),
+      ]);
+    },
+    FailedOp: ({ reason }) => toast(model, `Failed: ${reason}`, true),
+    ToggledModelMenu: () => ({
+      model: modifyFields(model, { modelMenuOpen: (open) => !open, usageOpen: () => false }),
+    }),
+    ToggledUsage: () => ({
+      model: modifyFields(model, { usageOpen: (open) => !open, modelMenuOpen: () => false }),
+    }),
+    ToggledArchived: () => ({ model: modifyFields(model, { showArchived: (on) => !on }) }),
 
     ClickedTab: ({ tab }) => selectTab(model, tab),
     ToggledAddMenu: () => ({ model: modifyFields(model, { addMenuOpen: (open) => !open }) }),

@@ -3,7 +3,8 @@ import type { Html } from 'foldkit/html';
 import { Message } from '../message';
 import type { Model } from '../model';
 import { viewOf } from '../update';
-import { type H, spinner } from './parts';
+import { meter } from './meter';
+import { type H, icon } from './parts';
 
 const hint = (model: Model): string => {
   const view = viewOf(model);
@@ -44,16 +45,28 @@ export const composer = (h: H, model: Model): Html => {
           h.div(
             [h.Class('composer-foot')],
             [
+              ...(view === null || model.name === null ? [] : [meter(h, model, view, model.name)]),
               h.div([h.Class('hint'), h.Id('hint')], [hint(model)]),
-              h.button(
-                [
-                  h.Id('send'),
-                  h.AriaLabel('Send'),
-                  h.Disabled(view === null || working),
-                  h.OnClick(Message.SubmittedDraft()),
-                ],
-                [working ? spinner(h) : '↑'],
-              ),
+              working && model.name !== null
+                ? h.button(
+                    [
+                      h.Id('stop'),
+                      h.Class('stop'),
+                      h.AriaLabel('Stop'),
+                      h.Title('Stop the agent'),
+                      h.OnClick(Message.ClickedOp({ name: model.name, op: { _tag: 'Stop' } })),
+                    ],
+                    [icon(h, 'square')],
+                  )
+                : h.button(
+                    [
+                      h.Id('send'),
+                      h.AriaLabel('Send'),
+                      h.Disabled(view === null),
+                      h.OnClick(Message.SubmittedDraft()),
+                    ],
+                    ['↑'],
+                  ),
             ],
           ),
         ],

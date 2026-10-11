@@ -3,7 +3,7 @@ import type { RpcClientError } from 'effect/rpc';
 import { Command, Navigation } from 'foldkit';
 import { type CoilError, Size, SurfaceKind } from '../../shared/protocol';
 import { Message } from './message';
-import { Action, Theme } from './model';
+import { Action, Theme, ThreadOp } from './model';
 import { CoilClient } from './rpc';
 
 export const reasonOf = (error: CoilError | RpcClientError.RpcClientError): string => {
@@ -301,5 +301,48 @@ export const ConfirmResize = Command.define('ConfirmResize', {
       )
         ? Message.ClickedSize({ size })
         : Message.CompletedEffect(),
+    ),
+});
+
+const askTitle = (name: string) =>
+  Effect.sync(() => globalThis.prompt('New title for this thread', name)?.trim() ?? '');
+
+export const RunOp = Command.define('RunOp', {
+  args: { name: Schema.String, op: ThreadOp },
+  messages: [Message.CompletedOp, Message.FailedOp, Message.CompletedEffect],
+  execute: ({ name, op }) =>
+    Effect.gen(function* () {
+      const client = yield* CoilClient;
+      const done = (note: string, gone = false) => Message.CompletedOp({ name, note, gone });
+
+      switch (op._tag) {
+        case 'Stop':
+          yield* client.Stop({ name });
+          return done('Stopped.');
+        case 'SetModel':
+          yield* client.SetModel({ name, model: op.model });
+          return done(`Model set to ${op.model.split('/').pop()}.`);
+        case 'Rename': {
+          const title = yield* askTitle(name);
+
+          if (title === '') return Message.CompletedEffect();
+          yield* client.Rename({ name, title });
+          return done(`Renamed to ${title}.`);
+        }
+        case 'Archive':
+          yield* client.Archive({ name, archived: op.archived });
+          return done(op.archived ? 'Archived.' : 'Restored.');
+        case 'Delete': {
+          const sure = yield* Effect.sync(() =>
+            globalThis.confirm(`Delete ${name}? Its computer, disk and chat are removed for good.`),
+          );
+
+          if (!sure) return Message.CompletedEffect();
+          yield* client.DeleteThread({ name });
+          return done(`Deleted ${name}.`, true);
+        }
+      }
+    }).pipe(
+      Effect.catch((error) => Effect.succeed(Message.FailedOp({ name, reason: reasonOf(error) }))),
     ),
 });

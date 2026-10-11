@@ -20,6 +20,8 @@ const view = (name: string, phase: 'awake' | 'paused', busy: boolean): ThreadVie
   pairs: [],
   execs: [],
   surfaces: [{ id: 't1', kind: 'terminal', title: 'shell' }],
+  model: '@cf/zai-org/glm-5.3',
+  usage: { input: 0, output: 0, cacheRead: 0, cost: 0, contextTokens: 0, contextWindow: 1048576 },
 });
 
 const summary = (name: string, phase: string, busy: boolean): ThreadSummary => ({
@@ -34,6 +36,9 @@ const summary = (name: string, phase: string, busy: boolean): ThreadSummary => (
   owner: 'you@example.com',
   createdAt: Date.now(),
   updatedAt: Date.now(),
+  archived: false,
+  model: '',
+  spend: 0,
 });
 
 const views: Record<string, ThreadView> = {
@@ -152,7 +157,9 @@ describe('the foldkit client loads conversations', () => {
         document.querySelectorAll(
           '.act-group > .act > svg.icon, .act-group > .size-wrap > .act > svg.icon',
         ).length,
-      ).toBe(4);
+      ).toBe(7);
+      expect(document.querySelector('#usage')?.textContent).toContain('$');
+      expect(document.querySelector('#model')?.textContent).toContain('GLM');
     });
   }
 

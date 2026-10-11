@@ -107,6 +107,32 @@ export const coil = (env: Env, owner: string) => {
         size: view.size,
       });
     },
+    stop: async (name: string) => (await known(name)).stop(),
+    setModel: async (name: string, model: string) => (await known(name)).setModel(model),
+    rename: async (name: string, title: string) => {
+      await known(name);
+      const clean = title.trim().slice(0, 120);
+
+      if (clean === '') throw new Error('Invalid title');
+
+      await directory.upsert({ name, title: clean });
+
+      return (await directory.get(name)) ?? Promise.reject(new Error(`unknown thread ${name}`));
+    },
+    archive: async (name: string, archived: boolean) => {
+      await known(name);
+      await directory.upsert({ name, archived });
+
+      return (await directory.get(name)) ?? Promise.reject(new Error(`unknown thread ${name}`));
+    },
+    remove: async (name: string) => {
+      const box = await known(name);
+
+      await box.destroyAll();
+      await directory.remove(name);
+
+      return null;
+    },
     bases: () => directory.bases(),
     prepare: async (repo: string, setup: string) => {
       const name = fresh(`base-${slug(repo.split('/').pop() ?? 'repo')}`);

@@ -37,6 +37,19 @@ const actionButton = (
     ],
   );
 
+const opButton = (h: H, key: string, label: string, disabled: boolean, message: Message): Html =>
+  h.button(
+    [
+      h.Class('act'),
+      h.Id(`act-${key}`),
+      h.Title(label),
+      h.AriaLabel(label),
+      h.Disabled(disabled),
+      h.OnClick(message),
+    ],
+    [icon(h, key), h.span([h.Class('act-label')], [label])],
+  );
+
 const sizeMenu = (h: H, model: Model, view: ThreadView): Html =>
   h.div(
     [h.Class('size-list'), h.Id('size-list'), h.Role('menu'), h.Hidden(!model.sizeMenuOpen)],
@@ -97,6 +110,32 @@ const actions = (h: H, model: Model, view: ThreadView): Html => {
               }),
               sizeMenu(h, model, view),
             ],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class('act-group')],
+        [
+          opButton(
+            h,
+            'rename',
+            'Rename',
+            view.busy,
+            Message.ClickedOp({ name: view.name, op: { _tag: 'Rename' } }),
+          ),
+          opButton(
+            h,
+            'archive',
+            'Archive',
+            view.busy,
+            Message.ClickedOp({ name: view.name, op: { _tag: 'Archive', archived: true } }),
+          ),
+          opButton(
+            h,
+            'trash',
+            'Delete',
+            view.busy,
+            Message.ClickedOp({ name: view.name, op: { _tag: 'Delete' } }),
           ),
         ],
       ),

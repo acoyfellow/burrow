@@ -1,6 +1,7 @@
 import { Effect, Layer, Schema } from 'effect';
 import { HttpRouter } from 'effect/http';
 import { RpcSerialization, RpcServer } from 'effect/rpc';
+import { MODELS } from '../shared/models';
 import {
   type Base,
   type CoilError,
@@ -23,6 +24,7 @@ import {
   ThreadSummary,
   type ThreadView,
   UnknownThread,
+  type Usage,
 } from '../shared/protocol';
 
 const UNKNOWN_THREAD = /^unknown thread (\S+)/i;
@@ -114,6 +116,11 @@ export type CoilApi = {
   readonly addTerminal: (name: string) => Promise<readonly Surface[]>;
   readonly addBrowser: (name: string) => Promise<readonly Surface[]>;
   readonly closeSurface: (name: string, id: string) => Promise<readonly Surface[]>;
+  readonly stop: (name: string) => Promise<null>;
+  readonly setModel: (name: string, model: string) => Out<typeof Usage>;
+  readonly rename: (name: string, title: string) => Out<typeof ThreadSummary>;
+  readonly archive: (name: string, archived: boolean) => Out<typeof ThreadSummary>;
+  readonly remove: (name: string) => Promise<null>;
   readonly bases: () => Promise<readonly (typeof Base.Type)[]>;
   readonly prepare: (repo: string, setup: string) => Out<typeof Prepared>;
 };
@@ -155,6 +162,12 @@ export const handlersFor = (caller: Caller) => {
     AddSurface: ({ name, kind }) =>
       attempt(() => (kind === 'browser' ? api.addBrowser(name) : api.addTerminal(name))),
     CloseSurface: ({ name, id }) => attempt(() => api.closeSurface(name, id)),
+    Stop: ({ name }) => attempt(() => api.stop(name)),
+    Models: () => Effect.succeed(MODELS.map((m) => ({ ...m }))),
+    SetModel: ({ name, model }) => attempt(() => api.setModel(name, model)),
+    Rename: ({ name, title }) => attempt(() => api.rename(name, title)),
+    Archive: ({ name, archived }) => attempt(() => api.archive(name, archived)),
+    DeleteThread: ({ name }) => attempt(() => api.remove(name)),
     ListBases: () => attempt(() => api.bases()),
     PrepareBase: ({ repo, setup }) => attempt(() => api.prepare(repo, setup)),
   });

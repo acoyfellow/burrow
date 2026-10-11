@@ -9,6 +9,10 @@ const USED = {
   files: 'folder',
   computer: 'monitor',
   check: 'check',
+  square: 'square',
+  rename: 'pencil',
+  archive: 'archive',
+  trash: 'trash-2',
 };
 
 const inner = (name) => {

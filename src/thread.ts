@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import type { AgentEvent, HarnessSettings } from '@earendil-works/pi-durable';
+import { modelInfo } from '../shared/models';
 import {
   type Agent,
   type BrowserTools,
@@ -45,6 +46,17 @@ export type ThreadView = {
   readonly pairs: Pair[];
   readonly execs: ExecRecord[];
   readonly surfaces: Surface[];
+  readonly model: string;
+  readonly usage: Usage;
+};
+
+export type Usage = {
+  readonly input: number;
+  readonly output: number;
+  readonly cacheRead: number;
+  readonly cost: number;
+  readonly contextTokens: number;
+  readonly contextWindow: number;
 };
 
 export type CreateOptions = {
@@ -228,7 +240,7 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected model(): ModelChoice {
-    return workersAI(this.env.AI, this.env.MODEL);
+    return workersAI(this.env.AI, this.currentModel());
   }
 
   protected settings(): HarnessSettings {
@@ -547,7 +559,7 @@ export class Thread extends DurableObject<Env> {
     if (!this.ledger.busy) return;
 
     this.ledger.busy = false;
-    await this.publish();
+    await this.publish({ spend: (await this.usage()).cost });
     this.state();
   }
 
@@ -762,6 +774,59 @@ export class Thread extends DurableObject<Env> {
       .join('\n\n');
   }
 
+  private currentModel(): string {
+    return this.ledger.model ?? this.env.MODEL;
+  }
+
+  async usage(): Promise<Usage> {
+    const agent = await this.open();
+    const totals = await agent.usage();
+    const contextTokens = await agent.contextTokens();
+    const model = this.currentModel();
+
+    return {
+      ...totals,
+      contextTokens,
+      contextWindow: modelInfo(model)?.context ?? 0,
+    };
+  }
+
+  async stop(): Promise<null> {
+    const agent = await this.open();
+
+    await agent.stop();
+    await this.settle();
+
+    return null;
+  }
+
+  async setModel(id: string): Promise<Usage> {
+    if (modelInfo(id) === undefined) throw new Error(`Invalid model ${id}`);
+
+    if (this.ledger.busy)
+      throw new ThreadBusy('The agent is working. Change the model after the turn ends.');
+
+    const agent = await this.open();
+
+    await agent.setModel(id);
+    this.ledger.model = id;
+    await this.publish({ model: id });
+
+    return this.usage();
+  }
+
+  async destroyAll(): Promise<null> {
+    await this.ctx.storage.deleteAlarm();
+    void this.browser?.then((b) => b.close()).catch(() => undefined);
+    this.browser = undefined;
+    if (this.ctx.container?.running) await this.computer().destroy();
+    await this.agent?.then((a) => a.close()).catch(() => undefined);
+    this.agent = undefined;
+    await this.ctx.storage.deleteAll();
+
+    return null;
+  }
+
   async view(): Promise<ThreadView> {
     const agent = await this.open();
 
@@ -779,6 +844,8 @@ export class Thread extends DurableObject<Env> {
       pairs: this.ledger.pairs(),
       execs: this.ledger.execs(),
       surfaces: this.ledger.surfaces,
+      model: this.currentModel(),
+      usage: await this.usage(),
     };
   }
 

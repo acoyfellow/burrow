@@ -41,6 +41,16 @@ export const Action = Schema.Literals(['compact', 'pause', 'fork', 'size']);
 
 export type Action = typeof Action.Type;
 
+export const ThreadOp = Schema.Union([
+  Schema.TaggedStruct('Stop', {}),
+  Schema.TaggedStruct('SetModel', { model: Schema.String }),
+  Schema.TaggedStruct('Rename', {}),
+  Schema.TaggedStruct('Archive', { archived: Schema.Boolean }),
+  Schema.TaggedStruct('Delete', {}),
+]);
+
+export type ThreadOp = typeof ThreadOp.Type;
+
 export const FileView = defineTaggedUnion({
   Closed: {},
   Loading: { path: Schema.String },
@@ -87,6 +97,9 @@ export const Model = Schema.Struct({
   sending: Schema.Boolean,
   menuOpen: Schema.Boolean,
   sizeMenuOpen: Schema.Boolean,
+  modelMenuOpen: Schema.Boolean,
+  usageOpen: Schema.Boolean,
+  showArchived: Schema.Boolean,
   addMenuOpen: Schema.Boolean,
   drawer: Drawer,
   newThread: NewThreadForm,

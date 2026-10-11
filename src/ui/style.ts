@@ -207,6 +207,25 @@ dialog .actions .primary{padding:5px 12px}
 .size-list button{display:flex;align-items:center;gap:8px;padding:6px 10px;border:0;border-radius:6px;background:transparent;font:12.5px var(--mono);color:var(--fg);text-align:left}
 .size-list button:hover,.size-list button.on{background:var(--raise)}
 .size-list .tick{width:16px;display:inline-flex}
+.meter{display:flex;align-items:center;gap:4px;min-width:0}
+.pop-wrap{position:relative;display:inline-flex}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border:1px solid var(--line2);border-radius:999px;background:transparent;font:11.5px var(--mono);color:var(--dim);white-space:nowrap}
+.pill:hover{color:var(--fg);background:var(--raise)}
+.ring{width:12px;height:12px;border-radius:50%;background:conic-gradient(var(--fg) var(--share,0%),var(--line2) 0)}
+.model-list,.usage-pop{position:absolute;bottom:calc(100% + 6px);left:0;display:flex;flex-direction:column;min-width:240px;padding:4px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.15);z-index:30}
+.model-list[hidden],.usage-pop[hidden]{display:none}
+.model-list button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;border:0;border-radius:6px;background:transparent;color:var(--fg);text-align:left}
+.model-list button:hover,.model-list button.on{background:var(--raise)}
+.model-name{font-size:13px}
+.model-meta{font:11px var(--mono);color:var(--dim)}
+.usage-pop{padding:8px 10px;gap:4px;min-width:200px}
+.usage-row{display:flex;justify-content:space-between;gap:16px;font:12px var(--mono);color:var(--dim)}
+.usage-row b{color:var(--fg);font-weight:500}
+#stop{display:inline-flex;align-items:center;justify-content:center}
+#stop .icon{width:14px;height:14px;fill:currentColor}
+.archived-toggle{border:0;background:transparent;text-align:left;cursor:pointer;width:100%}
+.item.archived{display:flex;align-items:center;gap:8px;opacity:.7}
+.item.archived .restore{margin-left:auto;border:1px solid var(--line2);border-radius:6px;background:transparent;font-size:11.5px;color:var(--fg);padding:2px 8px}
 .tab-main .icon{width:14px;height:14px;margin-right:5px;vertical-align:-2px}
 .bar .actions .panel-toggle{display:none}
 .more{display:none!important}

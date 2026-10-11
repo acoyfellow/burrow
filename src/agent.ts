@@ -238,6 +238,42 @@ export type Agent = {
   readonly lastAnswer: () => Promise<string>;
   readonly watch: (listener: (events: readonly AgentEvent[]) => void) => Promise<() => void>;
   readonly close: () => Promise<void>;
+  readonly stop: () => Promise<void>;
+  readonly setModel: (modelId: string) => Promise<void>;
+  readonly usage: () => Promise<UsageTotals>;
+  readonly contextTokens: () => Promise<number>;
+};
+
+export type UsageTotals = {
+  readonly input: number;
+  readonly output: number;
+  readonly cacheRead: number;
+  readonly cost: number;
+};
+
+const CHARS_PER_TOKEN = 4;
+
+const totalsOf = (buckets: Record<string, unknown>): UsageTotals => {
+  let input = 0;
+  let output = 0;
+  let cacheRead = 0;
+  let cost = 0;
+
+  for (const value of Object.values(buckets)) {
+    const usage = value as {
+      input?: number;
+      output?: number;
+      cacheRead?: number;
+      cost?: { total?: number };
+    };
+
+    input += usage.input ?? 0;
+    output += usage.output ?? 0;
+    cacheRead += usage.cacheRead ?? 0;
+    cost += usage.cost?.total ?? 0;
+  }
+
+  return { input, output, cacheRead, cost };
 };
 
 export const openAgent = async (
@@ -357,5 +393,18 @@ export const openAgent = async (
       return () => void stream.stop();
     },
     close: () => harness.close(CONTEXT),
+    stop: () => conversation.abort(CONTEXT),
+    setModel: (modelId) =>
+      conversation.configure({ model: { provider: model.provider.id, modelId } }, CONTEXT),
+    usage: async () => {
+      const state = await harness.usage(CONTEXT);
+
+      return totalsOf({ ...state.models, ...state.tools });
+    },
+    contextTokens: async () => {
+      const view = await conversation.context(CONTEXT);
+
+      return Math.round(JSON.stringify(view.messages).length / CHARS_PER_TOKEN);
+    },
   };
 };

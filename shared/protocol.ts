@@ -27,6 +27,9 @@ export const ThreadSummary = Schema.Struct({
   owner: Schema.String,
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
+  archived: Schema.Boolean,
+  model: Schema.String,
+  spend: Schema.Number,
 });
 
 export type ThreadSummary = typeof ThreadSummary.Type;
@@ -93,6 +96,26 @@ export const ChatMessage = Schema.Struct({
 
 export type ChatMessage = typeof ChatMessage.Type;
 
+export const Usage = Schema.Struct({
+  input: Schema.Number,
+  output: Schema.Number,
+  cacheRead: Schema.Number,
+  cost: Schema.Number,
+  contextTokens: Schema.Number,
+  contextWindow: Schema.Number,
+});
+
+export type Usage = typeof Usage.Type;
+
+export const ModelOption = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  context: Schema.Number,
+  inputPerMtok: Schema.Number,
+  outputPerMtok: Schema.Number,
+  vision: Schema.Boolean,
+});
+
 export const ThreadView = Schema.Struct({
   name: Schema.String,
   title: Schema.String,
@@ -107,6 +130,8 @@ export const ThreadView = Schema.Struct({
   pairs: Schema.Array(Pair),
   execs: Schema.Array(ExecRecord),
   surfaces: Schema.Array(Surface),
+  model: Schema.String,
+  usage: Usage,
 });
 
 export type ThreadView = typeof ThreadView.Type;
@@ -252,6 +277,24 @@ export const CoilRpcs = RpcGroup.make(
     success: Schema.Array(Surface),
     error: CoilError,
   }),
+  Rpc.make('Stop', { payload: target, success: Schema.Null, error: CoilError }),
+  Rpc.make('Models', { success: Schema.Array(ModelOption), error: CoilError }),
+  Rpc.make('SetModel', {
+    payload: { ...target, model: Schema.String },
+    success: Usage,
+    error: CoilError,
+  }),
+  Rpc.make('Rename', {
+    payload: { ...target, title: Schema.String },
+    success: ThreadSummary,
+    error: CoilError,
+  }),
+  Rpc.make('Archive', {
+    payload: { ...target, archived: Schema.Boolean },
+    success: ThreadSummary,
+    error: CoilError,
+  }),
+  Rpc.make('DeleteThread', { payload: target, success: Schema.Null, error: CoilError }),
   Rpc.make('ListBases', { success: Schema.Array(Base), error: CoilError }),
   Rpc.make('PrepareBase', {
     payload: { repo: Schema.String, setup: Schema.String },

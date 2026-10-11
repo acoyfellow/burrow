@@ -161,6 +161,14 @@ export class Ledger {
     this.put('compacting', next ? '1' : '0');
   }
 
+  get model(): string | null {
+    return this.get('model');
+  }
+
+  set model(id: string) {
+    this.put('model', id);
+  }
+
   get titled(): boolean {
     return this.get('titled') === '1';
   }

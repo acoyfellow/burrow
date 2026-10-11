@@ -10,7 +10,7 @@ import {
   ThreadSummary,
   ThreadView,
 } from '../../shared/protocol';
-import { Action, Theme } from './model';
+import { Action, Theme, ThreadOp } from './model';
 
 export const Message = defineMessageUnion({
   LoadedWho: { who: Schema.String },
@@ -44,6 +44,12 @@ export const Message = defineMessageUnion({
   ToggledSizeMenu: {},
   ToggledMenu: {},
   ClickedOutside: {},
+  ClickedOp: { name: Schema.String, op: ThreadOp },
+  CompletedOp: { name: Schema.String, note: Schema.String, gone: Schema.Boolean },
+  FailedOp: { name: Schema.String, reason: Schema.String },
+  ToggledModelMenu: {},
+  ToggledUsage: {},
+  ToggledArchived: {},
 
   ClickedTab: { tab: Schema.String },
   ToggledAddMenu: {},
