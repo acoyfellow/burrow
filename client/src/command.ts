@@ -1,12 +1,11 @@
 import { Duration, Effect, Schema } from 'effect';
-import type { RpcClientError } from 'effect/rpc';
 import { Command, Navigation } from 'foldkit';
 import { type CoilError, Size, SurfaceKind } from '../../shared/protocol';
 import { Message } from './message';
 import { Action, Theme, ThreadOp } from './model';
-import { CoilClient } from './rpc';
+import { CoilClient, type RpcClientError } from './rpc';
 
-export const reasonOf = (error: CoilError | RpcClientError.RpcClientError): string => {
+export const reasonOf = (error: CoilError | RpcClientError): string => {
   switch (error._tag) {
     case 'UnknownThread':
       return `unknown thread ${error.name}`;
