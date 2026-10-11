@@ -30,6 +30,7 @@ export const ThreadSummary = Schema.Struct({
   archived: Schema.Boolean,
   model: Schema.String,
   spend: Schema.Number,
+  looping: Schema.Boolean,
 });
 
 export type ThreadSummary = typeof ThreadSummary.Type;
@@ -125,6 +126,29 @@ export const Turn = Schema.Struct({
 });
 
 export type Turn = typeof Turn.Type;
+
+export const LoopSpec = Schema.Struct({
+  prompt: Schema.String,
+  everySeconds: Schema.Number,
+  maxRuns: Schema.Number,
+  maxSpend: Schema.Number,
+  gate: Schema.NullOr(Schema.String),
+});
+
+export const LoopState = Schema.Struct({
+  ...LoopSpec.fields,
+  enabled: Schema.Boolean,
+  runs: Schema.Array(
+    Schema.Struct({
+      at: Schema.Number,
+      costBefore: Schema.Number,
+      gateExit: Schema.NullOr(Schema.Number),
+    }),
+  ),
+  startedCost: Schema.Number,
+  nextAt: Schema.Number,
+  stoppedBecause: Schema.NullOr(Schema.String),
+});
 
 export const ThreadView = Schema.Struct({
   name: Schema.String,
@@ -297,6 +321,14 @@ export const CoilRpcs = RpcGroup.make(
     }),
     error: CoilError,
   }),
+  Rpc.make('StartLoop', {
+    payload: { ...target, spec: LoopSpec },
+    success: LoopState,
+    error: CoilError,
+  }),
+  Rpc.make('StopLoop', { payload: target, success: Schema.NullOr(LoopState), error: CoilError }),
+  Rpc.make('GetLoop', { payload: target, success: Schema.NullOr(LoopState), error: CoilError }),
+  Rpc.make('StopAllLoops', { success: Schema.Array(Schema.String), error: CoilError }),
   Rpc.make('Stop', { payload: target, success: Schema.Null, error: CoilError }),
   Rpc.make('Models', { success: Schema.Array(ModelOption), error: CoilError }),
   Rpc.make('SetModel', {

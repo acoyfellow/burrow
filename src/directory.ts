@@ -15,6 +15,7 @@ export type ThreadSummary = {
   readonly archived: boolean;
   readonly model: string;
   readonly spend: number;
+  readonly looping: boolean;
 };
 
 export type ThreadUpdate = Partial<Omit<ThreadSummary, 'name' | 'createdAt'>> & {
@@ -36,6 +37,7 @@ type Row = {
   archived: number;
   model: string;
   spend: number;
+  looping: number;
 };
 
 const fromRow = (row: Row): ThreadSummary => ({
@@ -53,6 +55,7 @@ const fromRow = (row: Row): ThreadSummary => ({
   archived: row.archived === 1,
   model: row.model,
   spend: row.spend,
+  looping: row.looping === 1,
 });
 
 export class Directory extends DurableObject {
@@ -81,6 +84,10 @@ export class Directory extends DurableObject {
       );
     if (!columns.includes('model'))
       this.ctx.storage.sql.exec(`ALTER TABLE threads ADD COLUMN model TEXT NOT NULL DEFAULT ''`);
+    if (!columns.includes('looping'))
+      this.ctx.storage.sql.exec(
+        `ALTER TABLE threads ADD COLUMN looping INTEGER NOT NULL DEFAULT 0`,
+      );
     if (!columns.includes('spend'))
       this.ctx.storage.sql.exec(`ALTER TABLE threads ADD COLUMN spend REAL NOT NULL DEFAULT 0`);
   }
@@ -100,11 +107,12 @@ export class Directory extends DurableObject {
       archived: (update.archived ?? current?.archived ?? false) ? 1 : 0,
       model: update.model ?? current?.model ?? '',
       spend: update.spend ?? current?.spend ?? 0,
+      looping: (update.looping ?? current?.looping ?? false) ? 1 : 0,
     };
 
     this.ctx.storage.sql.exec(
-      `INSERT INTO threads (name, title, phase, busy, repo, parent, forked_from, created_by, owner, created_at, updated_at, archived, model, spend) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(name) DO UPDATE SET title = excluded.title, phase = excluded.phase, busy = excluded.busy, repo = excluded.repo, parent = excluded.parent, forked_from = excluded.forked_from, owner = excluded.owner, updated_at = excluded.updated_at, archived = excluded.archived, model = excluded.model, spend = excluded.spend`,
+      `INSERT INTO threads (name, title, phase, busy, repo, parent, forked_from, created_by, owner, created_at, updated_at, archived, model, spend, looping) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(name) DO UPDATE SET title = excluded.title, phase = excluded.phase, busy = excluded.busy, repo = excluded.repo, parent = excluded.parent, forked_from = excluded.forked_from, owner = excluded.owner, updated_at = excluded.updated_at, archived = excluded.archived, model = excluded.model, spend = excluded.spend, looping = excluded.looping`,
       update.name,
       next.title,
       next.phase,
@@ -119,7 +127,15 @@ export class Directory extends DurableObject {
       next.archived,
       next.model,
       next.spend,
+      next.looping,
     );
+  }
+
+  loopingFor(owner: string): string[] {
+    return this.ctx.storage.sql
+      .exec<{ name: string }>('SELECT name FROM threads WHERE owner = ? AND looping = 1', owner)
+      .toArray()
+      .map((row) => row.name);
   }
 
   spendFor(owner: string): number {

@@ -40,6 +40,7 @@ const summary = (name: string, phase: string, busy: boolean): ThreadSummary => (
   archived: false,
   model: '',
   spend: 0,
+  looping: false,
 });
 
 const views: Record<string, ThreadView> = {

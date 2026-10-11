@@ -1,4 +1,5 @@
 import type { Snapshot } from './computer';
+import type { LoopState } from './loop';
 import { type Size, sizeOrDefault } from './size';
 
 export type Phase = 'new' | 'awake' | 'paused';
@@ -178,6 +179,17 @@ export class Ledger {
 
   set model(id: string) {
     this.put('model', id);
+  }
+
+  get loop(): LoopState | null {
+    const raw = this.get('loop');
+
+    return raw === null ? null : (JSON.parse(raw) as LoopState);
+  }
+
+  set loop(next: LoopState | null) {
+    if (next === null) this.sql.exec('DELETE FROM coil_kv WHERE key = ?', 'loop');
+    else this.put('loop', JSON.stringify(next));
   }
 
   get wakeError(): string {

@@ -1,3 +1,4 @@
+import type { LoopSpec } from './loop';
 import { DEFAULT_SIZE, type Size } from './size';
 import type { Env } from './thread';
 
@@ -110,6 +111,16 @@ export const coil = (env: Env, owner: string) => {
     upload: async (name: string, path: string, bytes: ArrayBuffer) =>
       (await known(name)).upload(path, bytes),
     wake: async (name: string) => (await known(name)).wake(),
+    startLoop: async (name: string, spec: LoopSpec) => (await known(name)).startLoop(spec),
+    stopLoop: async (name: string) => (await known(name)).stopLoop(),
+    getLoop: async (name: string) => (await known(name)).loopState(),
+    stopAllLoops: async () => {
+      const names = await directory.loopingFor(owner);
+
+      await Promise.all(names.map((name) => thread(name).stopLoop('kill switch')));
+
+      return names;
+    },
     stop: async (name: string) => (await known(name)).stop(),
     setModel: async (name: string, model: string) => (await known(name)).setModel(model),
     rename: async (name: string, title: string) => {

@@ -46,6 +46,27 @@ export const memoryComputer = (owner: string): Computer => ({
 
     if (script === 'hostname') return ok(owner);
 
+    const atLeast = /^at-least (\d+) (\S+)$/.exec(script ?? '');
+
+    if (atLeast !== null) {
+      const count = [...disk.keys()].filter((path) =>
+        path
+          .split('/')
+          .pop()
+          ?.startsWith(atLeast[2] ?? ''),
+      ).length;
+
+      return { exitCode: count >= Number(atLeast[1]) ? 0 : 1, stdout: `${count}\n`, stderr: '' };
+    }
+
+    if (script?.startsWith('ls step-'))
+      return ok(
+        listing(disk)
+          .split('\n')
+          .filter((n) => n.startsWith('step-'))
+          .join('\n'),
+      );
+
     return ok();
   },
   readFile: async (path) => {

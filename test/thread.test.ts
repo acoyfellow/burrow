@@ -151,3 +151,18 @@ test('threads drive threads: list, read as data, send, create; another owner sta
   expect(out.madeByA).toEqual(['Made by a']);
   expect(out.foreignListedForAna).toBe(false);
 });
+
+test('a loop runs three times, stops at its gate, writes a digest; the kill switch stops every loop', {
+  timeout: 90_000,
+}, async () => {
+  const out = await get('/loop');
+
+  expect(out.runs).toBe(3);
+  expect(out.enabled).toBe(false);
+  expect(out.stoppedBecause).toBe('gate passed after 3 runs');
+  expect(out.gates).toEqual([1, 1, 0]);
+  expect(out.files).toEqual(['step-1.txt', 'step-2.txt', 'step-3.txt']);
+  expect(out.digest).toContain('3 runs');
+  expect(out.killed).toEqual([expect.stringMatching(/^kill-/)]);
+  expect(out.afterKill).toEqual({ enabled: false, stoppedBecause: 'kill switch' });
+});

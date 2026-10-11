@@ -10,6 +10,8 @@ import {
   type ExecResult,
   Failed,
   Invalid,
+  type LoopSpec,
+  type LoopState,
   NameTaken,
   NotFound,
   type Pair,
@@ -117,6 +119,10 @@ export type CoilApi = {
   readonly addBrowser: (name: string) => Promise<readonly Surface[]>;
   readonly closeSurface: (name: string, id: string) => Promise<readonly Surface[]>;
   readonly wake: (name: string) => Promise<{ phase: string; running: boolean; detail: string }>;
+  readonly startLoop: (name: string, spec: typeof LoopSpec.Type) => Out<typeof LoopState>;
+  readonly stopLoop: (name: string) => Promise<typeof LoopState.Type | null>;
+  readonly getLoop: (name: string) => Promise<typeof LoopState.Type | null>;
+  readonly stopAllLoops: () => Promise<readonly string[]>;
   readonly stop: (name: string) => Promise<null>;
   readonly setModel: (name: string, model: string) => Out<typeof Usage>;
   readonly rename: (name: string, title: string) => Out<typeof ThreadSummary>;
@@ -164,6 +170,10 @@ export const handlersFor = (caller: Caller) => {
       attempt(() => (kind === 'browser' ? api.addBrowser(name) : api.addTerminal(name))),
     CloseSurface: ({ name, id }) => attempt(() => api.closeSurface(name, id)),
     Wake: ({ name }) => attempt(() => api.wake(name)),
+    StartLoop: ({ name, spec }) => attempt(() => api.startLoop(name, spec)),
+    StopLoop: ({ name }) => attempt(() => api.stopLoop(name)),
+    GetLoop: ({ name }) => attempt(() => api.getLoop(name)),
+    StopAllLoops: () => attempt(() => api.stopAllLoops()),
     Stop: ({ name }) => attempt(() => api.stop(name)),
     Models: () => Effect.succeed(MODELS.map((m) => ({ ...m }))),
     SetModel: ({ name, model }) => attempt(() => api.setModel(name, model)),

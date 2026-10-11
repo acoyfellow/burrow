@@ -29,6 +29,7 @@ import {
   type Surface,
   type Turn,
 } from './ledger';
+import { decide, digest, type LoopSpec, type LoopState, validSpec } from './loop';
 import { workersAI } from './model';
 import { bounded, HUMAN_LIMIT_SECONDS } from './shell';
 import { DEFAULT_SIZE, type Size } from './size';
@@ -37,6 +38,8 @@ import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
 const TURN_DIFF_LIMIT = 60_000;
 
 const STOP_WAIT_MS = 5_000;
+
+const OWNER_SPEND_CAP = 25;
 
 const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
 
@@ -747,6 +750,8 @@ export class Thread extends DurableObject<Env> {
   }
 
   override async alarm(): Promise<void> {
+    if (this.ledger.loop?.enabled) await this.loopStep();
+
     if (this.ledger.busy) {
       const agent = await this.open();
       const finished = await Promise.race([
@@ -1004,6 +1009,109 @@ export class Thread extends DurableObject<Env> {
         images: this.ctx.container?.images ?? null,
       }),
     };
+  }
+
+  async startLoop(spec: LoopSpec): Promise<LoopState> {
+    const problem = validSpec(spec);
+
+    if (problem !== null) throw new Error(`Invalid loop: ${problem}`);
+
+    const loop: LoopState = {
+      ...spec,
+      enabled: true,
+      runs: [],
+      startedCost: (await this.usage()).cost,
+      nextAt: Date.now(),
+      stoppedBecause: null,
+    };
+
+    this.ledger.loop = loop;
+    await this.publish({ looping: true });
+    await this.ctx.storage.setAlarm(Date.now() + IDLE_CHECK_MS);
+
+    return loop;
+  }
+
+  async stopLoop(reason = 'stopped by the owner'): Promise<LoopState | null> {
+    const loop = this.ledger.loop;
+
+    if (loop === null) return null;
+
+    const stopped = { ...loop, enabled: false, stoppedBecause: loop.stoppedBecause ?? reason };
+
+    this.ledger.loop = stopped;
+    await this.publish({ looping: false });
+
+    return stopped;
+  }
+
+  loopState(): LoopState | null {
+    return this.ledger.loop;
+  }
+
+  private async finishLoop(loop: LoopState, reason: string) {
+    const cost = (await this.usage()).cost;
+    const stopped = { ...loop, enabled: false, stoppedBecause: reason };
+
+    this.ledger.loop = stopped;
+    await this.publish({ looping: false, spend: cost });
+    await this.ledger.logExec(['coil', 'loop-digest'], 0, digest(stopped, cost), 'agent');
+  }
+
+  private async loopStep() {
+    const loop = this.ledger.loop;
+
+    if (loop === null || !loop.enabled) return;
+
+    const cost = (await this.usage()).cost;
+    const owner = await this.ownerEmail();
+    const ownerSpend = await this.directory.spendFor(owner);
+    const decision = decide(loop, Date.now(), cost, this.ledger.busy, ownerSpend, OWNER_SPEND_CAP);
+
+    if (decision.kind === 'wait') {
+      await this.ctx.storage.setAlarm(Math.min(decision.at, Date.now() + AUTO_PAUSE_AFTER_MS));
+      return;
+    }
+
+    if (decision.kind === 'stop') {
+      await this.finishLoop(loop, decision.reason);
+      return;
+    }
+
+    if (decision.kind === 'check-gate') {
+      const gate = await this.execNow(['bash', '-lc', loop.gate ?? 'false']).catch(() => ({
+        exitCode: 1,
+      }));
+      const runs = loop.runs.map((run, index) =>
+        index === loop.runs.length - 1 ? { ...run, gateExit: gate.exitCode } : run,
+      );
+      const checked = { ...loop, runs };
+
+      if (gate.exitCode === 0) {
+        await this.finishLoop(
+          checked,
+          `gate passed after ${runs.length} run${runs.length === 1 ? '' : 's'}`,
+        );
+        return;
+      }
+
+      this.ledger.loop = checked;
+      await this.ctx.storage.setAlarm(Date.now() + IDLE_CHECK_MS);
+      return;
+    }
+
+    const run = { at: Date.now(), costBefore: cost, gateExit: null };
+    const next = {
+      ...loop,
+      runs: [...loop.runs, run],
+      nextAt: Date.now() + loop.everySeconds * 1000,
+    };
+
+    this.ledger.loop = next;
+    await this.start(
+      `loop-${next.runs.length}-${crypto.randomUUID().slice(0, 6)}`,
+      `[loop run ${next.runs.length} of at most ${loop.maxRuns}]\n${loop.prompt}`,
+    );
   }
 
   async stop(): Promise<null> {

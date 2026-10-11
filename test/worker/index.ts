@@ -78,6 +78,17 @@ const scripted = (): ModelChoice => {
         return fauxAssistantMessage(fauxText(`tool said: ${JSON.stringify(last).slice(0, 600)}`));
       }
 
+      const looped = /^\[loop run (\d+) of at most \d+\]/.exec(request);
+
+      if (looped !== null && !toolRan(context))
+        return fauxAssistantMessage(
+          fauxToolCall('write_file', {
+            path: `step-${looped[1]}.txt`,
+            content: `run ${looped[1]}`,
+          }),
+          { stopReason: 'toolUse' },
+        );
+
       const note = /^note (.+)$/.exec(request);
 
       if (note !== null && !toolRan(context))
@@ -122,6 +133,16 @@ export class TestThread extends Thread {
   }
 
   async runAlarm() {
+    await this.alarm();
+  }
+
+  async forceDueForTest() {
+    const loop = this.ledger.loop;
+
+    if (loop !== null) this.ledger.loop = { ...loop, nextAt: 0 };
+  }
+
+  async loopTick() {
     await this.alarm();
   }
 
@@ -352,6 +373,59 @@ export default {
         created: created.answer,
         madeByA: list.filter((t) => t.createdBy === `thread:${a}`).map((t) => t.title),
         foreignListedForAna: list.some((t) => t.name === foreign),
+      });
+    }
+
+    if (url.pathname === '/loop') {
+      const name = `loop-${run}`;
+      const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      await api.create({ name, createdBy: 'test' });
+      await api.startLoop(name, {
+        prompt: 'take the next step',
+        everySeconds: 30,
+        maxRuns: 5,
+        maxSpend: 1,
+        gate: 'at-least 3 step-',
+      });
+
+      const ticks: string[] = [];
+
+      for (let i = 0; i < 40; i += 1) {
+        const before = await api.getLoop(name);
+
+        if (before === null || !before.enabled) break;
+        if (before.nextAt > Date.now()) await test.forceDueForTest();
+        await test.loopTick();
+        await api.answer(name);
+        ticks.push(`${before.runs.length}`);
+      }
+
+      const loop = await api.getLoop(name);
+      const files = await api.exec(name, ['bash', '-lc', 'ls step-*.txt']);
+      const view = await api.view(name);
+
+      const killName = `kill-${run}`;
+      await api.create({ name: killName, createdBy: 'test' });
+      await api.startLoop(killName, {
+        prompt: 'never',
+        everySeconds: 3600,
+        maxRuns: 5,
+        maxSpend: 1,
+        gate: null,
+      });
+      const killed = await api.stopAllLoops();
+      const afterKill = await api.getLoop(killName);
+
+      return Response.json({
+        runs: loop?.runs.length,
+        enabled: loop?.enabled,
+        stoppedBecause: loop?.stoppedBecause,
+        gates: loop?.runs.map((r) => r.gateExit),
+        files: files.stdout.trim().split('\n'),
+        digest: view.execs.find((e) => e.argv.join(' ') === 'coil loop-digest')?.output ?? '',
+        killed,
+        afterKill: { enabled: afterKill?.enabled, stoppedBecause: afterKill?.stoppedBecause },
       });
     }
 
