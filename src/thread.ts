@@ -99,6 +99,8 @@ export type Env = {
   readonly ACCESS_AUD?: string;
   readonly TERRARIUM_URL?: string;
   readonly TERRARIUM_TOKEN?: string;
+  readonly TERRARIUM_ACCESS_CLIENT_ID?: string;
+  readonly TERRARIUM_ACCESS_CLIENT_SECRET?: string;
 };
 
 export type LiveEvent =
@@ -907,7 +909,13 @@ export class Thread extends DurableObject<Env> {
     if (url === undefined || url === '' || token === undefined || token === '')
       return DEFAULT_EXTRAS;
 
-    return { ...DEFAULT_EXTRAS, terrarium: (task) => runTerrarium({ url, token }, task) };
+    const accessId = this.env.TERRARIUM_ACCESS_CLIENT_ID;
+    const accessSecret = this.env.TERRARIUM_ACCESS_CLIENT_SECRET;
+
+    return {
+      ...DEFAULT_EXTRAS,
+      terrarium: (task) => runTerrarium({ url, token, accessId, accessSecret }, task),
+    };
   }
 
   snapshot(): Promise<Snapshot> {

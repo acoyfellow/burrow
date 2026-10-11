@@ -1,4 +1,9 @@
-export type TerrariumConfig = { readonly url: string; readonly token: string };
+export type TerrariumConfig = {
+  readonly url: string;
+  readonly token: string;
+  readonly accessId?: string;
+  readonly accessSecret?: string;
+};
 
 export type TerrariumReceipt = {
   readonly runId: string;
