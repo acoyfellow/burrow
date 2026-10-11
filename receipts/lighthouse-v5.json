@@ -1,0 +1,47 @@
+{
+ "lighthouse": "13.5.0, mobile preset (simulated slow 4G, 4x CPU)",
+ "target": "coil app shell from wrangler dev with the v5 code (commit HEAD). Production sits behind Cloudflare Access, which serves its own login page to Lighthouse.",
+ "at": "2026-10-11T21:41:40.025456Z",
+ "runs": [
+  {
+   "scores": {
+    "performance": 99,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100
+   },
+   "lcp": "1.8\u00a0s",
+   "tbt": "10\u00a0ms",
+   "cls": "0.001"
+  },
+  {
+   "scores": {
+    "performance": 99,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100
+   },
+   "lcp": "1.8\u00a0s",
+   "tbt": "20\u00a0ms",
+   "cls": "0.001"
+  },
+  {
+   "scores": {
+    "performance": 99,
+    "accessibility": 100,
+    "best-practices": 100,
+    "seo": 100
+   },
+   "lcp": "1.8\u00a0s",
+   "tbt": "10\u00a0ms",
+   "cls": "0.001"
+  }
+ ],
+ "scores": {
+  "performance": 99,
+  "accessibility": 100,
+  "best-practices": 100,
+  "seo": 100
+ },
+ "note": "run 3 first hit a one-off 405 from the local server and was rerun"
+}
