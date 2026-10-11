@@ -1,0 +1,23 @@
+receipts/live-v5.json
+  s_d58794dec92dc7::t_4334772d717f66 158-162
+receipts/owner-ok-v5
+  s_d58794dec92dc7::t_63913eeb4c81ce 1-2
+receipts/reviews/v5-2.md
+  s_d58794dec92dc7::t_334656228c4ed3 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9e5b2b4ccf209e0ace31c0be60f4462c85110d05",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
