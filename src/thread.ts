@@ -677,7 +677,7 @@ export class Thread extends DurableObject<Env> {
     const ran = await this.computer().exec([
       'bash',
       '-lc',
-      'git rev-parse --git-dir >/dev/null 2>&1 || exit 0; export GIT_INDEX_FILE=$(mktemp); git add -A >/dev/null 2>&1; git write-tree; rm -f "$GIT_INDEX_FILE"',
+      'git rev-parse --git-dir >/dev/null 2>&1 || exit 0; export GIT_INDEX_FILE=$(mktemp -u); git add -A >/dev/null 2>&1; git write-tree; rm -f "$GIT_INDEX_FILE"',
     ]);
 
     return ran.exitCode === 0 ? ran.stdout.trim() : '';
