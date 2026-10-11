@@ -207,6 +207,17 @@ dialog .actions .primary{padding:5px 12px}
 .size-list button{display:flex;align-items:center;gap:8px;padding:6px 10px;border:0;border-radius:6px;background:transparent;font:12.5px var(--mono);color:var(--fg);text-align:left}
 .size-list button:hover,.size-list button.on{background:var(--raise)}
 .size-list .tick{width:16px;display:inline-flex}
+.md p{margin:0 0 .6em}
+.md h3,.md h4,.md h5{margin:.8em 0 .4em;font-weight:600;line-height:1.3}
+.md h3{font-size:1.1em}.md h4{font-size:1em}.md h5{font-size:.95em;color:var(--dim)}
+.md ul,.md ol{margin:0 0 .6em;padding-left:1.4em}
+.md li{margin:.15em 0}
+.md blockquote{margin:0 0 .6em;padding-left:10px;border-left:2px solid var(--line2);color:var(--dim)}
+.md hr{border:0;border-top:1px solid var(--line2);margin:.8em 0}
+.md code{font:.9em var(--mono);background:var(--raise);padding:1px 4px;border-radius:4px}
+.md pre code{background:transparent;padding:0}
+.md a{color:var(--orange)}
+.md>:last-child{margin-bottom:0}
 .meter{display:flex;align-items:center;gap:4px;min-width:0}
 .pop-wrap{position:relative;display:inline-flex}
 .pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border:1px solid var(--line2);border-radius:999px;background:transparent;font:11.5px var(--mono);color:var(--dim);white-space:nowrap}

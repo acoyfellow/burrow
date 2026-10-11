@@ -4,9 +4,8 @@ import type { ChatMessage, ThreadView } from '../../../shared/protocol';
 import { Message } from '../message';
 import { type LiveTool, type Model, ViewState } from '../model';
 import { ScrollToEnd } from '../mount';
+import { markdown } from './markdown';
 import { type H, skeleton, spinner } from './parts';
-
-const FENCE = /```[a-zA-Z0-9_-]*\n?/;
 
 const EXIT_CODE = /^exit (\d+)/;
 
@@ -50,17 +49,7 @@ const tool = (
     ],
   );
 
-const richText = (h: H, text: string): Html =>
-  h.div(
-    [h.Class('body')],
-    text
-      .split(FENCE)
-      .flatMap((part, index) =>
-        part === ''
-          ? []
-          : [index % 2 === 1 ? h.pre([h.Class('code')], [part.replace(/\n$/, '')]) : part],
-      ),
-  );
+const richText = (h: H, text: string): Html => markdown(h, text);
 
 const message = (h: H, entry: ChatMessage, results: ReadonlyMap<string, string>): Html | null => {
   if (entry.role === 'tool' && entry.tool !== undefined) {
@@ -152,7 +141,7 @@ const liveItems = (h: H, model: Model): Html[] => {
       h.keyed('div')(
         'live-text',
         [h.Class('msg assistant'), h.Id('live-text')],
-        [h.div([h.Class('label')], [spinner(h), 'agent']), h.div([h.Class('body')], [live.text])],
+        [h.div([h.Class('label')], [spinner(h), 'agent']), markdown(h, live.text)],
       ),
     ];
 
