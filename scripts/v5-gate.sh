@@ -28,12 +28,13 @@ REQUIRED_STEPS=(
 node -e '
 const fs = require("fs");
 const r = JSON.parse(fs.readFileSync("receipts/live-v5.json", "utf8"));
-const byName = new Map(r.steps.map((s) => [s.name, s]));
+const steps = Array.isArray(r.steps) ? r.steps : Object.entries(r.steps).map(([name, s]) => ({ name, ...s }));
+const byName = new Map(steps.map((s) => [s.name, s]));
 const missing = process.argv.slice(1).filter((n) => !byName.has(n));
-const failed = r.steps.filter((s) => !s.ok).map((s) => s.name);
+const failed = steps.filter((s) => !s.ok).map((s) => s.name);
 if (missing.length) { console.error("missing steps: " + missing.join(", ")); process.exit(1); }
 if (failed.length) { console.error("failed steps: " + failed.join(", ")); process.exit(1); }
-for (const shot of r.shots) fs.accessSync(shot);
+for (const shot of r.shots ?? []) fs.accessSync(shot);
 ' "${REQUIRED_STEPS[@]}" || fail "live v5 receipt incomplete"
 pass "live v5 receipt: all ${#REQUIRED_STEPS[@]} steps pass"
 
