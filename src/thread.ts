@@ -10,7 +10,7 @@ import {
   openAgent,
   type ThreadDirectory,
 } from './agent';
-import { Browser, type PageState, VNC_PORT } from './browser';
+import { Browser, browserEnv, displayArgs, type PageState, VNC_PORT } from './browser';
 import {
   type Computer,
   type Entry,
@@ -90,6 +90,9 @@ export type Env = {
   readonly ASSETS: Fetcher;
   readonly MODEL: string;
   readonly AI_GATEWAY?: string;
+  readonly MODEL_GATEWAY_URL?: string;
+  readonly MODEL_GATEWAY_HEADER?: string;
+  readonly MODEL_GATEWAY_TOKEN?: string;
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
@@ -256,8 +259,17 @@ export class Thread extends DurableObject<Env> {
 
   protected route(id: string): ModelChoice {
     return isGatewayModel(id)
-      ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id)
+      ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id, this.externalGateway())
       : workersAI(this.env.AI, id);
+  }
+
+  private externalGateway() {
+    const url = this.env.MODEL_GATEWAY_URL ?? '';
+    const token = this.env.MODEL_GATEWAY_TOKEN ?? '';
+
+    return url === '' || token === ''
+      ? null
+      : { url, token, header: this.env.MODEL_GATEWAY_HEADER ?? 'authorization' };
   }
 
   protected otherProviders() {
@@ -355,6 +367,8 @@ export class Thread extends DurableObject<Env> {
             '/',
           );
       }
+
+      this.warmBrowser();
 
       if (this.ledger.phase !== 'awake') {
         this.ledger.phase = 'awake';
@@ -1379,11 +1393,19 @@ export class Thread extends DurableObject<Env> {
   }
 
   private async vncSocket(): Promise<Response> {
-    await this.openBrowser();
+    await this.awake();
 
     const container = this.ctx.container;
 
     if (container === undefined) return new Response('no container', { status: 500 });
+
+    await this.startDisplay(container);
+    this.ctx.waitUntil(
+      this.openBrowser().then(
+        () => undefined,
+        () => undefined,
+      ),
+    );
 
     const tcp = await this.untilPort(container, VNC_PORT);
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
@@ -1394,6 +1416,32 @@ export class Thread extends DurableObject<Env> {
     pipeSocket(server, tcp);
 
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  private warmBrowser() {
+    if (this.browser !== undefined || this.ctx.container === undefined) return;
+
+    const container = this.ctx.container;
+
+    this.ctx.waitUntil(
+      this.startDisplay(container)
+        .then(
+          () => this.openBrowser().then(() => undefined),
+          () => undefined,
+        )
+        .catch(() => undefined),
+    );
+  }
+
+  private async startDisplay(container: Container) {
+    const process = await container.exec(displayArgs(), {
+      env: browserEnv(),
+      cwd: '/root',
+      stdout: 'ignore',
+      stderr: 'ignore',
+    });
+
+    await process.exitCode;
   }
 
   private async untilPort(container: Container, port: number): Promise<Socket> {

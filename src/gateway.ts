@@ -21,28 +21,40 @@ const ROUTES: Record<string, string> = {
 export const bindingBaseUrl = (gateway: string, api: string) =>
   `https://workers-binding.ai/ai-gateway/gateways/${encodeURIComponent(gateway)}/${ROUTES[api] ?? 'compat'}`;
 
+export type ExternalGateway = {
+  readonly url: string;
+  readonly header: string;
+  readonly token: string;
+};
+
+export const externalBaseUrl = (gateway: ExternalGateway, api: string) =>
+  `${gateway.url.replace(/\/+$/, '').replace(/\/(openai|anthropic)$/, '')}/${ROUTES[api] ?? 'openai'}`;
+
 type BindingWithFetch = Ai & { fetch?: typeof fetch };
 
-export const gatewayModel = (ai: Ai, gateway: string, id: string): ModelChoice => {
-  const stock = cloudflareAIGatewayProvider();
-  const rawFetch = createAiBindingFetch(ai as BindingWithFetch);
-  const bindingFetch: typeof fetch = (input, init) => {
+const STRIPPED = ['cf-aig-authorization', 'authorization', 'x-api-key'];
+
+const withHeaders =
+  (send: () => typeof fetch, extra: Record<string, string>): typeof fetch =>
+  (input, init) => {
     const request = new Request(input, init);
     const headers = new Headers(request.headers);
 
-    for (const name of ['cf-aig-authorization', 'authorization', 'x-api-key']) headers.delete(name);
+    for (const name of STRIPPED) headers.delete(name);
+    for (const [name, value] of Object.entries(extra)) headers.set(name, value);
 
-    return rawFetch(new Request(request, { headers }));
+    return send()(new Request(request, { headers }));
   };
-  const routed = stock.getModels().map((model) => ({
-    ...model,
-    baseUrl: bindingBaseUrl(gateway, model.api),
-  }));
-  const provider: Provider = {
+
+const routedProvider = (baseUrl: (api: string) => string, send: typeof fetch): Provider => {
+  const stock = cloudflareAIGatewayProvider();
+  const routed = stock.getModels().map((model) => ({ ...model, baseUrl: baseUrl(model.api) }));
+
+  return {
     ...stock,
     auth: {
       apiKey: {
-        name: 'AI Gateway binding',
+        name: 'coil model gateway',
         resolve: async () => ({
           auth: {
             headers: {
@@ -57,10 +69,31 @@ export const gatewayModel = (ai: Ai, gateway: string, id: string): ModelChoice =
     getModels: () => routed,
     getAllModels: () => routed,
     stream: (model, context, options) =>
-      stock.stream(model as never, context, { ...options, fetch: bindingFetch } as never),
+      stock.stream(model as never, context, { ...options, fetch: send } as never),
     streamSimple: (model, context, options) =>
-      stock.streamSimple(model as never, context, { ...options, fetch: bindingFetch }),
+      stock.streamSimple(model as never, context, { ...options, fetch: send }),
   };
+};
+
+export const gatewayModel = (
+  ai: Ai,
+  gateway: string,
+  id: string,
+  external: ExternalGateway | null = null,
+): ModelChoice => {
+  const provider =
+    external === null
+      ? routedProvider(
+          (api) => bindingBaseUrl(gateway, api),
+          withHeaders(() => createAiBindingFetch(ai as BindingWithFetch), {}),
+        )
+      : routedProvider(
+          (api) => externalBaseUrl(external, api),
+          withHeaders(() => globalThis.fetch, {
+            [external.header]: external.token,
+            'x-requested-with': 'xmlhttprequest',
+          }),
+        );
 
   return { provider, modelId: upstreamId(id), options: {} };
 };

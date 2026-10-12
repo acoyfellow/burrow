@@ -24,18 +24,22 @@ const chromium = () =>
   ].join(' ');
 
 const startDisplay = [
-  'pkill -x Xvfb; pkill -x x11vnc; pkill -x openbox; true',
-  'rm -f /tmp/.X99-lock /tmp/.X11-unix/X99',
-  `Xvfb ${DISPLAY} -screen 0 ${VIEWPORT.width}x${VIEWPORT.height}x24 -nolisten tcp -ac >/tmp/xvfb.log 2>&1 &`,
+  'if ! pgrep -x Xvfb >/dev/null; then',
+  '  rm -f /tmp/.X99-lock /tmp/.X11-unix/X99',
+  `  setsid Xvfb ${DISPLAY} -screen 0 ${VIEWPORT.width}x${VIEWPORT.height}x24 -nolisten tcp -ac >/tmp/xvfb.log 2>&1 &`,
+  'fi',
   'for i in $(seq 1 50); do [ -e /tmp/.X11-unix/X99 ] && break; sleep 0.1; done',
-  `DISPLAY=${DISPLAY} openbox >/tmp/openbox.log 2>&1 &`,
-  `x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
+  `pgrep -x openbox >/dev/null || DISPLAY=${DISPLAY} setsid openbox >/tmp/openbox.log 2>&1 &`,
+  `pgrep -x x11vnc >/dev/null || setsid x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
+  'true',
 ].join('\n');
+
+export const displayArgs = () => ['bash', '-c', startDisplay];
 
 export const browserArgs = () => [
   'bash',
   '-c',
-  `${startDisplay}\nDISPLAY=${DISPLAY} exec ${chromium()} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
+  `${startDisplay}\npkill -x chromium; rm -f /root/.browser/Singleton*\nDISPLAY=${DISPLAY} exec ${chromium()} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
 ];
 
 export const browserEnv = () => ({ ...SHELL_ENV, HOME: '/root' });
