@@ -8,7 +8,7 @@ import type { ModelChoice } from './agent';
 
 export const GATEWAY_PREFIX = 'gateway/';
 
-export const isGatewayModel = (id: string) => id.startsWith(GATEWAY_PREFIX);
+export const isGatewayModel = (id: string | undefined) => id?.startsWith(GATEWAY_PREFIX) === true;
 
 export const upstreamId = (id: string) => id.slice(GATEWAY_PREFIX.length);
 

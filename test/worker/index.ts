@@ -190,6 +190,14 @@ export class TestThread extends Thread {
     return scripted();
   }
 
+  protected override route(): ModelChoice {
+    return scripted();
+  }
+
+  protected override otherProviders() {
+    return [];
+  }
+
   protected override computer(): Computer {
     return memoryComputer(this.ctx.id.toString());
   }
