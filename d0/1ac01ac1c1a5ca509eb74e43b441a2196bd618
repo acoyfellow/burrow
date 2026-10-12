@@ -1,0 +1,21 @@
+computer/Dockerfile
+  s_d58794dec92dc7::t_ed1b8b54188056 7
+src/agent.ts
+  s_d58794dec92dc7::t_d35a6ba1f0d1b1 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d01ac01ac1c1a5ca509eb74e43b441a2196bd618",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
