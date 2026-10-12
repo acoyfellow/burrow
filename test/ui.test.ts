@@ -76,3 +76,10 @@ it('the shared page escapes thread text', () => {
   expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   expect(html).toContain('&lt;b&gt;t&lt;/b&gt;');
 });
+
+it('the page shell uses the brand favicon and social card', () => {
+  const html = readFileSync('src/ui/index.ts', 'utf8');
+
+  expect(html).toContain('/icons/favicon.svg');
+  expect(html).toContain('/brand/coil-social.png');
+});

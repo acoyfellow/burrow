@@ -45,11 +45,9 @@ textarea{resize:none}
 .app{display:grid;grid-template-columns:248px minmax(0,1fr) minmax(300px,32%);grid-template-rows:100%;height:100dvh;box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 .side{border-right:1px solid var(--line);background:var(--side);display:flex;flex-direction:column;min-height:0}
 .brand{display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px;height:42px;flex:none}
-.brand b{font-size:15px;font-weight:600;letter-spacing:-.02em}
-.brand b span{color:var(--orange)}
-.brand .logo{display:inline-flex;align-items:center}
-.brand .logo img{margin-right:7px}
-.brand .logo img{border-radius:5px}
+.brand .logo{display:inline-flex;align-items:center;height:28px;padding:0 2px;border-radius:6px}
+.brand .logo img{display:block;height:16px;width:auto}
+.brand .logo:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 #install{border:1px solid var(--line2);font-size:12px;padding:2px 8px}
 .offline .bar::after{content:'Offline. Showing the last view; actions resume when you reconnect.';position:fixed;top:calc(6px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--orange-soft);color:var(--warn);border:1px solid var(--line2);border-radius:99px;padding:3px 12px;font-size:12px;z-index:40}
 .brand .new{width:28px;height:28px;padding:0;justify-content:center;border-radius:50%;background:var(--text);color:var(--bg);font-size:16px}
@@ -165,7 +163,10 @@ textarea{resize:none}
 .empty h2{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
 .empty p{margin:0;color:var(--dim)}
 .empty .primary{padding:5px 14px}
-.mark{width:34px;height:34px;border-radius:10px;background:var(--orange)}
+.mark{width:40px;height:40px;display:block}
+.empty{background-image:url(/brand/loops-light.svg);background-repeat:repeat}
+:root[data-theme=dark] .empty{background-image:url(/brand/loops-dark.svg)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .empty{background-image:url(/brand/loops-dark.svg)}}
 .skeleton{display:flex;flex-direction:column;gap:8px;padding:10px}
 .skeleton div{height:11px;border-radius:4px;background:linear-gradient(90deg,var(--raise),var(--hover),var(--raise));background-size:200% 100%;animation:shimmer 1.4s infinite}
 .skeleton div:nth-child(2){width:72%}.skeleton div:nth-child(3){width:86%}

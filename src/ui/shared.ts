@@ -24,6 +24,7 @@ article.user{background:#f3f3f3}article b{display:block;font-size:12px;color:#66
 pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit}
 @media (prefers-color-scheme:dark){body{background:#0b0b0c;color:#eee}article{background:#151517;border-color:#2a2a2e}article.user{background:#1d1d20}.meta,article b{color:#999}}
 </style></head><body><main>
+<img src="/brand/coil-wordmark.svg" alt="coil" width="53" height="16" style="display:block;margin-bottom:16px">
 <h1>${escapeHtml(view.title)}</h1>
 <div class="meta">Read-only shared thread · ${view.messages.length} messages · model ${escapeHtml(view.model)}</div>
 ${said(view)}

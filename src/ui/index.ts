@@ -15,8 +15,15 @@ export const page = () => `<!doctype html>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="coil">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icons/coil.svg" type="image/svg+xml">
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+<meta property="og:title" content="coil">
+<meta property="og:description" content="Agent threads with their own computer: terminals, a browser, and a disk you can fork.">
+<meta property="og:image" content="/brand/coil-social.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="modulepreload" href="${APP_ENTRY}">
 <link rel="preconnect" href="https://fonts.googleapis.com">

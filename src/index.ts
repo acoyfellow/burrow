@@ -170,7 +170,8 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
             'cache-control': 'no-store',
             'x-robots-tag': 'noindex',
             'referrer-policy': 'no-referrer',
-            'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'",
+            'content-security-policy':
+              "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'",
           },
         });
   }

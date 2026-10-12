@@ -190,7 +190,13 @@ const welcome = (h: H): Html =>
       h.div(
         [h.Class('empty-inner')],
         [
-          h.div([h.Class('mark')], []),
+          h.img([
+            h.Class('mark'),
+            h.Src('/icons/coil-mark.svg'),
+            h.Alt(''),
+            h.Width('40'),
+            h.Height('40'),
+          ]),
           h.h2([], ['One thread, one agent, one computer']),
           h.p(
             [],

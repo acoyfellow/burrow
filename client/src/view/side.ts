@@ -143,12 +143,15 @@ export const side = (h: H, model: Model): Html =>
       h.div(
         [h.Class('brand')],
         [
-          h.b(
-            [h.Class('logo')],
+          h.a(
+            [h.Class('logo'), h.Href('/'), h.AriaLabel('coil')],
             [
-              h.img([h.Src('/icons/coil.svg'), h.Alt(''), h.Width('20'), h.Height('20')]),
-              'co',
-              h.span([], ['il']),
+              h.img([
+                h.Src('/brand/coil-wordmark.svg'),
+                h.Alt('coil'),
+                h.Width('53'),
+                h.Height('16'),
+              ]),
             ],
           ),
           h.span(
