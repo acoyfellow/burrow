@@ -1,0 +1,101 @@
+client/src/view/feed.ts
+  s_d58794dec92dc7::t_64866fcfa1bc26 193-199
+client/src/view/side.ts
+  s_d58794dec92dc7::t_95c5521094bf99 146-147,149-154
+docs/brand/README.md
+  s_231221b99fcbf7::t_edc4e2b332fd46 1-55
+docs/brand/build.py
+  s_231221b99fcbf7::t_30439f8a374267 1-232
+docs/brand/coil-favicon.svg
+  s_231221b99fcbf7::t_2978f5241cf21d 1
+docs/brand/coil-icon-apple.svg
+  s_231221b99fcbf7::t_bf5c65c41cff97 1
+docs/brand/coil-icon-light.svg
+  s_231221b99fcbf7::t_36d15b59488324 1
+docs/brand/coil-icon-maskable.svg
+  s_231221b99fcbf7::t_bd92bb823dbaf0 1
+docs/brand/coil-icon.svg
+  s_231221b99fcbf7::t_7f36a4f2096e5e 1
+docs/brand/coil-lockup-dark.svg
+  s_231221b99fcbf7::t_a7ec925ecc3b19 1
+docs/brand/coil-lockup-light.svg
+  s_231221b99fcbf7::t_c46200bf319d13 1
+docs/brand/coil-mark-mono.svg
+  s_231221b99fcbf7::t_0a7442c965eb11 1
+docs/brand/coil-mark.svg
+  s_231221b99fcbf7::t_c1ca3657baa100 1
+docs/brand/coil-social.svg
+  s_231221b99fcbf7::t_5d2a0a808b99ac 1
+docs/brand/coil-wordmark-mono.svg
+  s_231221b99fcbf7::t_f2f2ce348820f5 1
+docs/brand/coil-wordmark.svg
+  s_231221b99fcbf7::t_6a388360353546 1
+docs/brand/construction.svg
+  s_231221b99fcbf7::t_be0b1306f80beb 1
+docs/brand/guidelines.html
+  s_231221b99fcbf7::t_c66e56fb5c2727 1-241
+docs/brand/patterns.py
+  s_231221b99fcbf7::t_c114566c7fc16c 1-87
+docs/brand/patterns/dots-dark.svg
+  s_231221b99fcbf7::t_4e9a47309ae35b 1
+docs/brand/patterns/dots-light.svg
+  s_231221b99fcbf7::t_ecc21ea8c2307d 1
+docs/brand/patterns/loops-dark.svg
+  s_231221b99fcbf7::t_064882f6351fad 1
+docs/brand/patterns/loops-light.svg
+  s_231221b99fcbf7::t_92a445cb0103f0 1
+docs/brand/patterns/tangent-dark.svg
+  s_231221b99fcbf7::t_936457137f9db0 1
+docs/brand/patterns/tangent-light.svg
+  s_231221b99fcbf7::t_e3255d888980b0 1
+docs/brand/patterns/truchet-dark.svg
+  s_231221b99fcbf7::t_ab9abe415443b6 1
+docs/brand/patterns/truchet-light.svg
+  s_231221b99fcbf7::t_1808c4670e89b9 1
+docs/brand/stroke-reference.svg
+  s_231221b99fcbf7::t_5bd04b22389a43 1
+docs/brand/tokens.json
+  s_231221b99fcbf7::t_353f0844c33f80 1-23
+docs/brand/ui.css
+  s_231221b99fcbf7::t_59d950c1ed68b3 1-83
+public/brand/coil-wordmark.svg
+  s_d58794dec92dc7::t_0b12ac754411bb 1
+public/brand/loops-dark.svg
+  s_d58794dec92dc7::t_aa5841184e7979 1
+public/brand/loops-light.svg
+  s_d58794dec92dc7::t_11360d3e3d4b91 1
+src/index.ts
+  s_d58794dec92dc7::t_59156ab5220fb6 173-174
+src/ui/index.ts
+  s_d58794dec92dc7::t_735b0b51122f1c 18,20-26
+src/ui/shared.ts
+  s_d58794dec92dc7::t_92683bc290aea2 27
+src/ui/style.ts
+  s_d58794dec92dc7::t_942aeb00c2f579 48-50,166-169
+test/ui.test.ts
+  s_d58794dec92dc7::t_1a5caf848c2be5 79-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c0d7ee00da20b884f38c0a510eb547f47d9058c8",
+  "prompts": {},
+  "sessions": {
+    "s_231221b99fcbf7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1176a-4538-7369-8003-75cbe8c7d418",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    },
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
