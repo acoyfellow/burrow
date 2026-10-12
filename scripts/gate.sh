@@ -42,7 +42,7 @@ for review in architecture-and-performance oss-readiness; do
   tail -5 "$file" | grep -qE '^VERDICT: PASS$' || fail "$file does not end in VERDICT: PASS"
 done
 
-grep -q 'docs/hero-dark.png' README.md && grep -q 'docs/logo.svg' README.md && grep -q 'bun run ship' README.md && grep -q '## What it does not do' README.md || fail "README is missing the hero, logo, deploy command, or limits"
+grep -q 'docs/hero-dark.png' README.md && grep -q 'docs/logo.svg' README.md && grep -q 'bun run ship' README.md && grep -q '## Limits' README.md || fail "README is missing the hero, logo, deploy command, or limits"
 git ls-files --error-unmatch receipts/tweet.md >/dev/null 2>&1 || fail "receipts/tweet.md is not committed"
 git ls-files --error-unmatch receipts/owner-ok-pwa >/dev/null 2>&1 || fail "receipts/owner-ok-pwa missing: Jordan has not signed off on the PWA"
 

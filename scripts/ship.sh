@@ -2,33 +2,63 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-domain="${COIL_DOMAIN:-}"
-team="${COIL_ACCESS_TEAM:-}"
-aud="${COIL_ACCESS_AUD:-}"
-
-for _ in 1 2 3 4; do
-  [ -n "${1:-}" ] || break
-  case "$1" in
-    --domain) domain="$2" && shift 2 ;;
-    --team) team="$2" && shift 2 ;;
-    --aud) aud="$2" && shift 2 ;;
-    *) echo "unknown option: $1" >&2 && exit 2 ;;
-  esac
-done
-
-if [ -z "$domain" ] || [ -z "$team" ] || [ -z "$aud" ]; then
+usage() {
   cat >&2 <<'USAGE'
-usage: NIX_IMAGE=<image> bun run ship -- --domain coil.example.com --team https://<team>.cloudflareaccess.com --aud <access-app-aud>
+usage: bun run ship -- deploy/<instance>.conf
 
-1. In Zero Trust, add a self-hosted Access application for the domain and allow only yourself.
-2. Copy its Application Audience (AUD) tag.
-3. Run this command. It typechecks, lints, runs the tests, builds the image, and deploys.
+Copy deploy/example.conf to deploy/<instance>.conf (git ignores it), fill it in,
+and pass its path. One file per instance.
 USAGE
   exit 2
-fi
+}
+
+conf="${1:-}"
+[ -n "$conf" ] && [ -f "$conf" ] || usage
+
+set -a
+. "$conf"
+set +a
+
+missing=""
+for key in COIL_ACCOUNT_ID COIL_DOMAIN COIL_ACCESS_TEAM COIL_ACCESS_AUD NIX_IMAGE; do
+  [ -n "${!key:-}" ] || missing="$missing $key"
+done
+[ -z "$missing" ] || { echo "missing in $conf:$missing" >&2; exit 2; }
+
+case "$NIX_IMAGE" in
+  registry.cloudflare.com/"$COIL_ACCOUNT_ID"/*) ;;
+  *) echo "NIX_IMAGE must be in this account's registry: registry.cloudflare.com/$COIL_ACCOUNT_ID/..." >&2; exit 2 ;;
+esac
+
+export CLOUDFLARE_ACCOUNT_ID="$COIL_ACCOUNT_ID"
+export APK_PLAIN_HTTP="${COIL_APK_PLAIN_HTTP:-0}"
 
 node scripts/build-term.mjs
 bash scripts/check.sh
 node scripts/with-image.mjs
-npx wrangler deploy -c wrangler.local.jsonc --domain "$domain" --var "ACCESS_TEAM_DOMAIN:$team" --var "ACCESS_AUD:$aud"
-echo "coil is live at https://$domain (behind Access)"
+
+vars=(--var "ACCESS_TEAM_DOMAIN:$COIL_ACCESS_TEAM" --var "ACCESS_AUD:$COIL_ACCESS_AUD")
+[ -z "${COIL_MODEL:-}" ] || vars+=(--var "MODEL:$COIL_MODEL")
+[ -z "${COIL_AI_GATEWAY:-}" ] || vars+=(--var "AI_GATEWAY:$COIL_AI_GATEWAY")
+[ -z "${COIL_MODEL_GATEWAY_URL:-}" ] || vars+=(
+  --var "MODEL_GATEWAY_URL:$COIL_MODEL_GATEWAY_URL"
+  --var "MODEL_GATEWAY_HEADER:${COIL_MODEL_GATEWAY_HEADER:-authorization}"
+)
+
+deploy() {
+  npx wrangler deploy -c wrangler.local.jsonc --domain "$COIL_DOMAIN" "${vars[@]}"
+}
+deploy || deploy
+
+if [ -n "${COIL_MODEL_GATEWAY_TOKEN_COMMAND:-}" ]; then
+  token=$(bash -c "$COIL_MODEL_GATEWAY_TOKEN_COMMAND")
+  [ -n "$token" ] || { echo "COIL_MODEL_GATEWAY_TOKEN_COMMAND printed nothing" >&2; exit 1; }
+  printf '%s' "$token" | npx wrangler secret put MODEL_GATEWAY_TOKEN -c wrangler.local.jsonc >/dev/null
+  echo "model gateway token stored as a Worker secret"
+fi
+
+code=$(curl -s -o /dev/null -w '%{http_code}' "https://$COIL_DOMAIN/")
+case "$code" in
+  302|401|403) echo "coil is live at https://$COIL_DOMAIN and Access is in front ($code)" ;;
+  *) echo "https://$COIL_DOMAIN/ answered $code to an anonymous request; check the Access application" >&2; exit 1 ;;
+esac

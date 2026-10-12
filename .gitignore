@@ -9,3 +9,5 @@ wrangler.local.jsonc
 src/ui/icons.generated.ts
 src/ui/app.generated.ts
 public/app/
+deploy/*.conf
+!deploy/example.conf
