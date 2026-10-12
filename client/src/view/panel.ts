@@ -20,7 +20,10 @@ const tab = (
     [
       h.button(
         [h.Class('tab-main'), h.OnClick(Message.ClickedTab({ tab: id }))],
-        [...(glyph === null ? [] : [icon(h, glyph)]), label],
+        [
+          ...(glyph === null ? [] : [icon(h, glyph)]),
+          glyph === null ? label : h.span([h.Class('tab-label')], [label]),
+        ],
       ),
       ...(closable
         ? [
