@@ -30,12 +30,12 @@ An agent that writes code needs a place to run it and a way to look at it. Most 
 
 coil gives each thread one [Durable Object](https://developers.cloudflare.com/durable-objects/) and one [Container](https://developers.cloudflare.com/containers/):
 
-- **A shared computer.** Open as many terminals as you want; each is a tmux session the agent can also use. The browser is Chromium inside the same machine, so it opens the dev server the agent just started. You and the agent drive the same page.
+- **A shared computer.** Open as many terminals as you want; each is a tmux session the agent can also use. The browser is a real, headed Chromium window inside the same machine, so it opens the dev server the agent just started, and right-click → Inspect works. You and the agent drive the same window.
 - **Checkpoints that match.** Pause, compact, and fork record the conversation summary and the exact disk together, so a resumed or forked thread never sees files from a different point in time.
 - **Safe by construction.** The image ships a git that cannot force-push. The Worker checks a Cloudflare Access token on every request.
 - **Agents can drive it too.** Everything in the UI is also an HTTP API and an MCP server.
 
-It is an installable PWA: add it to your dock or home screen.
+It is an installable PWA: add it to your dock or home screen. Everything runs in the cloud; there is no desktop app or helper to install.
 
 ```text
             Worker (Access-gated): web UI · HTTP API + SSE · MCP · static PWA shell
@@ -48,7 +48,8 @@ It is an installable PWA: add it to your dock or home screen.
    │   ▼                                │
    │ Container  /workspace              │
    │   tmux ⇄ PTY WebSocket ⇄ cloudterm │
-   │   Chromium ⇄ CDP pipe ⇄ screencast │
+   │   Chromium on Xvfb ⇄ x11vnc ⇄ noVNC│
+   │   agent ⇄ CDP pipe ⇄ same Chromium │
    │   pause: snapshot → stop           │
    │   resume / fork: start from a snapshot
    └────────────────────────────────────┘
@@ -61,8 +62,9 @@ It is an installable PWA: add it to your dock or home screen.
 | **Start a thread** | Optional git repo. If a warm base exists for that repo, the computer starts from it instead of cloning. |
 | **Watch it work** | Tool calls, their output, and the agent's replies stream into the page as they happen. Leave and come back; the turn keeps going. |
 | **Terminals** | Open as many as you like with **+**. Each is a tmux session in the thread's computer, drawn by [cloudterm](https://github.com/acoyfellow/cloudterm). Close the tab or reload the page; the shell keeps running, and the next attach prints its history. |
-| **Browser** | A real Chromium inside the same computer. It can open `localhost:3000` from a dev server the agent or you started. You click, type, and scroll on a live screencast; the agent drives the same page with browser tools. |
+| **Browser** | A real, headed Chromium window inside the same computer, shown in the panel over VNC. It can open `localhost:3000` from a dev server the agent or you started. Type an address in coil's URL bar, or use Chrome's own tabs, menus and DevTools (right-click → Inspect). The agent drives the same window with browser tools, and the panel switches to the browser when it does. **+** opens another tab. Cookies and logins live in the computer's profile and come back after a pause. |
 | **Files** | A file browser on the same `/workspace`. |
+| **Layout** | Hide the threads list (⌘B) or the computer panel (⌘J) with the buttons at each end of the bar. Drag either edge to resize; double-click an edge to reset. The layout is remembered per device. |
 | **Pause** | The disk is saved and the computer is turned off. The next message, command, or file read resumes it. |
 | **Compact** | The transcript is summarised and the disk is saved, recorded together. |
 | **Fork** | A new thread starts from this thread's current disk and a summary of its conversation. |
@@ -163,10 +165,12 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 
 | Receipt | What it shows |
 | --- | --- |
-| [`receipts/live-v3.json`](receipts/live-v3.json) | On production: two terminals on separate ttys, reattach keeps history, the browser opens the computer's `localhost`, click to new frame in about 100 ms, the agent drives the browser |
-| [`receipts/lighthouse.json`](receipts/lighthouse.json) | Lighthouse 100 for performance, accessibility, best practices, and SEO; Chrome reports no installability errors |
+| [`receipts/live-v5.json`](receipts/live-v5.json) | On production: loops to a gate with a digest and spend limit, share links, notifications, edit and retry, markdown streaming, the palette, search, the phone layout, and the agent tools (`edit_file`, notes, jobs, `web_fetch`, `browser_logs`, `browser_screenshot`) |
+| [`receipts/lighthouse-v5.json`](receipts/lighthouse-v5.json) | Lighthouse 99 / 100 / 100 / 100 (performance, accessibility, best practices, SEO) on the current client |
+| [`receipts/live-v3.json`](receipts/live-v3.json) | On production: two terminals on separate ttys, reattach keeps history, the browser opens the computer's `localhost`, the agent drives the browser. Recorded with the earlier screencast browser |
 | [`receipts/flow-control.json`](receipts/flow-control.json) | On production: a client that stops acknowledging output stops the stream; one that acknowledges gets all of it |
 | [`receipts/browser-eval.json`](receipts/browser-eval.json) | Why the browser runs inside the computer (below) |
+| [`docs/research/remote-webauthn.md`](docs/research/remote-webauthn.md) | How other projects handle passkeys and security keys in a remote browser, and what can work from a PWA |
 | [`receipts/reviews/`](receipts/reviews) | Two independent adversarial reviews (architecture and performance; OSS readiness). Each round is kept: round 1 failed (4 blockers, 8 majors), round 2 passed OSS readiness and failed architecture on 3 majors (back-pressure, auto-pause under a command, a pause/turn race), round 3 found a pause-during-compaction deadlock, round 4 a browser-close hang, and round 5 passed. The final reports are the top-level files. The fixes follow each round in the git log |
 
 [`receipts/live-ui.json`](receipts/live-ui.json) is the core lifecycle run on Cloudflare Containers with the Nix image, behind Access. It was recorded before the project was renamed, so it shows the old name (burrow) and hostname; the same code paths run under coil today, and [`receipts/live-v3.json`](receipts/live-v3.json) is the run on the current deploy.
@@ -192,8 +196,9 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 - **The first thread after an image change starts slowly.** The platform pulls the new image once (several minutes); later threads start in about 20 seconds.
 - **Snapshots are kept.** Every pause, compaction, fork, child, and warm base keeps its disk snapshot in your account; coil does not delete old ones yet, because the container binding has no delete call.
 - **Commands from the API and MCP stop after 10 minutes**, and any command's output is cut at 256 KB (the History notes the full size).
-- **The browser cannot use your passkeys or security keys.** It runs headless in the thread's computer, so a login that needs WebAuthn (passkeys, hardware keys, many SSO flows) waits forever. Do not sign the agent's browser in to accounts you would not give the agent: it can read the page.
-- **It does not restore running processes.** A resumed computer gets its disk back, not its memory. Terminal tabs reopen as new shells in the same folders, and the browser starts on a blank page.
+- **The browser cannot use your passkeys or security keys.** Your YubiKey is on your device and the browser is in the cloud. Browsers only let a page ask a key to sign for its own site, so no web page (coil included) can pass your key through to another site. A login that needs WebAuthn (passkeys, hardware keys, many SSO flows) cannot finish there. Logins that use a password plus a one-time code (TOTP) work, and the session stays in the computer's profile. Do not sign the agent's browser in to accounts you would not give the agent: it can read the page.
+- **The browser view does not resize to the panel.** The Chromium window is 1280×800 and is scaled to fit, so on a narrow panel or a phone it is small. Pinch to zoom on a phone.
+- **It does not restore running processes.** A resumed computer gets its disk back, not its memory. Terminal tabs reopen as new shells in the same folders, and the browser starts on a blank page (its cookies and logins are kept).
 - **It does not work offline.** The PWA caches the app shell so it opens instantly and shows your last view, but threads, terminals, and the browser need the network.
 - **Terminals have no mouse support.** Scroll back with tmux keys, not the wheel.
 - **Commands the agent runs stop after 120 seconds.** Start long-running servers in the background; you can run anything in a terminal.
@@ -201,6 +206,7 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 - **It is not a security boundary for hostile code on its own.** Computers have internet access.
 - **Spend has hard limits.** Each owner is capped at $25 across all threads; a working turn counts $0.50 against that until it settles. At most 8 threads work at once per owner, and agents can create at most 40 threads per owner (20 per thread). A looping thread cannot start or message other threads. One expensive turn can still go past a limit before it is stopped.
 - **Notifications need an open tab.** There is no Web Push yet.
+- **It is not a tiled window manager yet.** The computer panel has one row of tabs (terminals, browser tabs, files, history) beside the chat. Splits, layouts, and several agents per computer are planned, not built.
 - **`run` and `start_child` are `replay: "unsafe"`.** If a thread dies mid-command, Pi Durable does not run the command again.
 - **Turn diffs are read-only.** History shows each turn's diff; there is no accept or reject step.
 
@@ -208,13 +214,15 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 
 We measured three engines on the same page, in a lab run ([`receipts/browser-eval.json`](receipts/browser-eval.json)):
 
-| Engine | Cold start | Screencast | Click | Opens the computer's `localhost` |
-| --- | --- | --- | --- | --- |
-| Chromium in the thread's computer | ~2 s | ~33 fps | ~46 ms | yes |
-| Browser Run (Chromium) | 0.4–1.9 s | ~30 fps | 57–145 ms | no |
-| Browser Run Kitesurf | ~0.6 s | ~23 fps | 88–146 ms | no |
+| Engine | Cold start | Click | Opens the computer's `localhost` |
+| --- | --- | --- | --- |
+| Chromium in the thread's computer | ~2 s | ~46 ms | yes |
+| Browser Run (Chromium) | 0.4–1.9 s | 57–145 ms | no |
+| Browser Run Kitesurf | ~0.6 s | 88–146 ms | no |
 
-On production the in-computer browser takes longer to open the first time (about 5.5 s, [`receipts/live-v3.json`](receipts/live-v3.json)), because Chromium starts inside a cold computer. Only the in-computer browser can open the dev server the agent just started, keeps its cookies for the life of the computer, and adds no second bill. Kitesurf is a good fit later for fast, stateless reads of public pages.
+Only the in-computer browser can open the dev server the agent just started, keeps its cookies in the computer, and adds no second bill. It runs headed on a virtual display so you get the real Chrome window, with tabs, menus and DevTools, instead of a picture of a page. The agent talks to the same Chromium over a CDP pipe, so what it does appears in your view.
+
+We also tried two other ways to show it and removed them: a CDP screencast (no Chrome UI, no DevTools) and WebRTC video (lower latency, but the container could not reach a viewer without a TURN relay). VNC works everywhere a WebSocket does.
 
 ## Where to change behavior
 
@@ -226,18 +234,23 @@ On production the in-computer browser takes longer to open the first time (about
 | [`src/directory.ts`](src/directory.ts) | The thread list and warm bases |
 | [`src/computer.ts`](src/computer.ts) | The Sandbox SDK computer: start, exec, files, snapshots |
 | [`src/terminal.ts`](src/terminal.ts) | Terminals: tmux over a PTY WebSocket. Binary frames are keys; text frames are `{"resize":[cols,rows]}` or `{"ack":bytes}`. The client must ack what it has drawn: the server sends at most 512 KB ahead ([`src/flow.ts`](src/flow.ts)) |
-| [`src/browser.ts`](src/browser.ts) | The browser: Chromium over `--remote-debugging-pipe` (NUL-separated JSON on exec stdio, no open port), screencast, input, and agent tools |
+| [`src/browser.ts`](src/browser.ts) | The browser: a virtual display (Xvfb, openbox, x11vnc) and headed Chromium, driven over `--remote-debugging-pipe` (NUL-separated JSON on exec stdio, no open port) for the agent tools |
+| [`src/vnc.ts`](src/vnc.ts) | Pipes the VNC WebSocket to the container's port 5900 |
+| [`client/src/surfaces/`](client/src/surfaces) | The terminal (cloudterm), the browser (noVNC plus the URL bar) |
+| [`client/src/layout.ts`](client/src/layout.ts) | Collapsible, resizable sidebars |
 | [`scripts/build-term.mjs`](scripts/build-term.mjs) | Bundles cloudterm into `/assets/term-<hash>.js` |
 | [`src/shell.ts`](src/shell.ts) | The time limit and pipe handling for agent commands |
-| [`src/ui/`](src/ui) | The web UI, the service worker, and the client |
+| [`client/src/`](client/src) | The web client ([foldkit](https://github.com/foldkit/foldkit) on [Effect](https://effect.website)) |
+| [`src/ui/`](src/ui) | The HTML shell, styles, the service worker, and the shared page |
 | [`public/`](public) | The PWA manifest and icons, served as static assets |
-| [`computer/Dockerfile`](computer/Dockerfile) | The image: nix-cf-proof (patched git), the sandbox shim, busybox, and tmux plus Chromium from Alpine |
+| [`computer/Dockerfile`](computer/Dockerfile) | The image: nix-cf-proof (patched git), the sandbox shim, busybox, and from Alpine: tmux, Chromium, Xvfb, x11vnc, openbox, node, python3, curl, ripgrep, jq |
 
 ## Prior art it builds on
 
 - **[armada](https://github.com/AshishKumar4/armada)**: a prepared container can be snapshotted and started again in seconds. coil uses the same calls for pause, fork, children, and warm bases.
 - **[tardigrade](https://github.com/acoyfellow/tardigrade)**: Pi Durable in a Durable Object comes back after `ctx.abort()`; the offline kill test shape.
 - **[terrarium](https://github.com/acoyfellow/terrarium)**: one Durable Object as the source of truth for a run; output logged with a byte count and hash.
+- **[noVNC](https://github.com/novnc/noVNC)**: the VNC client in the browser panel.
 - **[nix-cf-proof](https://github.com/acoyfellow/nix-cf-proof)**: the image, and the git that cannot force-push.
 
 ## License
