@@ -1,0 +1,25 @@
+client/src/layout.test.ts
+  s_d58794dec92dc7::t_ec26589f718423 2-4,9,21-52
+client/src/layout.ts
+  s_d58794dec92dc7::t_6f03a97897ef30 3,10-13,18-19,29-30,51-95,98-99,102,104-107,116,118,122,126,130-133,138-140,143-147,155,158,160-163,166,168,171,173,177-181,183-184
+client/src/view/panel.ts
+  s_d58794dec92dc7::t_f711c7f63a0d45 23-26
+src/ui/style.ts
+  s_d58794dec92dc7::t_ea2bf6d2ea76c1 45,264-270,272,278-297,300,303,305-307
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "55310a2f16400eb5c4976c47cc42aa5d951b5e06",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
