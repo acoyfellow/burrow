@@ -261,6 +261,7 @@ dialog .actions .primary{padding:5px 12px}
 .bar .actions .panel-toggle{display:none}
 .more{display:none!important}
 .narrow{display:none!important}
+.side{grid-column:1}.side-resizer{grid-column:2}.main{grid-column:3}.panel-resizer{grid-column:4}.panel{grid-column:5}
 .resizer{position:relative;z-index:5;width:0}
 .resizer::before{content:'';position:absolute;top:0;bottom:0;left:-4px;width:8px;cursor:col-resize;touch-action:none}
 .resizer:hover::after,.resizing .resizer::after{content:'';position:absolute;top:0;bottom:0;left:-1px;width:2px;background:var(--blue);opacity:.6;pointer-events:none}
@@ -286,6 +287,7 @@ dialog .actions .primary{padding:5px 12px}
 }
 @media (max-width:720px){
   .app,.side-hidden .app,.panel-hidden .app,.side-hidden.panel-hidden .app{grid-template-columns:100%}
+  .main{grid-column:1}
   .resizer,.collapse{display:none!important}
   .side{display:none}
   .app.show-side .side{display:flex;position:fixed;inset:0;z-index:15;padding-top:env(safe-area-inset-top)}
