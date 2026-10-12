@@ -121,6 +121,22 @@ export const coil = (env: Env, owner: string) => {
 
       return names;
     },
+    spend: async () => ({
+      spent: await directory.spendFor(owner),
+      limit: await directory.limitFor(owner),
+    }),
+    setSpendLimit: async (dollars: number | null) => {
+      if (dollars !== null && !(Number.isFinite(dollars) && dollars > 0))
+        throw new Error('A spend limit must be a positive dollar amount, or none');
+
+      return {
+        spent: await directory.spendFor(owner),
+        limit: await directory.setLimit(
+          owner,
+          dollars === null ? null : Math.round(dollars * 100) / 100,
+        ),
+      };
+    },
     share: async (name: string) => {
       await known(name);
 

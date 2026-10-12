@@ -358,6 +358,47 @@ export default {
       });
     }
 
+    if (url.pathname === '/limit') {
+      const mine = `lim-${run}`;
+      const owner = `limit-${run}@example.com`;
+      const me = coil(env, owner);
+      const neighbor = coil(env, `neighbor-${run}@example.com`);
+      const directory = env.DIRECTORY.getByName('all');
+      const outcome = (work: Promise<unknown>) =>
+        work.then(
+          () => 'allowed',
+          (error: Error) => error.message,
+        );
+
+      await me.create({ name: mine, createdBy: 'test' });
+
+      const noLimit = await me.spend();
+
+      const firstTurn = await outcome(me.send(mine, 'a', 'write a.txt containing 1'));
+
+      await directory.upsert({ name: mine, spend: 30 });
+
+      const set = await me.setSpendLimit(25);
+      const overLimit = await outcome(me.send(mine, 'b', 'write b.txt containing 2'));
+      const neighborSpend = await neighbor.spend();
+      const raised = await me.setSpendLimit(100);
+      const underRaised = await outcome(me.send(mine, 'c', 'write c.txt containing 3'));
+      const cleared = await me.setSpendLimit(null);
+      const badLimit = await outcome(me.setSpendLimit(-5));
+
+      return Response.json({
+        noLimit,
+        firstTurn,
+        set,
+        overLimit,
+        neighborSpend,
+        raised,
+        underRaised,
+        cleared,
+        badLimit,
+      });
+    }
+
     if (url.pathname === '/tools') {
       const name = `tools-${run}`;
       const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);

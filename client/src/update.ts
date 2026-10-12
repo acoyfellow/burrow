@@ -7,6 +7,7 @@ import {
   CloseSurface,
   ConfirmResize,
   CreateThread,
+  EditSpendLimit,
   ExpireToast,
   FocusComposer,
   FocusPalette,
@@ -14,6 +15,7 @@ import {
   KillLoops,
   LoadDir,
   LoadFile,
+  LoadSpend,
   LoadThreads,
   LoadView,
   PushUrl,
@@ -210,7 +212,7 @@ const applyEvent = (model: Model, event: LiveEvent): UpdateReturn => {
     case 'turn_end':
       return {
         model: modifyFields(model, { live: () => ({ ...liveFrom(model), text: '' }) }),
-        commands: [RefreshViewSoon({ name })],
+        commands: [RefreshViewSoon({ name }), LoadSpend()],
       };
     case 'compaction':
       return {
@@ -289,6 +291,13 @@ const forCurrent = (model: Model, name: string, apply: () => UpdateReturn): Upda
 export const update = (model: Model, message: Message): UpdateReturn =>
   Message.match<UpdateReturn>(message, {
     LoadedWho: ({ who }) => ({ model: modifyFields(model, { who: () => who }) }),
+    LoadedSpend: (spend) => ({ model: modifyFields(model, { spend: () => spend }) }),
+    ClickedSpendLimit: () => ({
+      model,
+      commands: [
+        EditSpendLimit({ current: model.spend?.limit ?? null, spent: model.spend?.spent ?? 0 }),
+      ],
+    }),
     LoadedThreads: ({ threads }) => {
       const before = model.threads._tag === 'Ready' ? model.threads.value : [];
       const finished = finishedThreads(before, threads);

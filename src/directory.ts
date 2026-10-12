@@ -70,6 +70,9 @@ export class Directory extends DurableObject {
       `CREATE TABLE IF NOT EXISTS shares (token TEXT PRIMARY KEY, name TEXT NOT NULL, owner TEXT NOT NULL, created_at INTEGER NOT NULL)`,
     );
     this.ctx.storage.sql.exec(
+      `CREATE TABLE IF NOT EXISTS limits (owner TEXT PRIMARY KEY, dollars REAL NOT NULL)`,
+    );
+    this.ctx.storage.sql.exec(
       `CREATE TABLE IF NOT EXISTS bases (repo TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL, thread TEXT NOT NULL, setup TEXT NOT NULL, at INTEGER NOT NULL)`,
     );
     this.migrate();
@@ -191,6 +194,26 @@ export class Directory extends DurableObject {
       .toArray()[0];
 
     return (row?.total ?? 0) + (row?.working ?? 0) * TURN_RESERVE;
+  }
+
+  limitFor(owner: string): number | null {
+    return (
+      this.ctx.storage.sql
+        .exec<{ dollars: number }>('SELECT dollars FROM limits WHERE owner = ?', owner)
+        .toArray()[0]?.dollars ?? null
+    );
+  }
+
+  setLimit(owner: string, dollars: number | null): number | null {
+    if (dollars === null) this.ctx.storage.sql.exec('DELETE FROM limits WHERE owner = ?', owner);
+    else
+      this.ctx.storage.sql.exec(
+        'INSERT INTO limits (owner, dollars) VALUES (?, ?) ON CONFLICT(owner) DO UPDATE SET dollars = excluded.dollars',
+        owner,
+        dollars,
+      );
+
+    return this.limitFor(owner);
   }
 
   agentThreadsFor(owner: string): number {

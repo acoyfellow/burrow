@@ -136,6 +136,14 @@ const listBody = (h: H, model: Model): Html[] =>
     Ready: ({ value }) => threadList(h, model, value),
   });
 
+export const spendLabel = (spend: Model['spend']): string => {
+  if (spend === null) return '$…';
+
+  const spent = `$${spend.spent.toFixed(2)}`;
+
+  return spend.limit === null ? spent : `${spent} / $${spend.limit.toFixed(0)}`;
+};
+
 export const side = (h: H, model: Model): Html =>
   h.aside(
     [h.Class('side')],
@@ -185,6 +193,15 @@ export const side = (h: H, model: Model): Html =>
         [h.Class('who')],
         [
           h.span([h.Id('whoami')], [model.who]),
+          h.button(
+            [
+              h.Id('spend'),
+              h.Class('spend'),
+              h.Title('Your spend across all threads. Click to set a limit.'),
+              h.OnClick(Message.ClickedSpendLimit()),
+            ],
+            [spendLabel(model.spend)],
+          ),
           h.button(
             [
               h.Id('notify'),

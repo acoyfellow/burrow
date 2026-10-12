@@ -28,6 +28,56 @@ export const LoadWho = Command.define('LoadWho', {
   }).pipe(Effect.orElseSucceed(() => Message.LoadedWho({ who: '' }))),
 });
 
+export const LoadSpend = Command.define('LoadSpend', {
+  messages: [Message.LoadedSpend, Message.CompletedEffect],
+  execute: Effect.gen(function* () {
+    const client = yield* CoilClient;
+
+    return Message.LoadedSpend(yield* client.GetSpend());
+  }).pipe(Effect.orElseSucceed(() => Message.CompletedEffect())),
+});
+
+export const parseLimit = (raw: string | null): number | null | 'cancel' | 'invalid' => {
+  if (raw === null) return 'cancel';
+
+  const text = raw.trim().replace(/^\$/, '');
+
+  if (text === '' || /^(none|no|off|0)$/i.test(text)) return null;
+
+  const dollars = Number(text);
+
+  return Number.isFinite(dollars) && dollars > 0 ? dollars : 'invalid';
+};
+
+export const EditSpendLimit = Command.define('EditSpendLimit', {
+  args: { current: Schema.NullOr(Schema.Number), spent: Schema.Number },
+  messages: [Message.LoadedSpend, Message.FailedOp, Message.CompletedEffect],
+  execute: ({ current, spent }) =>
+    Effect.gen(function* () {
+      const answer = parseLimit(
+        globalThis.prompt(
+          `You have spent $${spent.toFixed(2)} across all your threads.\nSet a spend limit in dollars. New turns stop when you reach it. Leave empty for no limit.`,
+          current === null ? '' : String(current),
+        ),
+      );
+
+      if (answer === 'cancel') return Message.CompletedEffect();
+      if (answer === 'invalid')
+        return Message.FailedOp({
+          name: '',
+          reason: 'Enter a dollar amount, like 50, or leave it empty for no limit.',
+        });
+
+      const client = yield* CoilClient;
+
+      return Message.LoadedSpend(yield* client.SetSpendLimit({ dollars: answer }));
+    }).pipe(
+      Effect.catch((error) =>
+        Effect.succeed(Message.FailedOp({ name: '', reason: reasonOf(error) })),
+      ),
+    ),
+});
+
 export const LoadThreads = Command.define('LoadThreads', {
   messages: [Message.LoadedThreads, Message.FailedThreads],
   execute: Effect.gen(function* () {

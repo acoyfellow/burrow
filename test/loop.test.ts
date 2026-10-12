@@ -29,7 +29,7 @@ describe('loop decisions', () => {
       validSpec({ prompt: 'x', everySeconds: 60, maxRuns: 0, maxSpend: 1, gate: null }),
     ).toContain('max runs');
     expect(
-      validSpec({ prompt: 'x', everySeconds: 60, maxRuns: 3, maxSpend: 50, gate: null }),
+      validSpec({ prompt: 'x', everySeconds: 60, maxRuns: 3, maxSpend: 0, gate: null }),
     ).toContain('spend');
   });
 
@@ -65,8 +65,12 @@ describe('loop decisions', () => {
     });
     expect(decide(loop(), 1000, 0, false, 30, 25)).toEqual({
       kind: 'stop',
-      reason: 'owner spend limit $25 reached',
+      reason: 'your spend limit $25 reached',
     });
+  });
+
+  it('has no owner limit unless the owner set one', () => {
+    expect(decide(loop(), 1000, 0, false, 10_000, null)).toEqual({ kind: 'run' });
   });
 
   it('a stopped loop stays stopped (kill switch)', () => {

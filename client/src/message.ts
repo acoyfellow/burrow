@@ -14,6 +14,8 @@ import { Action, Theme, ThreadOp } from './model';
 
 export const Message = defineMessageUnion({
   LoadedWho: { who: Schema.String },
+  LoadedSpend: { spent: Schema.Number, limit: Schema.NullOr(Schema.Number) },
+  ClickedSpendLimit: {},
   LoadedThreads: { threads: Schema.Array(ThreadSummary) },
   FailedThreads: { reason: Schema.String },
   ClickedRetryThreads: {},

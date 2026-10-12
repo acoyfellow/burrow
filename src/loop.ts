@@ -23,18 +23,12 @@ export type LoopState = LoopSpec & {
 
 export const MIN_EVERY_SECONDS = 30;
 
-export const MAX_RUNS_LIMIT = 200;
-
-export const MAX_LOOP_SPEND = 20;
-
 export const validSpec = (spec: LoopSpec): string | null => {
   if (spec.prompt.trim() === '') return 'prompt is required';
   if (!(spec.everySeconds >= MIN_EVERY_SECONDS))
     return `every must be at least ${MIN_EVERY_SECONDS} seconds`;
-  if (!(spec.maxRuns >= 1 && spec.maxRuns <= MAX_RUNS_LIMIT))
-    return `max runs must be 1 to ${MAX_RUNS_LIMIT}`;
-  if (!(spec.maxSpend > 0 && spec.maxSpend <= MAX_LOOP_SPEND))
-    return `max spend must be above 0 and at most $${MAX_LOOP_SPEND}`;
+  if (!(Number.isInteger(spec.maxRuns) && spec.maxRuns >= 1)) return 'max runs must be 1 or more';
+  if (!(spec.maxSpend > 0)) return 'max spend must be above 0';
 
   return null;
 };
@@ -51,11 +45,11 @@ export const decide = (
   cost: number,
   busy: boolean,
   ownerSpend: number,
-  ownerCap: number,
+  ownerLimit: number | null,
 ): LoopDecision => {
   if (!loop.enabled) return { kind: 'stop', reason: loop.stoppedBecause ?? 'stopped' };
-  if (ownerSpend >= ownerCap)
-    return { kind: 'stop', reason: `owner spend limit $${ownerCap} reached` };
+  if (ownerLimit !== null && ownerSpend >= ownerLimit)
+    return { kind: 'stop', reason: `your spend limit $${ownerLimit} reached` };
   if (cost - loop.startedCost >= loop.maxSpend)
     return { kind: 'stop', reason: `loop spend limit $${loop.maxSpend} reached` };
   if (busy) return { kind: 'wait', at: now + 5_000 };

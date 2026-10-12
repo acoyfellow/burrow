@@ -65,7 +65,9 @@ textarea{resize:none}
 .dot.awake{background:var(--ok)}.dot.paused{background:var(--warn)}.dot.busy{background:var(--blue);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.3}}
 .who{padding:6px 8px calc(6px + env(safe-area-inset-bottom)) 14px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none}
-.who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.who .spend{font:11.5px var(--mono);color:var(--dim);padding:2px 6px;border-radius:6px;flex:none}
+.who .spend:hover{background:var(--hover);color:var(--fg)}
 
 .main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .bar{display:flex;align-items:center;gap:4px;padding:0 10px 0 14px;border-bottom:1px solid var(--line);height:42px;flex:none}

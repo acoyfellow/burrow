@@ -123,6 +123,10 @@ export type CoilApi = {
   readonly stopLoop: (name: string) => Promise<typeof LoopState.Type | null>;
   readonly getLoop: (name: string) => Promise<typeof LoopState.Type | null>;
   readonly stopAllLoops: () => Promise<readonly string[]>;
+  readonly spend: () => Promise<{ spent: number; limit: number | null }>;
+  readonly setSpendLimit: (
+    dollars: number | null,
+  ) => Promise<{ spent: number; limit: number | null }>;
   readonly share: (name: string) => Promise<{ path: string }>;
   readonly unshare: (name: string) => Promise<null>;
   readonly stop: (name: string) => Promise<null>;
@@ -143,6 +147,8 @@ export const handlersFor = (caller: Caller) => {
 
   return CoilRpcs.of({
     WhoAmI: () => Effect.succeed({ who: caller.who }),
+    GetSpend: () => attempt(() => api.spend()),
+    SetSpendLimit: ({ dollars }) => attempt(() => api.setSpendLimit(dollars)),
     Sizes: () => Effect.succeed([...SIZES]),
     ListThreads: () => attempt(() => api.list()),
     CreateThread: (input) =>

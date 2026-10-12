@@ -2,7 +2,7 @@ import { Schema } from 'effect';
 import type { Update } from 'foldkit';
 import type { Url } from 'foldkit/url';
 import { DEFAULT_SIZE } from '../../shared/protocol';
-import { LoadThreads, LoadView, LoadWho, notifyPermission } from './command';
+import { LoadSpend, LoadThreads, LoadView, LoadWho, notifyPermission } from './command';
 import type { Message } from './message';
 import { FileView, type Model, Theme, ThreadsState, ViewState } from './model';
 import { threadFromPath } from './route';
@@ -22,6 +22,7 @@ export type Flags = typeof Flags.Type;
 
 export const initialModel = (flags: Flags): Model => ({
   who: '',
+  spend: null,
   threads: ThreadsState.Loading(),
   name: flags.name,
   view: ViewState.Loading(),
@@ -57,6 +58,7 @@ export const init = (flags: Flags, url: Url): Update.Return<Model, Message, Coil
   model: initialModel({ ...flags, name: flags.name ?? threadFromUrl(url) }),
   commands: [
     LoadWho(),
+    LoadSpend(),
     LoadThreads(),
     ...(flags.name === null ? [] : [LoadView({ name: flags.name, refresh: false })]),
   ],

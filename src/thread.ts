@@ -41,14 +41,6 @@ const TURN_DIFF_LIMIT = 60_000;
 
 const STOP_WAIT_MS = 5_000;
 
-const OWNER_SPEND_CAP = 25;
-
-const MAX_CHILDREN_PER_THREAD = 20;
-
-const MAX_AGENT_THREADS_PER_OWNER = 40;
-
-const MAX_WORKING_PER_OWNER = 8;
-
 const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
 
 export type ThreadView = {
@@ -674,18 +666,21 @@ export class Thread extends DurableObject<Env> {
     if (withTask && this.ledger.loop?.enabled === true)
       throw new Error('A looping thread cannot start other threads with a task');
 
-    if (this.ledger.childrenMade >= MAX_CHILDREN_PER_THREAD)
-      throw new Error(`This thread already created ${MAX_CHILDREN_PER_THREAD} threads`);
-
     this.ledger.childrenMade += 1;
+    await this.assertUnderLimit(owner);
+  }
 
-    if ((await this.directory.agentThreadsFor(owner)) >= MAX_AGENT_THREADS_PER_OWNER)
+  private async assertUnderLimit(owner: string): Promise<void> {
+    const limit = await this.directory.limitFor(owner);
+
+    if (limit === null) return;
+
+    const spent = await this.directory.spendFor(owner);
+
+    if (spent >= limit)
       throw new Error(
-        `Agents already created ${MAX_AGENT_THREADS_PER_OWNER} threads for this owner`,
+        `Your spend limit of $${limit.toFixed(2)} is reached ($${spent.toFixed(2)} spent). Raise or remove it in the sidebar to continue.`,
       );
-
-    if ((await this.directory.spendFor(owner)) >= OWNER_SPEND_CAP)
-      throw new Error(`Owner spend cap $${OWNER_SPEND_CAP} reached`);
   }
 
   private async assertOwnerBudget(): Promise<void> {
@@ -693,15 +688,7 @@ export class Thread extends DurableObject<Env> {
 
     if (owner === null || owner === '') return;
 
-    if ((await this.directory.workingFor(owner)) >= MAX_WORKING_PER_OWNER)
-      throw new Error(
-        `${MAX_WORKING_PER_OWNER} threads are already working for this owner. Wait or stop one.`,
-      );
-
-    if ((await this.directory.spendFor(owner)) >= OWNER_SPEND_CAP)
-      throw new Error(
-        `Owner spend cap $${OWNER_SPEND_CAP} reached. Stop or delete threads to continue.`,
-      );
+    await this.assertUnderLimit(owner);
   }
 
   async start(requestId: string, input: string): Promise<{ requestId: string }> {
@@ -1150,10 +1137,11 @@ export class Thread extends DurableObject<Env> {
     const cost = (await this.usage()).cost;
     const owner = await this.ownerEmail();
     const ownerSpend = await this.directory.spendFor(owner);
+    const ownerLimit = await this.directory.limitFor(owner);
 
     if (!this.loopStillCurrent(loop)) return;
 
-    const decision = decide(loop, Date.now(), cost, this.ledger.busy, ownerSpend, OWNER_SPEND_CAP);
+    const decision = decide(loop, Date.now(), cost, this.ledger.busy, ownerSpend, ownerLimit);
 
     if (decision.kind === 'wait') {
       await this.ctx.storage.setAlarm(Math.min(decision.at, Date.now() + AUTO_PAUSE_AFTER_MS));

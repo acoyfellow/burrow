@@ -84,6 +84,9 @@ export type Theme = typeof Theme.Type;
 
 export const Model = Schema.Struct({
   who: Schema.String,
+  spend: Schema.NullOr(
+    Schema.Struct({ spent: Schema.Number, limit: Schema.NullOr(Schema.Number) }),
+  ),
   threads: ThreadsState,
   name: Schema.NullOr(Schema.String),
   view: ViewState,

@@ -208,6 +208,8 @@ export const Answered = Schema.Struct({
 
 export const Who = Schema.Struct({ who: Schema.String });
 
+export const Spend = Schema.Struct({ spent: Schema.Number, limit: Schema.NullOr(Schema.Number) });
+
 export class UnknownThread extends Schema.TaggedError<UnknownThread>()('UnknownThread', {
   name: Schema.String,
 }) {}
@@ -243,6 +245,12 @@ const target = { name: Schema.String };
 
 export const CoilRpcs = RpcGroup.make(
   Rpc.make('WhoAmI', { success: Who, error: CoilError }),
+  Rpc.make('GetSpend', { success: Spend, error: CoilError }),
+  Rpc.make('SetSpendLimit', {
+    payload: { dollars: Schema.NullOr(Schema.Number) },
+    success: Spend,
+    error: CoilError,
+  }),
   Rpc.make('Sizes', { success: Schema.Array(Size), error: CoilError }),
   Rpc.make('ListThreads', { success: Schema.Array(ThreadSummary), error: CoilError }),
   Rpc.make('CreateThread', {
