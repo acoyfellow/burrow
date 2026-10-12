@@ -1307,7 +1307,12 @@ export class Thread extends DurableObject<Env> {
   }
 
   async addBrowser(): Promise<Surface[]> {
+    const hadBrowser = this.ledger.surfaces.some((s) => s.kind === 'browser');
+
     this.ensureBrowserSurface();
+
+    if (hadBrowser && this.ledger.browserMode !== 'screencast')
+      await (await this.openBrowser()).newTab();
 
     return this.ledger.surfaces;
   }

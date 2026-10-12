@@ -55,13 +55,7 @@ const addMenu = (h: H, model: Model, surfaces: readonly Surface[]): Html =>
         [h.Class('add-menu'), h.Hidden(!model.addMenuOpen)],
         [
           h.button([h.OnClick(Message.ClickedAddSurface({ kind: 'terminal' }))], ['▸_  Terminal']),
-          h.button(
-            [
-              h.Disabled(surfaces.some((surface) => surface.kind === 'browser')),
-              h.OnClick(Message.ClickedAddSurface({ kind: 'browser' })),
-            ],
-            ['◎  Browser'],
-          ),
+          h.button([h.OnClick(Message.ClickedAddSurface({ kind: 'browser' }))], ['◎  Browser']),
         ],
       ),
     ],

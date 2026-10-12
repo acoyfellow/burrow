@@ -102,6 +102,7 @@ export class Browser {
   constructor(
     process: ExecProcess,
     private readonly abort: AbortController,
+    private readonly headed = false,
   ) {
     if (process.stdin === null || process.stdout === null)
       throw new Error('Chromium did not return its pipes');
@@ -124,7 +125,7 @@ export class Browser {
       stdout: 'pipe',
       stderr: 'ignore',
     });
-    const browser = new Browser(process, abort);
+    const browser = new Browser(process, abort, mode !== 'screencast');
 
     await browser.attach();
 
@@ -277,11 +278,13 @@ export class Browser {
     this.session = attached.result?.sessionId as string;
     await this.call('Page.enable');
     await this.call('Runtime.enable');
-    await this.call('Emulation.setDeviceMetricsOverride', {
-      ...VIEWPORT,
-      deviceScaleFactor: 1,
-      mobile: false,
-    });
+
+    if (!this.headed)
+      await this.call('Emulation.setDeviceMetricsOverride', {
+        ...VIEWPORT,
+        deviceScaleFactor: 1,
+        mobile: false,
+      });
   }
 
   private async refreshPage() {
@@ -403,6 +406,10 @@ export class Browser {
     await this.refreshPage();
 
     return this.page;
+  }
+
+  async newTab(url = 'about:blank') {
+    await this.send('Target.createTarget', { url, newWindow: false }, true);
   }
 
   async back() {

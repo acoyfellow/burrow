@@ -27,6 +27,7 @@ import {
   systemIsDark,
   UploadFiles,
 } from './command';
+import { browserTabFor } from './focus';
 import { Message } from './message';
 import {
   type Action,
@@ -147,8 +148,17 @@ const applyEvent = (model: Model, event: LiveEvent): UpdateReturn => {
             : { ...view, execs: [...view.execs, event.record] },
         ),
       };
-    case 'surfaces':
-      return { model: withView(model, (view) => ({ ...view, surfaces: event.surfaces })) };
+    case 'surfaces': {
+      const hadBrowser =
+        viewOf(model)?.surfaces.some((surface) => surface.kind === 'browser') ?? false;
+      const next = withView(model, (view) => ({ ...view, surfaces: event.surfaces }));
+
+      return {
+        model: hadBrowser
+          ? next
+          : withTab(next, browserTabFor(viewOf(next)?.surfaces ?? [], next.tab, 'browser_')),
+      };
+    }
     case 'text':
       return {
         model: modifyFields(model, {
@@ -157,16 +167,19 @@ const applyEvent = (model: Model, event: LiveEvent): UpdateReturn => {
       };
     case 'tool_start':
       return {
-        model: modifyFields(model, {
-          live: () => ({
-            ...liveFrom(model),
-            text: '',
-            tools: [
-              ...liveFrom(model).tools,
-              { id: event.id, name: event.name, args: event.args, output: '', done: false },
-            ],
-          }),
-        }),
+        model: modifyFields(
+          withTab(model, browserTabFor(viewOf(model)?.surfaces ?? [], model.tab, event.name)),
+          {
+            live: () => ({
+              ...liveFrom(model),
+              text: '',
+              tools: [
+                ...liveFrom(model).tools,
+                { id: event.id, name: event.name, args: event.args, output: '', done: false },
+              ],
+            }),
+          },
+        ),
       };
     case 'tool_output':
       return {
@@ -254,6 +267,9 @@ const selectTab = (model: Model, tab: string): UpdateReturn => {
     ? { model: next, commands: [LoadDir({ name: model.name, path: model.dirPath })] }
     : { model: next };
 };
+
+const withTab = (model: Model, tab: string): Model =>
+  tab === model.tab ? model : modifyFields(model, { tab: () => tab });
 
 const ensureTab = (model: Model): Model => {
   const view = viewOf(model);
