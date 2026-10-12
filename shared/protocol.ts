@@ -241,6 +241,8 @@ export type CoilError = typeof CoilError.Type;
 
 const target = { name: Schema.String };
 
+export const BrowserMode = Schema.Literals(['screencast', 'vnc', 'webrtc']);
+
 export const CoilRpcs = RpcGroup.make(
   Rpc.make('WhoAmI', { success: Who, error: CoilError }),
   Rpc.make('Sizes', { success: Schema.Array(Size), error: CoilError }),
@@ -301,6 +303,12 @@ export const CoilRpcs = RpcGroup.make(
       createdBy: Schema.optional(Schema.String),
     },
     success: ThreadView,
+    error: CoilError,
+  }),
+  Rpc.make('GetBrowserMode', { payload: target, success: BrowserMode, error: CoilError }),
+  Rpc.make('SetBrowserMode', {
+    payload: { ...target, mode: BrowserMode },
+    success: BrowserMode,
     error: CoilError,
   }),
   Rpc.make('AddSurface', {

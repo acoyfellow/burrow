@@ -17,7 +17,7 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 const LOCAL_OWNER = 'local';
 
-const THREAD_SOCKET = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/(terminal|browser)$/;
+const THREAD_SOCKET = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/(terminal|browser|vnc)$/;
 
 const THREAD_EVENTS = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/events$/;
 
@@ -112,10 +112,15 @@ const script = (body: string, cache: string) =>
     },
   });
 
-const upgrade = (request: Request, caller: Owner, name: string, kind: 'terminal' | 'browser') =>
+const upgrade = (request: Request, caller: Owner, name: string, kind: SocketKind) =>
   request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
     ? caller.api.socket(name, kind, request)
     : Promise.resolve(new Response('Expected a WebSocket upgrade', { status: 426 }));
+
+type SocketKind = 'terminal' | 'browser' | 'vnc';
+
+const socketKind = (raw: string): SocketKind =>
+  raw === 'browser' || raw === 'vnc' ? raw : 'terminal';
 
 const failed = (cause: unknown) => {
   const message = cause instanceof Error ? cause.message : String(cause);
@@ -140,7 +145,7 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
   const socket = THREAD_SOCKET.exec(pathname);
 
   if (socket?.[1] !== undefined && socket[2] !== undefined)
-    return upgrade(request, caller, socket[1], socket[2] === 'browser' ? 'browser' : 'terminal');
+    return upgrade(request, caller, socket[1], socketKind(socket[2]));
 
   const upload = THREAD_UPLOAD.exec(pathname);
 

@@ -10,7 +10,7 @@ import {
   openAgent,
   type ThreadDirectory,
 } from './agent';
-import { Browser, type Frame, type PageState } from './browser';
+import { Browser, type BrowserMode, type Frame, type PageState, VNC_PORT } from './browser';
 import {
   type Computer,
   type Entry,
@@ -34,6 +34,7 @@ import { workersAI } from './model';
 import { bounded, HUMAN_LIMIT_SECONDS } from './shell';
 import { DEFAULT_SIZE, type Size } from './size';
 import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
+import { pipeSocket } from './vnc';
 
 const TURN_DIFF_LIMIT = 60_000;
 
@@ -504,7 +505,7 @@ export class Thread extends DurableObject<Env> {
 
       if (container === undefined) throw new Error('This Durable Object has no container binding');
 
-      const browser = await Browser.launch(container);
+      const browser = await Browser.launch(container, this.ledger.browserMode);
 
       browser.pages.add((page) => this.emit({ type: 'page', page }));
       this.ensureBrowserSurface();
@@ -1258,6 +1259,8 @@ export class Thread extends DurableObject<Env> {
 
     if (url.pathname.endsWith('/browser')) return this.browserSocket();
 
+    if (url.pathname.endsWith('/vnc')) return this.vncSocket();
+
     if (!url.pathname.endsWith('/events')) return new Response('not found', { status: 404 });
 
     await this.open();
@@ -1363,6 +1366,63 @@ export class Thread extends DurableObject<Env> {
     bridge(server, process, abort);
 
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  browserMode(): BrowserMode {
+    return this.ledger.browserMode;
+  }
+
+  async setBrowserMode(mode: BrowserMode): Promise<BrowserMode> {
+    if (mode === this.ledger.browserMode) return mode;
+
+    this.ledger.browserMode = mode;
+    const old = this.browser;
+
+    this.browser = undefined;
+    await old?.then((b) => b.close()).catch(() => undefined);
+    await this.publish();
+
+    return mode;
+  }
+
+  private async vncSocket(): Promise<Response> {
+    if (this.ledger.browserMode === 'screencast')
+      return new Response('this thread uses the screencast browser', { status: 409 });
+
+    await this.openBrowser();
+
+    const container = this.ctx.container;
+
+    if (container === undefined) return new Response('no container', { status: 500 });
+
+    const tcp = await this.untilVnc(container);
+    const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
+
+    server.binaryType = 'arraybuffer';
+    server.accept();
+    this.watched(server);
+    pipeSocket(server, tcp);
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  private async untilVnc(container: Container): Promise<Socket> {
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      try {
+        const socket = container.getTcpPort(VNC_PORT).connect(`localhost:${VNC_PORT}`);
+
+        await socket.opened;
+
+        return socket;
+      } catch (cause) {
+        lastError = cause;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+    }
+
+    throw new Error(`VNC did not start: ${String(lastError)}`);
   }
 
   private async browserSocket(): Promise<Response> {

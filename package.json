@@ -25,6 +25,7 @@
     "@earendil-works/pi-ai": "1.1.0",
     "@earendil-works/pi-durable": "1.1.0",
     "@effect/platform-browser": "4.0.0",
+    "@novnc/novnc": "1.7.0",
     "cloudterm": "github:acoyfellow/cloudterm#2fbaeb4",
     "effect": "4.0.0",
     "foldkit": "0.166.0"

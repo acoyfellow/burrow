@@ -1,3 +1,4 @@
+import type { BrowserMode } from './browser';
 import type { Snapshot } from './computer';
 import type { LoopState } from './loop';
 import { type Size, sizeOrDefault } from './size';
@@ -113,6 +114,16 @@ export class Ledger {
 
   set owner(email: string) {
     if (this.get('owner') === null) this.put('owner', email);
+  }
+
+  get browserMode(): BrowserMode {
+    const stored = this.get('browser_mode');
+
+    return stored === 'vnc' || stored === 'webrtc' ? stored : 'screencast';
+  }
+
+  set browserMode(next: BrowserMode) {
+    this.put('browser_mode', next);
   }
 
   get size(): Size {

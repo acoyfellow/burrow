@@ -102,9 +102,9 @@ const call = (tag: string, payload: unknown) =>
     return yield* Effect.fail(error as CoilError);
   });
 
-const client = new Proxy(
+export const client = new Proxy(
   {},
   { get: (_target, tag) => (payload?: unknown) => call(String(tag), payload) },
-);
+) as CoilRpcClient;
 
-export const CoilClientLive = Layer.succeed(CoilClient, client as CoilRpcClient);
+export const CoilClientLive = Layer.succeed(CoilClient, client);

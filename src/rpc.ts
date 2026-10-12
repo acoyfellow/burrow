@@ -4,6 +4,7 @@ import { RpcSerialization, RpcServer } from 'effect/rpc';
 import { MODELS } from '../shared/models';
 import {
   type Base,
+  type BrowserMode,
   type CoilError,
   CoilRpcs,
   type DirEntry,
@@ -117,6 +118,11 @@ export type CoilApi = {
   ) => Out<typeof ThreadView>;
   readonly addTerminal: (name: string) => Promise<readonly Surface[]>;
   readonly addBrowser: (name: string) => Promise<readonly Surface[]>;
+  readonly browserMode: (name: string) => Promise<typeof BrowserMode.Type>;
+  readonly setBrowserMode: (
+    name: string,
+    mode: typeof BrowserMode.Type,
+  ) => Promise<typeof BrowserMode.Type>;
   readonly closeSurface: (name: string, id: string) => Promise<readonly Surface[]>;
   readonly wake: (name: string) => Promise<{ phase: string; running: boolean; detail: string }>;
   readonly startLoop: (name: string, spec: typeof LoopSpec.Type) => Out<typeof LoopState>;
@@ -171,6 +177,8 @@ export const handlersFor = (caller: Caller) => {
     AddSurface: ({ name, kind }) =>
       attempt(() => (kind === 'browser' ? api.addBrowser(name) : api.addTerminal(name))),
     CloseSurface: ({ name, id }) => attempt(() => api.closeSurface(name, id)),
+    GetBrowserMode: ({ name }) => attempt(() => api.browserMode(name)),
+    SetBrowserMode: ({ name, mode }) => attempt(() => api.setBrowserMode(name, mode)),
     Wake: ({ name }) => attempt(() => api.wake(name)),
     StartLoop: ({ name, spec }) => attempt(() => api.startLoop(name, spec)),
     StopLoop: ({ name }) => attempt(() => api.stopLoop(name)),

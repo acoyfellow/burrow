@@ -2,25 +2,46 @@ import { SHELL_ENV } from './env';
 
 export const VIEWPORT = { width: 1280, height: 800 } as const;
 
-const CHROMIUM = [
-  '/usr/bin/chromium',
-  '--headless=new',
-  '--no-sandbox',
-  '--disable-gpu',
-  '--disable-dev-shm-usage',
-  '--no-first-run',
-  '--no-default-browser-check',
-  '--remote-debugging-pipe',
-  `--window-size=${VIEWPORT.width},${VIEWPORT.height}`,
-  '--user-data-dir=/root/.browser',
-  'about:blank',
-].join(' ');
+export type BrowserMode = 'screencast' | 'vnc' | 'webrtc';
 
-export const browserArgs = () => [
-  'bash',
-  '-c',
-  `exec ${CHROMIUM} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
-];
+export const BROWSER_MODES: readonly BrowserMode[] = ['screencast', 'vnc', 'webrtc'];
+
+export const VNC_PORT = 5900;
+
+export const DISPLAY = ':99';
+
+const chromium = (headed: boolean) =>
+  [
+    '/usr/bin/chromium',
+    ...(headed
+      ? ['--start-maximized', '--window-position=0,0']
+      : ['--headless=new', '--disable-gpu']),
+    '--no-sandbox',
+    '--disable-dev-shm-usage',
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--remote-debugging-pipe',
+    `--window-size=${VIEWPORT.width},${VIEWPORT.height}`,
+    '--user-data-dir=/root/.browser',
+    'about:blank',
+  ].join(' ');
+
+const startDisplay = [
+  `rm -f /tmp/.X99-lock /tmp/.X11-unix/X99`,
+  `Xvfb ${DISPLAY} -screen 0 ${VIEWPORT.width}x${VIEWPORT.height}x24 -nolisten tcp -ac >/tmp/xvfb.log 2>&1 &`,
+  `for i in $(seq 1 50); do [ -e /tmp/.X11-unix/X99 ] && break; sleep 0.1; done`,
+  `DISPLAY=${DISPLAY} openbox >/tmp/openbox.log 2>&1 &`,
+  `x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -localhost -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
+].join('; ');
+
+export const browserArgs = (mode: BrowserMode = 'screencast') =>
+  mode === 'screencast'
+    ? ['bash', '-c', `exec ${chromium(false)} 3<&0 4>&1 1>&2 2>/tmp/browser.log`]
+    : [
+        'bash',
+        '-c',
+        `pkill -f "Xvfb ${DISPLAY}" ; pkill x11vnc ; pkill openbox ; ${startDisplay}; DISPLAY=${DISPLAY} exec ${chromium(true)} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
+      ];
 
 export const browserEnv = () => ({ ...SHELL_ENV, HOME: '/root' });
 
@@ -92,9 +113,9 @@ export class Browser {
     );
   }
 
-  static async launch(container: Container): Promise<Browser> {
+  static async launch(container: Container, mode: BrowserMode = 'screencast'): Promise<Browser> {
     const abort = new AbortController();
-    const process = await container.exec(browserArgs(), {
+    const process = await container.exec(browserArgs(mode), {
       env: browserEnv(),
       cwd: '/root',
       signal: abort.signal,

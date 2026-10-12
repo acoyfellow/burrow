@@ -139,3 +139,18 @@ describe('closing the browser', () => {
     expect(browser.alive).toBe(false);
   });
 });
+
+describe('browser modes', () => {
+  it('runs headless for the screencast and headed on a virtual display for vnc and webrtc', async () => {
+    const { browserArgs } = await import('../src/browser');
+    const screencast = browserArgs('screencast').join(' ');
+    const vnc = browserArgs('vnc').join(' ');
+
+    expect(screencast).toContain('--headless=new');
+    expect(screencast).not.toContain('Xvfb');
+    expect(vnc).not.toContain('--headless');
+    expect(vnc).toContain('Xvfb :99');
+    expect(vnc).toContain('x11vnc -display :99 -rfbport 5900 -localhost');
+    expect(vnc).toContain('DISPLAY=:99 exec /usr/bin/chromium');
+  });
+});

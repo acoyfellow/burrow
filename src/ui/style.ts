@@ -164,6 +164,12 @@ textarea{resize:none}
 .empty p{margin:0;color:var(--dim)}
 .empty .primary{padding:5px 14px}
 .mark{width:40px;height:40px;display:block}
+.browser-modes{display:flex;justify-content:flex-end;padding:4px 8px;border-bottom:1px solid var(--line)}
+.browser-mode{font:inherit;font-size:12px;color:var(--dim);background:var(--raise);border:1px solid var(--line2);border-radius:6px;padding:2px 6px}
+.browser-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.vnc-stage{flex:1;min-height:0;background:#000;overflow:hidden}
+.vnc-stage canvas{outline:none}
+.browser-status{padding:16px;color:var(--dim);font-size:13px}
 .empty{background-image:url(/brand/loops-light.svg);background-repeat:repeat}
 :root[data-theme=dark] .empty{background-image:url(/brand/loops-dark.svg)}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .empty{background-image:url(/brand/loops-dark.svg)}}
