@@ -1,11 +1,6 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/logo.svg">
-    <img src="docs/logo-light.svg" width="72" height="72" alt="coil">
-  </picture>
+  <img src="docs/brand/coil-wordmark.svg" width="220" alt="coil">
 </p>
-
-<h1 align="center">coil</h1>
 
 <p align="center"><b>Agent threads with their own computer, in the cloud.</b><br>
 Each thread gets terminals, a real Chrome window, and a disk. You and the agent use the same ones, from any device.</p>
@@ -19,9 +14,11 @@ Each thread gets terminals, a real Chrome window, and a disk. You and the agent 
 </p>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
-  <img src="docs/hero-light.png" alt="A coil thread: chat on the left, the thread's computer on the right with a counter page the agent built and opened in its own Chrome.">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark-v6.png">
+  <img src="docs/hero-light-v6.png" alt="A coil thread: chat on the left, the thread's computer on the right with a counter page the agent built and opened in its own Chrome.">
 </picture>
+
+<sub>One prompt. The agent wrote a page, served it on <code>localhost:3000</code>, opened it in the thread's own Chrome, clicked <b>+</b> three times, and read back <b>3</b>. <a href="docs/demo-counter.mp4">Watch the 8-second clip</a>.</sub>
 
 coil is one Cloudflare Worker. Every thread is a [Durable Object](https://developers.cloudflare.com/durable-objects/) that runs a [Pi](https://github.com/earendil-works/pi) agent and owns a [Container](https://developers.cloudflare.com/containers/). It installs as a PWA. There is no desktop app, extension, or local helper.
 
@@ -64,7 +61,7 @@ Every request needs a Cloudflare Access token (`cf-access-token` header or the A
 | **Share** | A read-only link to a conversation, still behind your Access policy. |
 | **Private by owner** | Everyone your Access policy admits gets their own threads. Nobody can open anyone else's. |
 
-<img src="docs/hero-phone.png" width="260" alt="coil on a phone"> <img src="receipts/shots/v3-phone-terminal.png" width="260" alt="a terminal on a phone">
+<img src="docs/hero-phone-v6.png" width="260" alt="coil on a phone">
 
 ## Deploy
 
