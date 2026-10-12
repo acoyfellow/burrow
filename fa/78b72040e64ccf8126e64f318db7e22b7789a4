@@ -1,0 +1,29 @@
+client/src/view/bar.ts
+  s_d58794dec92dc7::t_87c225d3a1f6fa 201
+shared/models.ts
+  s_d58794dec92dc7::t_2061c1833adef5 8,11-59,110-111
+src/gateway.ts
+  s_d58794dec92dc7::t_424c952bab8cc6 1-58
+src/thread.ts
+  s_d58794dec92dc7::t_a323bf88fbc936 23,100,262-266
+test/gateway.test.ts
+  s_d58794dec92dc7::t_e4a8449f337efe 1-81
+wrangler.jsonc
+  s_d58794dec92dc7::t_0df010400b76ad 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "fa78b72040e64ccf8126e64f318db7e22b7789a4",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
