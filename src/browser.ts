@@ -69,6 +69,11 @@ export const nulFrames = () => {
   };
 };
 
+export const restorableUrl = (saved: string): string | null =>
+  /^(https?|file):/i.test(saved.trim()) ? saved.trim() : null;
+
+export const worthRemembering = (url: string): boolean => restorableUrl(url) !== null;
+
 export const normalizeUrl = (input: string) => {
   const url = input.trim();
 

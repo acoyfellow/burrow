@@ -5,6 +5,7 @@ import {
   fauxToolCall,
 } from '@earendil-works/pi-ai/providers/faux';
 import type { ModelChoice, ThreadDirectory } from '../../src/agent';
+import { restorableUrl, worthRemembering } from '../../src/browser';
 import type { Computer } from '../../src/computer';
 import { coil, sharedView } from '../../src/service';
 import { type Env, Thread } from '../../src/thread';
@@ -178,6 +179,14 @@ export class TestThread extends Thread {
     await this.alarm();
   }
 
+  async rememberPageForTest(url: string) {
+    if (worthRemembering(url)) this.ledger.browserUrl = url;
+  }
+
+  async browserUrlForTest() {
+    return restorableUrl(this.ledger.browserUrl);
+  }
+
   async notesForTest() {
     return this.ledger.notes;
   }
@@ -229,6 +238,26 @@ export default {
       );
 
       return Response.json({ inA: inA.stdout, inB: inB.stdout, bRead });
+    }
+
+    if (url.pathname === '/browser-url') {
+      const name = `bu-${run}`;
+      const test = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      await api.create({ name, createdBy: 'test' });
+      await test.rememberPageForTest('http://localhost:3000/');
+      await test.rememberPageForTest('about:blank');
+
+      const killed = await stub(name)
+        .kill('killed by the test')
+        .then(
+          () => 'returned',
+          (error: Error) =>
+            String(error).includes('killed by the test') ? 'aborted' : String(error),
+        );
+      const fresh = (env.THREAD as unknown as DurableObjectNamespace<TestThread>).getByName(name);
+
+      return Response.json({ killed, restored: await fresh.browserUrlForTest() });
     }
 
     if (url.pathname === '/kill') {

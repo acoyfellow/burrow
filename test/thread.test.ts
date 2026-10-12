@@ -34,6 +34,15 @@ test('two threads get two computers: a file one agent writes is not in the other
   expect(out.bRead).toMatch(/^refused/);
 });
 
+test('after its Durable Object restarts, a thread restores the last real page its browser had open', {
+  timeout: 30_000,
+}, async () => {
+  const out = await get('/browser-url');
+
+  expect(out.killed).toBe('aborted');
+  expect(out.restored).toBe('http://localhost:3000/');
+});
+
 test('a thread killed with ctx.abort() mid-turn comes back and finishes the same request once', {
   timeout: 60_000,
 }, async () => {

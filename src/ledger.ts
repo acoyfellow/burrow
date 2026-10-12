@@ -216,6 +216,14 @@ export class Ledger {
     this.put('notes', next);
   }
 
+  get browserUrl(): string {
+    return this.get('browser_url') ?? '';
+  }
+
+  set browserUrl(next: string) {
+    this.put('browser_url', next);
+  }
+
   get titled(): boolean {
     return this.get('titled') === '1';
   }

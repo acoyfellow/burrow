@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Browser, normalizeUrl, nulFrames } from '../src/browser';
+import { Browser, normalizeUrl, nulFrames, restorableUrl, worthRemembering } from '../src/browser';
 import { inWorkspace } from '../src/env';
 import {
   bounded,
@@ -39,6 +39,25 @@ describe('browser URLs', () => {
   it('keeps real schemes', () => {
     expect(normalizeUrl('https://example.com')).toBe('https://example.com');
     expect(normalizeUrl('about:blank')).toBe('about:blank');
+  });
+});
+
+describe('restoring the browser after a restart', () => {
+  it('reopens the last real page', () => {
+    expect(restorableUrl('http://localhost:3000/')).toBe('http://localhost:3000/');
+    expect(restorableUrl(' https://example.com/a ')).toBe('https://example.com/a');
+  });
+
+  it('does not restore a blank or internal page', () => {
+    expect(restorableUrl('')).toBeNull();
+    expect(restorableUrl('about:blank')).toBeNull();
+    expect(restorableUrl('chrome://newtab/')).toBeNull();
+    expect(restorableUrl('data:text/html,x')).toBeNull();
+  });
+
+  it('only remembers pages worth coming back to, so about:blank never overwrites the last URL', () => {
+    expect(worthRemembering('http://localhost:3000/')).toBe(true);
+    expect(worthRemembering('about:blank')).toBe(false);
   });
 });
 

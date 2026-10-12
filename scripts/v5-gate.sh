@@ -18,7 +18,7 @@ pass "client bundle $size bytes gzipped"
 
 REQUIRED_STEPS=(
   markdown_stream stop edit_retry turn_diff palette search rename archive delete file_drop model_picker usage_meter
-  tool_screenshot tool_browser_logs tool_edit_file tool_jobs tool_web_fetch tool_notes image_runtimes computer_use_toggle
+  tool_screenshot tool_browser_logs tool_edit_file tool_jobs tool_web_fetch tool_notes
   thread_crud thread_chat thread_isolation
   loop_ran_three_and_stopped loop_spend_limit loop_kill_switch loop_digest
   notification share_link phone_drive

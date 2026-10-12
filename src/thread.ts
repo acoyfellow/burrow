@@ -10,7 +10,15 @@ import {
   openAgent,
   type ThreadDirectory,
 } from './agent';
-import { Browser, browserEnv, displayArgs, type PageState, VNC_PORT } from './browser';
+import {
+  Browser,
+  browserEnv,
+  displayArgs,
+  type PageState,
+  restorableUrl,
+  VNC_PORT,
+  worthRemembering,
+} from './browser';
 import {
   type Computer,
   type Entry,
@@ -526,8 +534,15 @@ export class Thread extends DurableObject<Env> {
       if (container === undefined) throw new Error('This Durable Object has no container binding');
 
       const browser = await Browser.launch(container);
+      const saved = restorableUrl(this.ledger.browserUrl);
 
-      browser.pages.add((page) => this.emit({ type: 'page', page }));
+      browser.pages.add((page) => {
+        if (worthRemembering(page.url)) this.ledger.browserUrl = page.url;
+        this.emit({ type: 'page', page });
+      });
+
+      if (saved !== null && !worthRemembering(browser.page.url))
+        await browser.open(saved).catch(() => undefined);
       this.ensureBrowserSurface();
 
       return browser;
