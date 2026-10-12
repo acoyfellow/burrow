@@ -3,6 +3,7 @@ import type { Html } from 'foldkit/html';
 import { rememberFiles } from '../command';
 import { Message } from '../message';
 import type { Model } from '../model';
+import { Autosize } from '../mount';
 import { viewOf } from '../update';
 import { meter } from './meter';
 import { type H, icon } from './parts';
@@ -42,6 +43,7 @@ export const composer = (h: H, model: Model): Html => {
           h.textarea([
             h.Id('text'),
             h.Rows(1),
+            h.OnMount(Autosize({})),
             h.Placeholder('Ask the agent to do something in its computer'),
             h.Value(model.draft),
             h.OnInput((value) => Message.UpdatedDraft({ value })),
