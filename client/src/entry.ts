@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { Runtime } from 'foldkit';
 import { storedTheme } from './command';
+import { installLayout } from './layout';
 import { Flags, init } from './main';
 import { Message } from './message';
 import { Model } from './model';
@@ -46,6 +47,7 @@ const application = Runtime.makeApplication({
   devTools: false,
 });
 
+installLayout();
 Runtime.run(application, { flags });
 
 if ('serviceWorker' in navigator && globalThis.location.protocol === 'https:')

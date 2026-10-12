@@ -145,7 +145,23 @@ export const view = (model: Model, h: H): Document => ({
         [h.Class(appClass(model))],
         [
           side(h, model),
+          h.div(
+            [
+              h.Class('resizer side-resizer'),
+              h.DataAttribute('resize', 'side'),
+              h.AriaHidden(true),
+            ],
+            [],
+          ),
           h.main([h.Class('main')], [bar(h, model), feed(h, model), composer(h, model)]),
+          h.div(
+            [
+              h.Class('resizer panel-resizer'),
+              h.DataAttribute('resize', 'panel'),
+              h.AriaHidden(true),
+            ],
+            [],
+          ),
           panel(h, model),
         ],
       ),

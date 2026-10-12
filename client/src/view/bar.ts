@@ -147,9 +147,35 @@ const actions = (h: H, model: Model, view: ThreadView): Html => {
         ],
         [icon(h, 'computer'), h.span([h.Class('act-label')], ['Computer'])],
       ),
+      collapse(h, 'panel'),
     ],
   );
 };
+
+const collapse = (h: H, edge: 'side' | 'panel'): Html =>
+  h.button(
+    [
+      h.Class(`collapse collapse-${edge}`),
+      h.DataAttribute('collapse', edge),
+      h.Title(edge === 'side' ? 'Show or hide threads (⌘B)' : 'Show or hide the computer (⌘J)'),
+      h.AriaLabel(edge === 'side' ? 'Toggle threads' : 'Toggle computer'),
+    ],
+    [
+      h.svg(
+        [
+          h.ViewBox('0 0 24 24'),
+          h.Class('icon'),
+          h.AriaHidden(true),
+          h.InnerHTML(
+            edge === 'side'
+              ? '<rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 4v16" stroke="currentColor" stroke-width="1.6"/>'
+              : '<rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 4v16" stroke="currentColor" stroke-width="1.6"/>',
+          ),
+        ],
+        [],
+      ),
+    ],
+  );
 
 export const bar = (h: H, model: Model): Html => {
   const threads = h.button(
@@ -162,7 +188,10 @@ export const bar = (h: H, model: Model): Html => {
   );
 
   if (model.name === null)
-    return h.header([h.Class('bar'), h.Id('bar')], [threads, h.h1([], ['Threads'])]);
+    return h.header(
+      [h.Class('bar'), h.Id('bar')],
+      [threads, collapse(h, 'side'), h.h1([], ['Threads'])],
+    );
 
   const view = viewOf(model);
 
@@ -176,6 +205,7 @@ export const bar = (h: H, model: Model): Html => {
     [h.Class('bar'), h.Id('bar')],
     [
       threads,
+      collapse(h, 'side'),
       h.h1([h.Title(model.name)], [view.title]),
       h.span(
         [h.Class(`chip ${phaseKey(view)}`), h.Id('phase')],
