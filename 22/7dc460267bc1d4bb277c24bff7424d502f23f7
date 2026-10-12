@@ -1,0 +1,31 @@
+scripts/v5-gate.sh
+  s_d58794dec92dc7::t_1e64d9003c6f17 21
+src/browser.ts
+  s_d58794dec92dc7::t_6d258491ad0b75 72-76
+src/ledger.ts
+  s_d58794dec92dc7::t_97f80eb7450bbc 219-226
+src/thread.ts
+  s_d58794dec92dc7::t_678ed55cf0607e 13-21,537-542,544-545
+test/surfaces.test.ts
+  s_d58794dec92dc7::t_f0ee20f79bb462 2,45-63
+test/thread.test.ts
+  s_d58794dec92dc7::t_edd59bf7d3aaab 37-45
+test/worker/index.ts
+  s_d58794dec92dc7::t_abc56ff5ac43ac 8,182-189,243-262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "227dc460267bc1d4bb277c24bff7424d502f23f7",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
