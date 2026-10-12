@@ -37,7 +37,7 @@ const startDisplay = [
   `x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
 ].join('\n');
 
-const startWebrtc = `pkill -f '[w]ebrtc[.]py'; DISPLAY=${DISPLAY} COIL_WEBRTC_PORT=${WEBRTC_PORT} python3 -u /opt/webrtc.py >/tmp/webrtc.log 2>&1 &`;
+const startWebrtc = `[ -f /tmp/webrtc.pid ] && kill $(cat /tmp/webrtc.pid) 2>/dev/null; DISPLAY=${DISPLAY} COIL_WEBRTC_PORT=${WEBRTC_PORT} python3 -u /opt/webrtc.py >/tmp/webrtc.log 2>&1 & echo $! >/tmp/webrtc.pid`;
 
 export const browserArgs = (mode: BrowserMode = 'screencast') =>
   mode === 'screencast'
