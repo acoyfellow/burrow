@@ -152,5 +152,7 @@ describe('browser modes', () => {
     expect(vnc).toContain('Xvfb :99');
     expect(vnc).toContain('x11vnc -display :99 -rfbport 5900');
     expect(vnc).toContain('DISPLAY=:99 exec /usr/bin/chromium');
+    expect(vnc).not.toContain('webrtc.py');
+    expect(browserArgs('webrtc').join(' ')).toContain('python3 -u /opt/webrtc.py');
   });
 });

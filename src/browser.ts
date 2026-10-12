@@ -8,6 +8,8 @@ export const BROWSER_MODES: readonly BrowserMode[] = ['screencast', 'vnc', 'webr
 
 export const VNC_PORT = 5900;
 
+export const WEBRTC_PORT = 5901;
+
 export const DISPLAY = ':99';
 
 const chromium = (headed: boolean) =>
@@ -35,13 +37,15 @@ const startDisplay = [
   `x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
 ].join('\n');
 
+const startWebrtc = `pkill -f /opt/webrtc.py; DISPLAY=${DISPLAY} COIL_WEBRTC_PORT=${WEBRTC_PORT} python3 -u /opt/webrtc.py >/tmp/webrtc.log 2>&1 &`;
+
 export const browserArgs = (mode: BrowserMode = 'screencast') =>
   mode === 'screencast'
     ? ['bash', '-c', `exec ${chromium(false)} 3<&0 4>&1 1>&2 2>/tmp/browser.log`]
     : [
         'bash',
         '-c',
-        `${startDisplay}\nDISPLAY=${DISPLAY} exec ${chromium(true)} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
+        `${startDisplay}\n${mode === 'webrtc' ? `${startWebrtc}\n` : ''}DISPLAY=${DISPLAY} exec ${chromium(true)} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
       ];
 
 export const browserEnv = () => ({ ...SHELL_ENV, HOME: '/root' });

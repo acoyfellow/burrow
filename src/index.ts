@@ -17,7 +17,7 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 const LOCAL_OWNER = 'local';
 
-const THREAD_SOCKET = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/(terminal|browser|vnc)$/;
+const THREAD_SOCKET = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/(terminal|browser|vnc|webrtc)$/;
 
 const THREAD_EVENTS = /^\/api\/threads\/([a-z0-9][a-z0-9-]{0,62})\/events$/;
 
@@ -117,10 +117,10 @@ const upgrade = (request: Request, caller: Owner, name: string, kind: SocketKind
     ? caller.api.socket(name, kind, request)
     : Promise.resolve(new Response('Expected a WebSocket upgrade', { status: 426 }));
 
-type SocketKind = 'terminal' | 'browser' | 'vnc';
+type SocketKind = 'terminal' | 'browser' | 'vnc' | 'webrtc';
 
 const socketKind = (raw: string): SocketKind =>
-  raw === 'browser' || raw === 'vnc' ? raw : 'terminal';
+  raw === 'browser' || raw === 'vnc' || raw === 'webrtc' ? raw : 'terminal';
 
 const failed = (cause: unknown) => {
   const message = cause instanceof Error ? cause.message : String(cause);

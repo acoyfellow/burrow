@@ -71,7 +71,11 @@ export const coil = (env: Env, owner: string) => {
     view: async (name: string) => (await known(name)).view(),
     events: async (name: string, request: Request) =>
       (await known(name)).fetch(new Request('https://thread/events', { signal: request.signal })),
-    socket: async (name: string, kind: 'terminal' | 'browser' | 'vnc', request: Request) => {
+    socket: async (
+      name: string,
+      kind: 'terminal' | 'browser' | 'vnc' | 'webrtc',
+      request: Request,
+    ) => {
       const url = new URL(request.url);
 
       return (await known(name)).fetch(new Request(`https://thread/${kind}${url.search}`, request));

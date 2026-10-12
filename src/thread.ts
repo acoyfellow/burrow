@@ -10,7 +10,14 @@ import {
   openAgent,
   type ThreadDirectory,
 } from './agent';
-import { Browser, type BrowserMode, type Frame, type PageState, VNC_PORT } from './browser';
+import {
+  Browser,
+  type BrowserMode,
+  type Frame,
+  type PageState,
+  VNC_PORT,
+  WEBRTC_PORT,
+} from './browser';
 import {
   type Computer,
   type Entry,
@@ -1261,6 +1268,8 @@ export class Thread extends DurableObject<Env> {
 
     if (url.pathname.endsWith('/vnc')) return this.vncSocket();
 
+    if (url.pathname.endsWith('/webrtc')) return this.streamSocket('webrtc', WEBRTC_PORT);
+
     if (!url.pathname.endsWith('/events')) return new Response('not found', { status: 404 });
 
     await this.open();
@@ -1390,9 +1399,15 @@ export class Thread extends DurableObject<Env> {
     return mode;
   }
 
-  private async vncSocket(): Promise<Response> {
-    if (this.ledger.browserMode === 'screencast')
-      return new Response('this thread uses the screencast browser', { status: 409 });
+  private vncSocket(): Promise<Response> {
+    return this.streamSocket('vnc', VNC_PORT);
+  }
+
+  private async streamSocket(mode: BrowserMode, port: number): Promise<Response> {
+    if (this.ledger.browserMode !== mode)
+      return new Response(`this thread's browser is in ${this.ledger.browserMode} mode`, {
+        status: 409,
+      });
 
     await this.openBrowser();
 
@@ -1400,7 +1415,7 @@ export class Thread extends DurableObject<Env> {
 
     if (container === undefined) return new Response('no container', { status: 500 });
 
-    const tcp = await this.untilVnc(container);
+    const tcp = await this.untilPort(container, port);
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
 
     server.binaryType = 'arraybuffer';
@@ -1433,12 +1448,12 @@ export class Thread extends DurableObject<Env> {
     }
   }
 
-  private async untilVnc(container: Container): Promise<Socket> {
+  private async untilPort(container: Container, port: number): Promise<Socket> {
     let lastError: unknown = null;
 
     for (let attempt = 0; attempt < 40; attempt += 1) {
       try {
-        const socket = container.getTcpPort(VNC_PORT).connect(`localhost:${VNC_PORT}`);
+        const socket = container.getTcpPort(port).connect(`localhost:${port}`);
 
         await socket.opened;
 
@@ -1449,7 +1464,7 @@ export class Thread extends DurableObject<Env> {
       }
     }
 
-    throw new Error(`VNC did not start: ${String(lastError)}`);
+    throw new Error(`port ${port} did not start: ${String(lastError)}`);
   }
 
   private async browserSocket(): Promise<Response> {
