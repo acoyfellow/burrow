@@ -1,0 +1,19 @@
+README.md
+  s_d58794dec92dc7::t_5db53a595fd8e3 33,38,51-52,65,67,168-170,173,199-201,209,217-221,223-225,237-240,243-244,246,253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f4cca21b57fa0743c662f4c63f6268a4eb0be2e1",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
