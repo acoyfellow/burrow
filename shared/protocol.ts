@@ -355,7 +355,6 @@ export const CoilRpcs = RpcGroup.make(
   }),
   Rpc.make('DeleteThread', { payload: target, success: Schema.Null, error: CoilError }),
   Rpc.make('ListBases', { success: Schema.Array(Base), error: CoilError }),
-  Rpc.make('AdoptDefaultBase', { payload: target, success: Prepared, error: CoilError }),
   Rpc.make('PrepareBase', {
     payload: { repo: Schema.String, setup: Schema.String },
     success: Prepared,
