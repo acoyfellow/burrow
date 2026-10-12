@@ -20,6 +20,7 @@ import {
   WORKSPACE,
 } from './computer';
 import type { Directory, ThreadUpdate } from './directory';
+import { gatewayModel, isGatewayModel } from './gateway';
 import {
   type ExecRecord,
   Ledger,
@@ -96,6 +97,7 @@ export type Env = {
   readonly AI: Ai;
   readonly ASSETS: Fetcher;
   readonly MODEL: string;
+  readonly AI_GATEWAY?: string;
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
@@ -257,7 +259,11 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected model(): ModelChoice {
-    return workersAI(this.env.AI, this.currentModel());
+    const id = this.currentModel();
+
+    return isGatewayModel(id)
+      ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id)
+      : workersAI(this.env.AI, id);
   }
 
   protected settings(): HarnessSettings {

@@ -5,9 +5,58 @@ export type ModelInfo = {
   readonly inputPerMtok: number;
   readonly outputPerMtok: number;
   readonly vision: boolean;
+  readonly gateway?: true;
 };
 
-export const MODELS: readonly ModelInfo[] = [
+export const GATEWAY_MODELS: readonly ModelInfo[] = [
+  {
+    id: 'gateway/claude-opus-5-5',
+    label: 'Claude Opus 5.5',
+    context: 1000000,
+    inputPerMtok: 4,
+    outputPerMtok: 20,
+    vision: true,
+    gateway: true,
+  },
+  {
+    id: 'gateway/claude-sonnet-5-5',
+    label: 'Claude Sonnet 5.5',
+    context: 1000000,
+    inputPerMtok: 2,
+    outputPerMtok: 10,
+    vision: true,
+    gateway: true,
+  },
+  {
+    id: 'gateway/gpt-5.6-sol',
+    label: 'GPT-5.6 Sol',
+    context: 1050000,
+    inputPerMtok: 4,
+    outputPerMtok: 20,
+    vision: true,
+    gateway: true,
+  },
+  {
+    id: 'gateway/gpt-5.6-terra',
+    label: 'GPT-5.6 Terra',
+    context: 1050000,
+    inputPerMtok: 2,
+    outputPerMtok: 12,
+    vision: true,
+    gateway: true,
+  },
+  {
+    id: 'gateway/gpt-5.5-pro',
+    label: 'GPT-5.5 Pro',
+    context: 1000000,
+    inputPerMtok: 30,
+    outputPerMtok: 180,
+    vision: true,
+    gateway: true,
+  },
+];
+
+const WORKERS_AI_MODELS: readonly ModelInfo[] = [
   {
     id: '@cf/zai-org/glm-5.3',
     label: 'GLM 5.3',
@@ -57,6 +106,8 @@ export const MODELS: readonly ModelInfo[] = [
     vision: false,
   },
 ];
+
+export const MODELS: readonly ModelInfo[] = [...GATEWAY_MODELS, ...WORKERS_AI_MODELS];
 
 export const modelInfo = (id: string): ModelInfo | undefined => MODELS.find((m) => m.id === id);
 

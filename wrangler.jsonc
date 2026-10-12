@@ -8,7 +8,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "ai": { "binding": "AI", "remote": true },
-  "vars": { "MODEL": "@cf/zai-org/glm-5.3" },
+  "vars": { "MODEL": "@cf/zai-org/glm-5.3", "AI_GATEWAY": "default" },
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/", "/t/*", "/api/*", "/mcp", "/assets/*", "/sw.js"] },
   "containers": [
     {

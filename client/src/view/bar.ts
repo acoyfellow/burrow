@@ -198,7 +198,7 @@ export const bar = (h: H, model: Model): Html => {
   if (view === null)
     return h.header(
       [h.Class('bar'), h.Id('bar')],
-      [threads, h.h1([h.Title(model.name)], [model.name])],
+      [threads, collapse(h, 'side'), h.h1([h.Title(model.name)], [model.name])],
     );
 
   return h.header(
