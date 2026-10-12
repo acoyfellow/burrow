@@ -69,6 +69,7 @@ describe('AI Gateway models', () => {
     expect(sent?.body.model).toBe('claude-sonnet-5-5');
     expect(sent?.headers.authorization).toBeUndefined();
     expect(sent?.headers['x-api-key']).toBeUndefined();
+    expect(sent?.headers['cf-aig-authorization']).toBeUndefined();
   });
 
   it('sends GPT as OpenAI responses through the binding', async () => {

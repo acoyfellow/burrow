@@ -30,6 +30,8 @@ export type ModelChoice = {
   readonly options: CreateModelsOptions;
 };
 
+export type ModelRoute = (id: string) => ModelChoice;
+
 export type Message = {
   readonly id: string;
   readonly kind: string;
@@ -563,10 +565,14 @@ export const openAgent = async (
   browser: BrowserTools = NO_BROWSER,
   extras: Extras = DEFAULT_EXTRAS,
   threads: ThreadDirectory = NO_THREADS,
+  extraProviders: readonly Provider[] = [],
+  route: ModelRoute = () => model,
 ): Promise<Agent> => {
   const models = createModels(model.options);
 
   models.setProvider(model.provider);
+
+  for (const extra of extraProviders) models.setProvider(extra);
 
   const registry = createRegistry();
 
@@ -613,7 +619,11 @@ export const openAgent = async (
           ...(callId === undefined ? {} : { toolCallId: callId }),
         };
         const calls = message.role === 'assistant' ? toolCallsOf(content) : [];
-        const said = textOf(content);
+        const failure = (message as { errorMessage?: string }).errorMessage;
+        const said =
+          textOf(content) === '' && failure !== undefined && failure !== ''
+            ? `The model call failed: ${failure}`
+            : textOf(content);
 
         return [
           ...(said === '' && calls.length > 0 ? [] : [{ ...base, text: said }]),
@@ -672,8 +682,14 @@ export const openAgent = async (
     },
     close: () => harness.close(CONTEXT),
     stop: () => conversation.abort(CONTEXT),
-    setModel: (modelId) =>
-      conversation.configure({ model: { provider: model.provider.id, modelId } }, CONTEXT),
+    setModel: (id) => {
+      const next = route(id);
+
+      return conversation.configure(
+        { model: { provider: next.provider.id, modelId: next.modelId } },
+        CONTEXT,
+      );
+    },
     usage: async () => {
       const state = await harness.usage(CONTEXT);
 

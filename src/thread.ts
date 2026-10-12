@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import type { AgentEvent, HarnessSettings } from '@earendil-works/pi-durable';
-import { modelInfo } from '../shared/models';
+import { GATEWAY_MODELS, modelInfo } from '../shared/models';
 import {
   type Agent,
   type BrowserTools,
@@ -259,11 +259,21 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected model(): ModelChoice {
-    const id = this.currentModel();
+    return this.route(this.currentModel());
+  }
 
+  protected route(id: string): ModelChoice {
     return isGatewayModel(id)
       ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id)
       : workersAI(this.env.AI, id);
+  }
+
+  protected otherProviders() {
+    const other = isGatewayModel(this.currentModel())
+      ? this.env.MODEL
+      : (GATEWAY_MODELS[0]?.id ?? this.env.MODEL);
+
+    return [this.route(other).provider];
   }
 
   protected settings(): HarnessSettings {
@@ -596,9 +606,11 @@ export class Thread extends DurableObject<Env> {
   }
 
   private open(): Promise<Agent> {
+    const current = this.model();
+
     this.agent ??= openAgent(
       this.ctx.storage,
-      this.model(),
+      current,
       () => this.awake(),
       this.ledger,
       this.children(),
@@ -607,6 +619,8 @@ export class Thread extends DurableObject<Env> {
       this.browserTools(),
       undefined,
       this.threadDirectory(),
+      this.otherProviders(),
+      (id) => this.route(id),
     )
       .then(async (agent) => {
         this.unwatch ??= await agent.watch((events) => {

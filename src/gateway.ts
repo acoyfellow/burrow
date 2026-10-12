@@ -25,7 +25,15 @@ type BindingWithFetch = Ai & { fetch?: typeof fetch };
 
 export const gatewayModel = (ai: Ai, gateway: string, id: string): ModelChoice => {
   const stock = cloudflareAIGatewayProvider();
-  const bindingFetch = createAiBindingFetch(ai as BindingWithFetch);
+  const rawFetch = createAiBindingFetch(ai as BindingWithFetch);
+  const bindingFetch: typeof fetch = (input, init) => {
+    const request = new Request(input, init);
+    const headers = new Headers(request.headers);
+
+    for (const name of ['cf-aig-authorization', 'authorization', 'x-api-key']) headers.delete(name);
+
+    return rawFetch(new Request(request, { headers }));
+  };
   const routed = stock.getModels().map((model) => ({
     ...model,
     baseUrl: bindingBaseUrl(gateway, model.api),
