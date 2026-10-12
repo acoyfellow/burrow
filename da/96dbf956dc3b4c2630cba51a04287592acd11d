@@ -1,0 +1,33 @@
+client/src/surfaces/webrtc.ts
+  s_d58794dec92dc7::t_0e0bd104331e1c 1-37,40-41,43-201,203,205-217
+computer/Dockerfile
+  s_d58794dec92dc7::t_4cef41b29ecf47 7,20
+computer/webrtc.py
+  s_d58794dec92dc7::t_cabaaab55e9214 1-142
+src/browser.ts
+  s_d58794dec92dc7::t_6a8d96a702aa19 11-12,40-41,48
+src/index.ts
+  s_d58794dec92dc7::t_94d286f88db4c9 20,120,123
+src/service.ts
+  s_d58794dec92dc7::t_e714da40f50283 74-78
+src/thread.ts
+  s_d58794dec92dc7::t_7b2457e5ff2c7c 13-20,1271-1272,1402-1410,1418,1451,1456,1467
+test/surfaces.test.ts
+  s_d58794dec92dc7::t_7c044bd220f145 155-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "da96dbf956dc3b4c2630cba51a04287592acd11d",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
