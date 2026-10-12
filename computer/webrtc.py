@@ -12,13 +12,24 @@ from gi.repository import GLib, Gst, GstSdp, GstWebRTC
 
 PORT = int(os.environ.get("COIL_WEBRTC_PORT", "5901"))
 DISPLAY = os.environ.get("DISPLAY", ":99")
-STUN = os.environ.get("COIL_STUN", "stun://stun.cloudflare.com:3478")
+STUN_HOST = os.environ.get("COIL_STUN_HOST", "stun.cloudflare.com")
+STUN_PORT = int(os.environ.get("COIL_STUN_PORT", "3478"))
+
+
+def stun_url():
+    try:
+        address = socket.getaddrinfo(STUN_HOST, STUN_PORT, socket.AF_INET, socket.SOCK_DGRAM)[0][4][0]
+    except OSError:
+        address = STUN_HOST
+    return f"stun://{address}:{STUN_PORT}"
+
+
 PIPELINE = (
     f"ximagesrc display-name={DISPLAY} use-damage=false show-pointer=true "
     "! video/x-raw,framerate=30/1 ! videoconvert ! queue max-size-buffers=1 leaky=downstream "
     "! vp8enc deadline=1 cpu-used=8 target-bitrate=4000000 keyframe-max-dist=60 "
     "! rtpvp8pay pt=96 ! application/x-rtp,media=video,encoding-name=VP8,payload=96 "
-    f"! webrtcbin name=rtc bundle-policy=max-bundle stun-server={STUN}"
+    "! webrtcbin name=rtc bundle-policy=max-bundle stun-server={stun}"
 )
 BUTTONS = {0: "1", 1: "2", 2: "3"}
 
@@ -48,7 +59,7 @@ class Session:
     def __init__(self, conn):
         self.conn = conn
         self.buffer = b""
-        self.pipe = Gst.parse_launch(PIPELINE)
+        self.pipe = Gst.parse_launch(PIPELINE.format(stun=stun_url()))
         self.rtc = self.pipe.get_by_name("rtc")
         self.rtc.connect("on-negotiation-needed", self.on_negotiation)
         self.rtc.connect("on-ice-candidate", self.on_candidate)
