@@ -194,14 +194,17 @@ const applyEvent = (model: Model, event: LiveEvent): UpdateReturn => {
       };
     case 'tool_end':
       return {
-        model: modifyFields(model, {
-          live: () => ({
-            ...liveFrom(model),
-            tools: liveFrom(model).tools.map((tool) =>
-              tool.id === event.id ? { ...tool, done: true } : tool,
-            ),
-          }),
-        }),
+        model: modifyFields(
+          withTab(model, browserTabFor(viewOf(model)?.surfaces ?? [], model.tab, event.name)),
+          {
+            live: () => ({
+              ...liveFrom(model),
+              tools: liveFrom(model).tools.map((tool) =>
+                tool.id === event.id ? { ...tool, done: true } : tool,
+              ),
+            }),
+          },
+        ),
         commands: [RefreshViewSoon({ name })],
       };
     case 'turn_end':

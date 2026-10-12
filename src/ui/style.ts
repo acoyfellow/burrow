@@ -131,8 +131,6 @@ textarea{resize:none}
 .urlbar .url{font:12px var(--mono);padding:4px 9px;border-radius:99px;background:var(--raise);border-color:transparent}
 .urlbar .url:focus{border-color:var(--blue);background:var(--bg)}
 .stage{flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;background:var(--raise);overflow:hidden;position:relative}
-.screen{width:100%;height:100%;object-fit:contain;object-position:top;background:#fff;outline:none;cursor:default}
-.screen:focus{box-shadow:inset 0 0 0 2px var(--blue)}
 .pane{flex:1;overflow:auto;min-height:0}
 .term{display:flex;flex-direction:column;height:100%}
 .term-log{flex:1;overflow:auto;padding:8px 12px;font:12px/1.55 var(--mono)}
@@ -164,10 +162,8 @@ textarea{resize:none}
 .empty p{margin:0;color:var(--dim)}
 .empty .primary{padding:5px 14px}
 .mark{width:40px;height:40px;display:block}
-.browser-modes{display:flex;justify-content:flex-end;padding:4px 8px;border-bottom:1px solid var(--line)}
-.browser-mode{font:inherit;font-size:12px;color:var(--dim);background:var(--raise);border:1px solid var(--line2);border-radius:6px;padding:2px 6px}
 .browser-body{flex:1;min-height:0;display:flex;flex-direction:column}
-.vnc-stage{flex:1;min-height:0;background:#000;overflow:hidden}
+.vnc-stage{flex:1;min-height:0;background:#000;overflow:hidden;position:relative}
 .vnc-stage canvas{outline:none}
 .browser-status{padding:16px;color:var(--dim);font-size:13px}
 .empty{background-image:url(/brand/loops-light.svg);background-repeat:repeat}

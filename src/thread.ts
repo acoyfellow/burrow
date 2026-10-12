@@ -10,14 +10,7 @@ import {
   openAgent,
   type ThreadDirectory,
 } from './agent';
-import {
-  Browser,
-  type BrowserMode,
-  type Frame,
-  type PageState,
-  VNC_PORT,
-  WEBRTC_PORT,
-} from './browser';
+import { Browser, type PageState, VNC_PORT } from './browser';
 import {
   type Computer,
   type Entry,
@@ -137,8 +130,6 @@ const DIRECTORY = 'all';
 const IDLE_CHECK_MS = 1000;
 
 const AUTO_PAUSE_AFTER_MS = 9 * 60 * 1000;
-
-const VIEWER_ACK_TIMEOUT_MS = 2000;
 
 export class ThreadBusy extends Error {
   override readonly name = 'ThreadBusy';
@@ -512,7 +503,7 @@ export class Thread extends DurableObject<Env> {
 
       if (container === undefined) throw new Error('This Durable Object has no container binding');
 
-      const browser = await Browser.launch(container, this.ledger.browserMode);
+      const browser = await Browser.launch(container);
 
       browser.pages.add((page) => this.emit({ type: 'page', page }));
       this.ensureBrowserSurface();
@@ -1268,8 +1259,6 @@ export class Thread extends DurableObject<Env> {
 
     if (url.pathname.endsWith('/vnc')) return this.vncSocket();
 
-    if (url.pathname.endsWith('/webrtc')) return this.streamSocket('webrtc', WEBRTC_PORT);
-
     if (!url.pathname.endsWith('/events')) return new Response('not found', { status: 404 });
 
     await this.open();
@@ -1320,8 +1309,7 @@ export class Thread extends DurableObject<Env> {
 
     this.ensureBrowserSurface();
 
-    if (hadBrowser && this.ledger.browserMode !== 'screencast')
-      await (await this.openBrowser()).newTab();
+    if (hadBrowser) await (await this.openBrowser()).newTab();
 
     return this.ledger.surfaces;
   }
@@ -1382,40 +1370,14 @@ export class Thread extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  browserMode(): BrowserMode {
-    return this.ledger.browserMode;
-  }
-
-  async setBrowserMode(mode: BrowserMode): Promise<BrowserMode> {
-    if (mode === this.ledger.browserMode) return mode;
-
-    this.ledger.browserMode = mode;
-    const old = this.browser;
-
-    this.browser = undefined;
-    await old?.then((b) => b.close()).catch(() => undefined);
-    await this.publish();
-
-    return mode;
-  }
-
-  private vncSocket(): Promise<Response> {
-    return this.streamSocket('vnc', VNC_PORT);
-  }
-
-  private async streamSocket(mode: BrowserMode, port: number): Promise<Response> {
-    if (this.ledger.browserMode !== mode)
-      return new Response(`this thread's browser is in ${this.ledger.browserMode} mode`, {
-        status: 409,
-      });
-
+  private async vncSocket(): Promise<Response> {
     await this.openBrowser();
 
     const container = this.ctx.container;
 
     if (container === undefined) return new Response('no container', { status: 500 });
 
-    const tcp = await this.untilPort(container, port);
+    const tcp = await this.untilPort(container, VNC_PORT);
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
 
     server.binaryType = 'arraybuffer';
@@ -1424,28 +1386,6 @@ export class Thread extends DurableObject<Env> {
     pipeSocket(server, tcp);
 
     return new Response(null, { status: 101, webSocket: client });
-  }
-
-  async vncProbe(): Promise<string> {
-    const container = this.ctx.container;
-
-    if (container === undefined) return 'no container';
-
-    try {
-      const socket = container.getTcpPort(VNC_PORT).connect(`localhost:${VNC_PORT}`);
-
-      await socket.opened;
-      const reader = socket.readable.getReader();
-      const first = await Promise.race([
-        reader.read(),
-        new Promise<{ value?: Uint8Array }>((r) => setTimeout(() => r({}), 3000)),
-      ]);
-      await socket.close().catch(() => undefined);
-
-      return `opened; first bytes: ${new TextDecoder().decode(first.value ?? new Uint8Array()).slice(0, 12)}`;
-    } catch (cause) {
-      return `failed: ${String(cause)}`;
-    }
   }
 
   private async untilPort(container: Container, port: number): Promise<Socket> {
@@ -1470,55 +1410,6 @@ export class Thread extends DurableObject<Env> {
   private async browserSocket(): Promise<Response> {
     const browser = await this.openBrowser();
     const [client, server] = Object.values(new WebSocketPair()) as [WebSocket, WebSocket];
-    let waiting: Frame | null = null;
-    let inFlight = false;
-    let stuck: ReturnType<typeof setTimeout> | undefined;
-    const viewer = {};
-    const giveUpOnViewer = () => {
-      inFlight = false;
-      waiting = null;
-      browser.viewerReady(viewer);
-    };
-    const deliver = (f: Frame) => {
-      inFlight = true;
-      browser.viewerBusy(viewer);
-      clearTimeout(stuck);
-      stuck = setTimeout(giveUpOnViewer, VIEWER_ACK_TIMEOUT_MS);
-
-      try {
-        server.send(f.bytes);
-      } catch {
-        stop();
-      }
-    };
-    const frameSeen = () => {
-      clearTimeout(stuck);
-      inFlight = false;
-
-      if (waiting !== null) {
-        const next = waiting;
-
-        waiting = null;
-        deliver(next);
-
-        return;
-      }
-
-      browser.viewerReady(viewer);
-    };
-    const frame = (f: Frame) => {
-      if (inFlight) {
-        waiting = f;
-
-        return;
-      }
-
-      try {
-        deliver(f);
-      } catch {
-        stop();
-      }
-    };
     const page = (p: PageState) => {
       try {
         server.send(JSON.stringify({ page: p }));
@@ -1526,63 +1417,28 @@ export class Thread extends DurableObject<Env> {
         stop();
       }
     };
-    const browserDied = () => server.close(1011, 'browser exited');
-    const stop = () => {
-      browser.frames.delete(frame);
-      browser.pages.delete(page);
-      clearTimeout(stuck);
-      browser.viewerReady(viewer);
-      browser.closedListeners.delete(browserDied);
-
-      if (browser.frames.size === 0) void browser.cast(false).catch(() => undefined);
-    };
+    const stop = () => browser.pages.delete(page);
 
     server.accept();
     this.watched(server);
-    browser.closedListeners.add(browserDied);
-    server.send(JSON.stringify({ page: browser.page, viewport: browser.viewport }));
-
-    if (browser.last !== null) frame(browser.last);
-
-    browser.frames.add(frame);
+    server.send(JSON.stringify({ page: browser.page }));
     browser.pages.add(page);
-    await browser.cast(true);
-    await browser.paintNow().catch(() => undefined);
 
     server.addEventListener('message', (event) => {
       void (async () => {
         const input = JSON.parse(String(event.data)) as {
-          seen?: true;
-          click?: [number, number];
-          scroll?: [number, number, number, number];
-          key?: {
-            type: 'keyDown' | 'keyUp' | 'char';
-            key?: string;
-            code?: string;
-            text?: string;
-            keyCode?: number;
-            modifiers?: number;
-          };
-          text?: string;
           open?: string;
           back?: true;
+          forward?: true;
           reload?: true;
-          viewport?: [number, number];
+          tab?: true;
         };
 
-        if (input.seen) frameSeen();
-        else if (input.click) await browser.click(input.click[0], input.click[1]);
-        else if (input.scroll) await browser.scroll(...input.scroll);
-        else if (input.key) await browser.key(input.key);
-        else if (input.text !== undefined) await browser.type(input.text);
-        else if (input.open) await browser.open(input.open);
+        if (input.open) await browser.open(input.open);
         else if (input.back) await browser.back();
+        else if (input.forward) await browser.forward();
         else if (input.reload) await browser.reload();
-        else if (input.viewport) {
-          const viewport = await browser.resize(input.viewport[0], input.viewport[1]);
-
-          server.send(JSON.stringify({ viewport }));
-        }
+        else if (input.tab) await browser.newTab();
       })().catch((cause) => {
         try {
           server.send(

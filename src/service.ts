@@ -1,4 +1,3 @@
-import type { BrowserMode } from './browser';
 import type { LoopSpec } from './loop';
 import { DEFAULT_SIZE, type Size } from './size';
 import type { Env } from './thread';
@@ -71,21 +70,13 @@ export const coil = (env: Env, owner: string) => {
     view: async (name: string) => (await known(name)).view(),
     events: async (name: string, request: Request) =>
       (await known(name)).fetch(new Request('https://thread/events', { signal: request.signal })),
-    socket: async (
-      name: string,
-      kind: 'terminal' | 'browser' | 'vnc' | 'webrtc',
-      request: Request,
-    ) => {
+    socket: async (name: string, kind: 'terminal' | 'browser' | 'vnc', request: Request) => {
       const url = new URL(request.url);
 
       return (await known(name)).fetch(new Request(`https://thread/${kind}${url.search}`, request));
     },
     addTerminal: async (name: string) => (await known(name)).addTerminal(),
     addBrowser: async (name: string) => (await known(name)).addBrowser(),
-    browserMode: async (name: string) => (await known(name)).browserMode(),
-    vncProbe: async (name: string) => (await known(name)).vncProbe(),
-    setBrowserMode: async (name: string, mode: BrowserMode) =>
-      (await known(name)).setBrowserMode(mode),
     closeSurface: async (name: string, id: string) => (await known(name)).closeSurface(id),
     start: async (name: string, requestId: string, text: string) =>
       (await known(name)).start(requestId, text),

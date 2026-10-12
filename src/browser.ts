@@ -2,22 +2,17 @@ import { SHELL_ENV } from './env';
 
 export const VIEWPORT = { width: 1280, height: 800 } as const;
 
-export type BrowserMode = 'screencast' | 'vnc' | 'webrtc';
-
-export const BROWSER_MODES: readonly BrowserMode[] = ['screencast', 'vnc', 'webrtc'];
-
 export const VNC_PORT = 5900;
-
-export const WEBRTC_PORT = 5901;
 
 export const DISPLAY = ':99';
 
-const chromium = (headed: boolean) =>
+const chromium = () =>
   [
     '/usr/bin/chromium',
-    ...(headed
-      ? ['--start-maximized', '--window-position=0,0']
-      : ['--headless=new', '--disable-gpu']),
+    '--start-maximized',
+    '--window-position=0,0',
+    '--test-type',
+    '--disable-infobars',
     '--no-sandbox',
     '--disable-dev-shm-usage',
     '--no-first-run',
@@ -37,16 +32,11 @@ const startDisplay = [
   `x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
 ].join('\n');
 
-const startWebrtc = `[ -f /tmp/webrtc.pid ] && kill $(cat /tmp/webrtc.pid) 2>/dev/null; DISPLAY=${DISPLAY} COIL_WEBRTC_PORT=${WEBRTC_PORT} python3 -u /opt/webrtc.py >/tmp/webrtc.log 2>&1 & echo $! >/tmp/webrtc.pid`;
-
-export const browserArgs = (mode: BrowserMode = 'screencast') =>
-  mode === 'screencast'
-    ? ['bash', '-c', `exec ${chromium(false)} 3<&0 4>&1 1>&2 2>/tmp/browser.log`]
-    : [
-        'bash',
-        '-c',
-        `${startDisplay}\n${mode === 'webrtc' ? `${startWebrtc}\n` : ''}DISPLAY=${DISPLAY} exec ${chromium(true)} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
-      ];
+export const browserArgs = () => [
+  'bash',
+  '-c',
+  `${startDisplay}\nDISPLAY=${DISPLAY} exec ${chromium()} 3<&0 4>&1 1>&2 2>/tmp/browser.log`,
+];
 
 export const browserEnv = () => ({ ...SHELL_ENV, HOME: '/root' });
 
@@ -58,10 +48,6 @@ type CdpMessage = {
   error?: { message: string };
   sessionId?: string;
 };
-
-export type Frame = { readonly bytes: Uint8Array; readonly width: number; readonly height: number };
-
-const fromBase64 = (data: string) => Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
 
 export type PageState = { readonly url: string; readonly title: string };
 
@@ -93,20 +79,14 @@ export class Browser {
   private readonly input: WritableStreamDefaultWriter<Uint8Array>;
   private readonly encoder = new TextEncoder();
   private session = '';
-  private casting = false;
   private closed = false;
-  readonly frames = new Set<(frame: Frame) => void>();
-  private pendingAck: number | null = null;
-  private readonly busyViewers = new Set<object>();
   readonly closedListeners = new Set<() => void>();
   readonly pages = new Set<(page: PageState) => void>();
   page: PageState = { url: 'about:blank', title: '' };
-  last: Frame | null = null;
 
   constructor(
     process: ExecProcess,
     private readonly abort: AbortController,
-    private readonly headed = false,
   ) {
     if (process.stdin === null || process.stdout === null)
       throw new Error('Chromium did not return its pipes');
@@ -119,9 +99,9 @@ export class Browser {
     );
   }
 
-  static async launch(container: Container, mode: BrowserMode = 'screencast'): Promise<Browser> {
+  static async launch(container: Container): Promise<Browser> {
     const abort = new AbortController();
-    const process = await container.exec(browserArgs(mode), {
+    const process = await container.exec(browserArgs(), {
       env: browserEnv(),
       cwd: '/root',
       signal: abort.signal,
@@ -129,7 +109,7 @@ export class Browser {
       stdout: 'pipe',
       stderr: 'ignore',
     });
-    const browser = new Browser(process, abort, mode !== 'screencast');
+    const browser = new Browser(process, abort);
 
     await browser.attach();
 
@@ -169,27 +149,6 @@ export class Browser {
     if (message.id !== undefined) {
       this.waiting.get(message.id)?.(message);
       this.waiting.delete(message.id);
-
-      return;
-    }
-
-    if (message.method === 'Page.screencastFrame') {
-      const params = message.params as {
-        data: string;
-        sessionId: number;
-        metadata: { deviceWidth: number; deviceHeight: number };
-      };
-
-      this.last = {
-        bytes: fromBase64(params.data),
-        width: params.metadata.deviceWidth,
-        height: params.metadata.deviceHeight,
-      };
-
-      for (const listener of this.frames) listener(this.last);
-
-      this.pendingAck = params.sessionId;
-      this.ackIfViewersReady();
 
       return;
     }
@@ -282,13 +241,6 @@ export class Browser {
     this.session = attached.result?.sessionId as string;
     await this.call('Page.enable');
     await this.call('Runtime.enable');
-
-    if (!this.headed)
-      await this.call('Emulation.setDeviceMetricsOverride', {
-        ...VIEWPORT,
-        deviceScaleFactor: 1,
-        mobile: false,
-      });
   }
 
   private async refreshPage() {
@@ -305,88 +257,6 @@ export class Browser {
     this.page = { url, title };
 
     for (const listener of this.pages) listener(this.page);
-  }
-
-  viewport: { width: number; height: number } = { ...VIEWPORT };
-
-  async resize(width: number, height: number) {
-    const w = Math.max(320, Math.min(1920, Math.round(width)));
-    const h = Math.max(240, Math.min(1400, Math.round(height)));
-
-    if (w === this.viewport.width && h === this.viewport.height) return this.viewport;
-
-    this.viewport = { width: w, height: h };
-    await this.call('Emulation.setDeviceMetricsOverride', {
-      width: w,
-      height: h,
-      deviceScaleFactor: 1,
-      mobile: w < 600,
-    });
-
-    if (this.casting) {
-      await this.call('Page.stopScreencast');
-      await this.call('Page.startScreencast', {
-        format: 'jpeg',
-        quality: 60,
-        maxWidth: w,
-        maxHeight: h,
-        everyNthFrame: 1,
-      });
-      await this.paintNow();
-    }
-
-    return this.viewport;
-  }
-
-  viewerBusy(viewer: object) {
-    this.busyViewers.add(viewer);
-  }
-
-  viewerReady(viewer: object) {
-    this.busyViewers.delete(viewer);
-    this.ackIfViewersReady();
-  }
-
-  private ackIfViewersReady() {
-    if (this.pendingAck === null || this.busyViewers.size > 0) return;
-
-    const sessionId = this.pendingAck;
-
-    this.pendingAck = null;
-    void this.send('Page.screencastFrameAck', { sessionId });
-  }
-
-  async paintNow() {
-    const shot = (await this.call('Page.captureScreenshot', { format: 'jpeg', quality: 60 })) as {
-      data?: string;
-    };
-    const data = shot.data;
-
-    if (data === undefined) return;
-
-    this.last = {
-      bytes: fromBase64(data),
-      width: this.viewport.width,
-      height: this.viewport.height,
-    };
-
-    for (const listener of this.frames) listener(this.last);
-  }
-
-  async cast(on: boolean) {
-    if (on === this.casting) return;
-
-    this.casting = on;
-
-    if (on)
-      await this.call('Page.startScreencast', {
-        format: 'jpeg',
-        quality: 60,
-        maxWidth: this.viewport.width,
-        maxHeight: this.viewport.height,
-        everyNthFrame: 1,
-      });
-    else await this.call('Page.stopScreencast');
   }
 
   async open(url: string): Promise<PageState> {
@@ -418,6 +288,10 @@ export class Browser {
 
   async back() {
     await this.call('Runtime.evaluate', { expression: 'history.back()' });
+  }
+
+  async forward() {
+    await this.call('Runtime.evaluate', { expression: 'history.forward()' });
   }
 
   async reload() {

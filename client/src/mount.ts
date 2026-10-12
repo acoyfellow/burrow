@@ -1,7 +1,7 @@
 import { Effect, Queue, Schema, Stream } from 'effect';
 import { Mount } from 'foldkit';
 import { Message } from './message';
-import { attachBrowserHost } from './surfaces/browser-host';
+import { attachBrowser } from './surfaces/browser';
 import { attachTerminal } from './surfaces/terminal';
 
 const hold = <A>(
@@ -32,7 +32,7 @@ export const BrowserSurface = Mount.defineStream('BrowserSurface', {
   execute: ({ element, thread }) =>
     hold<typeof Message.FailedSurface.Type>(
       (host, emit) =>
-        attachBrowserHost(host, thread, (reason) => emit(Message.FailedSurface({ reason }))),
+        attachBrowser(host, thread, (reason) => emit(Message.FailedSurface({ reason }))),
       element,
     ),
 });

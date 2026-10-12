@@ -140,20 +140,16 @@ describe('closing the browser', () => {
   });
 });
 
-describe('browser modes', () => {
-  it('runs headless for the screencast and headed on a virtual display for vnc and webrtc', async () => {
+describe('browser launch', () => {
+  it('runs one headed Chromium on a virtual display shared over VNC', async () => {
     const { browserArgs } = await import('../src/browser');
-    const screencast = browserArgs('screencast').join(' ');
-    const vnc = browserArgs('vnc').join(' ');
+    const script = browserArgs().join(' ');
 
-    expect(screencast).toContain('--headless=new');
-    expect(screencast).not.toContain('Xvfb');
-    expect(vnc).not.toContain('--headless');
-    expect(vnc).toContain('Xvfb :99');
-    expect(vnc).toContain('x11vnc -display :99 -rfbport 5900');
-    expect(vnc).toContain('DISPLAY=:99 exec /usr/bin/chromium');
-    expect(vnc).not.toContain('webrtc.py');
-    expect(browserArgs('webrtc').join(' ')).toContain('python3 -u /opt/webrtc.py');
-    expect(browserArgs('webrtc').join(' ')).not.toContain('pkill -f');
+    expect(script).not.toContain('--headless');
+    expect(script).toContain('Xvfb :99');
+    expect(script).toContain('x11vnc -display :99 -rfbport 5900');
+    expect(script).toContain('DISPLAY=:99 exec /usr/bin/chromium');
+    expect(script).toContain('--test-type');
+    expect(script).not.toContain('pkill -f');
   });
 });
