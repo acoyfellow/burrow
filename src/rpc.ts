@@ -119,6 +119,7 @@ export type CoilApi = {
   readonly addTerminal: (name: string) => Promise<readonly Surface[]>;
   readonly addBrowser: (name: string) => Promise<readonly Surface[]>;
   readonly browserMode: (name: string) => Promise<typeof BrowserMode.Type>;
+  readonly vncProbe: (name: string) => Promise<string>;
   readonly setBrowserMode: (
     name: string,
     mode: typeof BrowserMode.Type,
@@ -178,6 +179,7 @@ export const handlersFor = (caller: Caller) => {
       attempt(() => (kind === 'browser' ? api.addBrowser(name) : api.addTerminal(name))),
     CloseSurface: ({ name, id }) => attempt(() => api.closeSurface(name, id)),
     GetBrowserMode: ({ name }) => attempt(() => api.browserMode(name)),
+    VncProbe: ({ name }) => attempt(() => api.vncProbe(name)),
     SetBrowserMode: ({ name, mode }) => attempt(() => api.setBrowserMode(name, mode)),
     Wake: ({ name }) => attempt(() => api.wake(name)),
     StartLoop: ({ name, spec }) => attempt(() => api.startLoop(name, spec)),

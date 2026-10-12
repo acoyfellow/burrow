@@ -305,6 +305,7 @@ export const CoilRpcs = RpcGroup.make(
     success: ThreadView,
     error: CoilError,
   }),
+  Rpc.make('VncProbe', { payload: target, success: Schema.String, error: CoilError }),
   Rpc.make('GetBrowserMode', { payload: target, success: BrowserMode, error: CoilError }),
   Rpc.make('SetBrowserMode', {
     payload: { ...target, mode: BrowserMode },

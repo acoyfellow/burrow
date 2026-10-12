@@ -1406,6 +1406,28 @@ export class Thread extends DurableObject<Env> {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  async vncProbe(): Promise<string> {
+    const container = this.ctx.container;
+
+    if (container === undefined) return 'no container';
+
+    try {
+      const socket = container.getTcpPort(VNC_PORT).connect(`localhost:${VNC_PORT}`);
+
+      await socket.opened;
+      const reader = socket.readable.getReader();
+      const first = await Promise.race([
+        reader.read(),
+        new Promise<{ value?: Uint8Array }>((r) => setTimeout(() => r({}), 3000)),
+      ]);
+      await socket.close().catch(() => undefined);
+
+      return `opened; first bytes: ${new TextDecoder().decode(first.value ?? new Uint8Array()).slice(0, 12)}`;
+    } catch (cause) {
+      return `failed: ${String(cause)}`;
+    }
+  }
+
   private async untilVnc(container: Container): Promise<Socket> {
     let lastError: unknown = null;
 

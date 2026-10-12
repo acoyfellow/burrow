@@ -32,7 +32,7 @@ const startDisplay = [
   `Xvfb ${DISPLAY} -screen 0 ${VIEWPORT.width}x${VIEWPORT.height}x24 -nolisten tcp -ac >/tmp/xvfb.log 2>&1 &`,
   'for i in $(seq 1 50); do [ -e /tmp/.X11-unix/X99 ] && break; sleep 0.1; done',
   `DISPLAY=${DISPLAY} openbox >/tmp/openbox.log 2>&1 &`,
-  `x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -localhost -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
+  `x11vnc -display ${DISPLAY} -rfbport ${VNC_PORT} -forever -shared -nopw -noxdamage -quiet >/tmp/x11vnc.log 2>&1 &`,
 ].join('\n');
 
 export const browserArgs = (mode: BrowserMode = 'screencast') =>

@@ -150,7 +150,7 @@ describe('browser modes', () => {
     expect(screencast).not.toContain('Xvfb');
     expect(vnc).not.toContain('--headless');
     expect(vnc).toContain('Xvfb :99');
-    expect(vnc).toContain('x11vnc -display :99 -rfbport 5900 -localhost');
+    expect(vnc).toContain('x11vnc -display :99 -rfbport 5900');
     expect(vnc).toContain('DISPLAY=:99 exec /usr/bin/chromium');
   });
 });

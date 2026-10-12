@@ -79,6 +79,7 @@ export const coil = (env: Env, owner: string) => {
     addTerminal: async (name: string) => (await known(name)).addTerminal(),
     addBrowser: async (name: string) => (await known(name)).addBrowser(),
     browserMode: async (name: string) => (await known(name)).browserMode(),
+    vncProbe: async (name: string) => (await known(name)).vncProbe(),
     setBrowserMode: async (name: string, mode: BrowserMode) =>
       (await known(name)).setBrowserMode(mode),
     closeSurface: async (name: string, id: string) => (await known(name)).closeSurface(id),
