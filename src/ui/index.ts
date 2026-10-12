@@ -2,7 +2,7 @@ import { APP_ENTRY } from './app.generated';
 import { FONTS, STYLE } from './style';
 import { TERM_VERSION } from './term.generated';
 
-export const page = () => `<!doctype html>
+export const page = (origin = '') => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -20,7 +20,8 @@ export const page = () => `<!doctype html>
 <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
 <meta property="og:title" content="coil">
 <meta property="og:description" content="Agent threads with their own computer: terminals, a browser, and a disk you can fork.">
-<meta property="og:image" content="/brand/coil-social.png">
+<meta property="og:image" content="${origin}/brand/coil-social.png">
+<meta name="twitter:image" content="${origin}/brand/coil-social.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">

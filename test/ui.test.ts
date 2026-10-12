@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { page } from '../src/ui/index';
 import { sharedPage } from '../src/ui/shared';
 import { STYLE } from '../src/ui/style';
 import { serviceWorker } from '../src/ui/sw';
@@ -82,4 +83,24 @@ it('the page shell uses the brand favicon and social card', () => {
 
   expect(html).toContain('/icons/favicon.svg');
   expect(html).toContain('/brand/coil-social.png');
+});
+
+describe('link previews', () => {
+  it('points og:image and twitter:image at an absolute URL on the serving host', () => {
+    const html = page('https://coil.example.com');
+
+    expect(html).toContain(
+      '<meta property="og:image" content="https://coil.example.com/brand/coil-social.png">',
+    );
+    expect(html).toContain(
+      '<meta name="twitter:image" content="https://coil.example.com/brand/coil-social.png">',
+    );
+  });
+
+  it('ships the social card the page points at', () => {
+    const png = readFileSync('public/brand/coil-social.png');
+
+    expect(png.readUInt32BE(16)).toBe(1200);
+    expect(png.readUInt32BE(20)).toBe(630);
+  });
 });

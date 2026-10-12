@@ -182,7 +182,7 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
   }
 
   if (PAGE.test(pathname) && request.method === 'GET')
-    return new Response(page(), {
+    return new Response(page(new URL(request.url).origin), {
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
     });
 

@@ -162,7 +162,7 @@ def social():
         f'<g fill="{ORANGE}" transform="translate({num(x)} {num(y)}) scale({num(scale)})">{paths}</g>'
         f'<text x="{w // 2}" y="{num(y + HEIGHT * scale + 86)}" text-anchor="middle" fill="#ECECF0" '
         f'font-family="Google Sans Flex, Google Sans, system-ui, sans-serif" font-size="34" font-weight="500">'
-        f'Every agent thread gets a real computer you share with it.</text>'
+        f'Agent threads with their own computer, in the cloud.</text>'
     )
     return svg(f"0 0 {w} {h}", body)
 
