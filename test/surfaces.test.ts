@@ -154,5 +154,6 @@ describe('browser modes', () => {
     expect(vnc).toContain('DISPLAY=:99 exec /usr/bin/chromium');
     expect(vnc).not.toContain('webrtc.py');
     expect(browserArgs('webrtc').join(' ')).toContain('python3 -u /opt/webrtc.py');
+    expect(browserArgs('webrtc').join(' ')).not.toContain('pkill -f /opt/webrtc.py');
   });
 });
