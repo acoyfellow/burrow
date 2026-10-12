@@ -70,6 +70,14 @@ It is an installable PWA: add it to your dock or home screen.
 | **Computer size** | Pick `lite` to `standard-4` when you create a thread, or change it later from the bar. A running computer is paused (disk saved) and restarted at the new size; programs that were running stop. |
 | **Your threads only** | Each person behind Access has their own thread list, and children and forks belong to whoever started them. |
 | **Warm bases** | `POST /api/bases {repo, setup}` clones a repo, runs setup once, and snapshots it. |
+| **Chat** | Replies render as markdown. **Stop** ends a turn and the commands it started within 5 seconds. **Edit** and **Retry** on your messages send a new turn. History shows the files each turn changed. Drop a file on the page to put it in `/workspace/uploads` (10 MB max). |
+| **Command palette** | ⌘K (Ctrl+K) searches threads by title and runs actions: new thread, share, rename, archive, stop all loops. |
+| **Models and spend** | Pick the model per thread from the bar. A meter shows context used and dollars spent for the thread. |
+| **Tools** | Besides `run`, `read_file` and `write_file`: `edit_file`, `web_fetch` (public URLs, 15 s, 400 KB), `notes_read`/`notes_write` (notes that survive compaction), `job_start`/`job_status` (long commands in the background), and browser tools including `browser_logs` and `browser_screenshot` (a vision model describes the page). |
+| **Threads talk to each other** | The agent can list, read, create, and message your other threads. Text from another thread is handed over as data, never as instructions, and it can only reach threads you own. |
+| **Loops** | Give a thread a prompt, how often to run it (30 s or more), a run limit (up to 200), a dollar limit (up to $20), and an optional gate command. The loop stops when the gate exits 0, a limit is reached, or you press Stop, and it writes a digest of what happened. ⌘K → *Stop every loop* is the kill switch. |
+| **Share links** | **Share** gives a read-only page of the conversation at `/s/<token>`. It is still behind your Access login, only the owner can make or remove it, and removing it makes the link 404. |
+| **Notifications** | Turn them on with *Notify me*. When a thread or loop finishes while coil is in the background, you get a notification that opens the thread. A coil tab must be open. |
 
 On a phone you get the transcript and the composer, with the computer and actions behind a menu:
 
@@ -188,11 +196,13 @@ The terminal renderer, [cloudterm](https://github.com/acoyfellow/cloudterm), rep
 - **It does not work offline.** The PWA caches the app shell so it opens instantly and shows your last view, but threads, terminals, and the browser need the network.
 - **Terminals have no mouse support.** Scroll back with tmux keys, not the wheel.
 - **Commands the agent runs stop after 120 seconds.** Start long-running servers in the background; you can run anything in a terminal.
-- **It is not a team workspace.** Everyone your [Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy lets in gets their own threads, keyed on the email in the Access token: you cannot see, open, or drive anyone else's thread, and a name someone else took is refused. There is no sharing or handing a thread to a colleague yet. Warm bases are shared by repo URL. Workers AI and container usage for everyone is billed to the deploying account. The Worker verifies the Access token itself, refuses tokens without an email, and returns 503 if Access is not configured.
+- **It is not a team workspace.** Everyone your [Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy lets in gets their own threads, keyed on the email in the Access token: you cannot see, open, or drive anyone else's thread, and a name someone else took is refused. Share links give people your Access policy allows a read-only view; nobody else can drive your threads. Warm bases are shared by repo URL. Workers AI and container usage for everyone is billed to the deploying account. The Worker verifies the Access token itself, refuses tokens without an email, and returns 503 if Access is not configured.
 - **It is not a security boundary for hostile code on its own.** Computers have internet access.
-- **Replies arrive whole, not token by token.** The Workers AI bridge returns complete messages; tool calls and their output stream live.
+- **Spend has hard limits.** Each owner is capped at $25 across all threads; a working turn counts $0.50 against that until it settles. At most 8 threads work at once per owner, and agents can create at most 40 threads per owner (20 per thread). A looping thread cannot start or message other threads. One expensive turn can still go past a limit before it is stopped.
+- **The computer has no node or python.** It has bash, coreutils, busybox, git and Chromium. Install what you need in a terminal, or use a warm base.
+- **Notifications need an open tab.** There is no Web Push yet.
 - **`run` and `start_child` are `replay: "unsafe"`.** If a thread dies mid-command, Pi Durable does not run the command again.
-- **There is no diff review view.** Use the terminal or the file browser.
+- **Turn diffs are read-only.** History shows each turn's diff; there is no accept or reject step.
 
 ## Why the browser runs in the computer
 

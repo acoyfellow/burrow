@@ -5,8 +5,6 @@ import {
   type Agent,
   type BrowserTools,
   type Children,
-  DEFAULT_EXTRAS,
-  type Extras,
   type Message,
   type ModelChoice,
   openAgent,
@@ -36,7 +34,6 @@ import { workersAI } from './model';
 import { bounded, HUMAN_LIMIT_SECONDS } from './shell';
 import { DEFAULT_SIZE, type Size } from './size';
 import { bridge, parseSize, SESSION, terminalEnv, tmuxArgs } from './terminal';
-import { runTerrarium } from './terrarium';
 
 const TURN_DIFF_LIMIT = 60_000;
 
@@ -101,11 +98,6 @@ export type Env = {
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
-  readonly TERRARIUM?: Fetcher;
-  readonly TERRARIUM_URL?: string;
-  readonly TERRARIUM_TOKEN?: string;
-  readonly TERRARIUM_ACCESS_CLIENT_ID?: string;
-  readonly TERRARIUM_ACCESS_CLIENT_SECRET?: string;
 };
 
 export type LiveEvent =
@@ -608,7 +600,7 @@ export class Thread extends DurableObject<Env> {
       this.settings(),
       () => this.ledger.origin.seed,
       this.browserTools(),
-      this.extras(),
+      undefined,
       this.threadDirectory(),
     )
       .then(async (agent) => {
@@ -916,24 +908,6 @@ export class Thread extends DurableObject<Env> {
     await this.publish();
 
     return pair;
-  }
-
-  private extras(): Extras {
-    const via = this.env.TERRARIUM;
-    const url =
-      this.env.TERRARIUM_URL ?? (via === undefined ? undefined : 'https://terrarium.internal');
-    const token = this.env.TERRARIUM_TOKEN;
-
-    if (url === undefined || url === '' || token === undefined || token === '')
-      return DEFAULT_EXTRAS;
-
-    const accessId = this.env.TERRARIUM_ACCESS_CLIENT_ID;
-    const accessSecret = this.env.TERRARIUM_ACCESS_CLIENT_SECRET;
-
-    return {
-      ...DEFAULT_EXTRAS,
-      terrarium: (task) => runTerrarium({ via, url, token, accessId, accessSecret }, task),
-    };
   }
 
   snapshot(): Promise<Snapshot> {
