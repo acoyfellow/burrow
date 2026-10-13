@@ -32,7 +32,8 @@ const asked = (context: Context): string => {
   return '';
 };
 
-const toolRan = (context: Context) => context.messages.at(-1)?.role === 'toolResult';
+const toolRan = (context: Context) =>
+  context.messages.findLast((m) => m.role !== 'system')?.role === 'toolResult';
 
 const fileFrom = (request: string) => {
   const match = /write (\S+) containing (.+)$/.exec(request);
