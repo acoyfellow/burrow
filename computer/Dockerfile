@@ -17,6 +17,7 @@ COPY --from=surfaces /etc/terminfo /etc/terminfo
 COPY --from=surfaces /etc/xdg /etc/xdg
 COPY --from=surfaces /usr/share/X11 /usr/share/X11
 COPY prepare.sh /opt/prepare.sh
+COPY pi-host.mjs /opt/pi-ext/pi-host.mjs
 RUN ["/sandbox/bin/bash", "/opt/prepare.sh"]
 ENV PATH=/sandbox/bin:/opt/busybox:/usr/local/bin:/usr/bin \
     TERMINFO_DIRS=/etc/terminfo \

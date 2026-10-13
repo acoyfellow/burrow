@@ -12,3 +12,8 @@ ln -sf /sandbox/bin/env /usr/bin/env
 
 echo 'root:x:0:0:root:/root:/sandbox/bin/bash' > /etc/passwd
 echo 'root:x:0:' > /etc/group
+
+mkdir -p /opt/pi-ext/calls /opt/pi-ext/agent-dir
+cd /opt/pi-ext
+printf '{"name":"coil-pi-host","private":true,"type":"module"}' > package.json
+PATH=/usr/bin:/sandbox/bin:/opt/busybox SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-bundle.crt HOME=/root npm install --no-audit --no-fund --omit=dev @earendil-works/pi-coding-agent@1.2.0 typebox

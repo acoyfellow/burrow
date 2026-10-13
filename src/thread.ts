@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import type { AgentEvent, HarnessSettings } from '@earendil-works/pi-durable';
+import type { AgentEvent, Extension, HarnessSettings } from '@earendil-works/pi-durable';
 import { GATEWAY_MODELS, modelInfo } from '../shared/models';
 import {
   type Agent,
@@ -28,6 +28,13 @@ import {
   WORKSPACE,
 } from './computer';
 import type { Directory, ThreadUpdate } from './directory';
+import {
+  describeExtensions,
+  extensionTools,
+  isExtensionReport,
+  preparePaths,
+  workspaceTarget,
+} from './extensions';
 import { gatewayModel, isGatewayModel } from './gateway';
 import {
   type ExecRecord,
@@ -643,6 +650,7 @@ export class Thread extends DurableObject<Env> {
       this.threadDirectory(),
       this.otherProviders(),
       (id) => this.route(id),
+      this.plugins(),
     )
       .then(async (agent) => {
         this.unwatch ??= await agent.watch((events) => {
@@ -921,6 +929,16 @@ export class Thread extends DurableObject<Env> {
 
   readFile(path: string): Promise<string> {
     return this.using(async () => (await this.awake()).readFile(path));
+  }
+
+  writeFile(path: string, content: string): Promise<{ path: string; bytes: number }> {
+    return this.using(async () => {
+      const target = workspaceTarget(path);
+
+      await (await this.awake()).writeFile(target, content);
+
+      return { path: target, bytes: new TextEncoder().encode(content).byteLength };
+    });
   }
 
   list(path: string): Promise<Entry[]> {
@@ -1339,6 +1357,50 @@ export class Thread extends DurableObject<Env> {
         connection: 'keep-alive',
       },
     });
+  }
+
+  private plugins(): Extension[] {
+    const saved = this.ledger.extensions;
+
+    if (saved === null) return [];
+
+    const report: unknown = JSON.parse(saved.report);
+
+    return isExtensionReport(report) && report.tools.length > 0
+      ? [extensionTools(() => this.awake(), saved.paths, report)]
+      : [];
+  }
+
+  async setExtensions(sources: string[]): Promise<string> {
+    return this.using(async () => {
+      if (this.ledger.busy)
+        throw new Error('wait for the agent to finish before changing extensions');
+
+      if (sources.length === 0) {
+        this.ledger.extensions = null;
+        await this.reopenAgent();
+
+        return JSON.stringify({ tools: [], errors: [], unsupported: [] });
+      }
+
+      const computer = await this.awake();
+      const paths = await preparePaths(computer, sources);
+      const report = await describeExtensions(computer, paths);
+
+      this.ledger.extensions = { paths, report: JSON.stringify(report) };
+      await this.reopenAgent();
+
+      return JSON.stringify(report);
+    });
+  }
+
+  private async reopenAgent() {
+    const current = this.agent;
+
+    this.agent = undefined;
+    this.unwatch?.();
+    this.unwatch = undefined;
+    await current?.then((agent) => agent.close()).catch(() => undefined);
   }
 
   browserOpen(url: string): Promise<string> {

@@ -7,6 +7,7 @@ const GROUPS: readonly { readonly key: Capability['group']; readonly title: stri
   { key: 'files', title: 'Files' },
   { key: 'browser', title: 'Browser' },
   { key: 'computer', title: 'Computer' },
+  { key: 'extensions', title: 'Pi extensions' },
   { key: 'bases', title: 'Warm bases' },
 ];
 

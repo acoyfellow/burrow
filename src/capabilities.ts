@@ -10,7 +10,7 @@ export type Field = {
 
 export type Capability = {
   readonly name: string;
-  readonly group: 'threads' | 'shell' | 'files' | 'browser' | 'computer' | 'bases';
+  readonly group: 'threads' | 'shell' | 'files' | 'browser' | 'computer' | 'extensions' | 'bases';
   readonly summary: string;
   readonly input: Readonly<Record<string, Field>>;
   readonly required: readonly string[];
@@ -33,6 +33,15 @@ const optional = (args: Readonly<Record<string, unknown>>, field: string): strin
   const value = args[field];
 
   return typeof value === 'string' && value !== '' ? value : undefined;
+};
+
+const list = (args: Readonly<Record<string, unknown>>, field: string): string[] => {
+  const value = args[field];
+
+  if (!Array.isArray(value) || !value.every((item): item is string => typeof item === 'string'))
+    throw new CapabilityInputError(`${field} must be a list of strings`);
+
+  return value;
 };
 
 const NAME: Field = { type: 'string', description: 'Thread name, for example "fix-login-3a9c2e"' };
@@ -133,6 +142,20 @@ export const CAPABILITIES: readonly Capability[] = [
     run: (api, args) => api.read(text(args, 'name'), text(args, 'path')),
   },
   {
+    name: 'thread_write_file',
+    group: 'files',
+    summary:
+      'Write a text file into /workspace on the thread computer, for example to upload a local pi extension folder file by file.',
+    input: {
+      name: NAME,
+      path: { type: 'string', description: 'Relative to /workspace; must stay inside it' },
+      content: { type: 'string', description: 'The full text of the file' },
+    },
+    required: ['name', 'path', 'content'],
+    returns: '{ path, bytes }',
+    run: (api, args) => api.write(text(args, 'name'), text(args, 'path'), text(args, 'content')),
+  },
+  {
     name: 'browser_open',
     group: 'browser',
     summary: "Load a URL in the thread's browser. localhost is the thread computer.",
@@ -219,6 +242,23 @@ export const CAPABILITIES: readonly Capability[] = [
 
       return api.resize(text(args, 'name'), size);
     },
+  },
+  {
+    name: 'thread_extensions',
+    group: 'extensions',
+    summary:
+      'Load stock pi extensions into the thread. Each source is an https git URL (optionally #ref) or a ./path inside /workspace, for example an uploaded folder. Their tools run inside the thread computer and the agent can call them from its next turn. An empty list removes them.',
+    input: {
+      name: NAME,
+      sources: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'For example ["https://github.com/owner/repo", "./uploads/my-extension"]',
+      },
+    },
+    required: ['name', 'sources'],
+    returns: '{ tools: [{ name, description, extension }], errors, unsupported }',
+    run: (api, args) => api.setExtensions(text(args, 'name'), list(args, 'sources')),
   },
   {
     name: 'base_prepare',

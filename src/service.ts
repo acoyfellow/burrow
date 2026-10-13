@@ -75,6 +75,8 @@ export const coil = (env: Env, owner: string) => {
 
       return (await known(name)).fetch(new Request(`https://thread/${kind}${url.search}`, request));
     },
+    setExtensions: async (name: string, sources: readonly string[]): Promise<unknown> =>
+      JSON.parse(await (await known(name)).setExtensions([...sources])),
     browserOpen: async (name: string, url: string) => (await known(name)).browserOpen(url),
     browserSnapshot: async (name: string) => (await known(name)).browserSnapshot(),
     browserClick: async (name: string, ref: string) => (await known(name)).browserClick(ref),
@@ -91,6 +93,8 @@ export const coil = (env: Env, owner: string) => {
       (await known(name)).send(requestId, text),
     exec: async (name: string, argv: string[]) => (await known(name)).exec(argv),
     read: async (name: string, path: string) => (await known(name)).readFile(path),
+    write: async (name: string, path: string, content: string) =>
+      (await known(name)).writeFile(path, content),
     list_dir: async (name: string, path: string) => (await known(name)).list(path),
     compact: async (name: string) => (await known(name)).compact(),
     pause: async (name: string) => (await known(name)).pause(),

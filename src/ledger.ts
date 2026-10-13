@@ -192,6 +192,33 @@ export class Ledger {
     return this.get('model');
   }
 
+  get extensions(): { readonly paths: readonly string[]; readonly report: string } | null {
+    const raw = this.get('extensions');
+
+    if (raw === null) return null;
+
+    const parsed: unknown = JSON.parse(raw);
+
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('paths' in parsed) ||
+      !('report' in parsed)
+    )
+      return null;
+
+    const { paths, report } = parsed;
+
+    return Array.isArray(paths) && typeof report === 'string'
+      ? { paths: paths.filter((path): path is string => typeof path === 'string'), report }
+      : null;
+  }
+
+  set extensions(next: { readonly paths: readonly string[]; readonly report: string } | null) {
+    if (next === null) this.sql.exec('DELETE FROM coil_kv WHERE key = ?', 'extensions');
+    else this.put('extensions', JSON.stringify(next));
+  }
+
   set model(id: string) {
     this.put('model', id);
   }

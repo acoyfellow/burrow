@@ -12,6 +12,7 @@ import {
   createRegistry,
   defineExtension,
   defineTool,
+  type Extension,
   Harness,
   type HarnessSettings,
   section,
@@ -171,7 +172,7 @@ const NOTES_LIMIT = 20_000;
 
 const shellQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
-const text = (value: string) => ({ content: [{ type: 'text' as const, text: value }] });
+const text = (value: string) => ({ output: [{ type: 'text' as const, text: value }] });
 
 const clip = (value: string, max = 12_000) =>
   value.length > max ? `${value.slice(0, max)}\n[... ${value.length - max} more chars]` : value;
@@ -567,6 +568,7 @@ export const openAgent = async (
   threads: ThreadDirectory = NO_THREADS,
   extraProviders: readonly Provider[] = [],
   route: ModelRoute = () => model,
+  plugins: readonly Extension[] = [],
 ): Promise<Agent> => {
   const models = createModels(model.options);
 
@@ -593,6 +595,8 @@ export const openAgent = async (
       tools: tools(computer, ledger, children, browser, extras, threads),
     }),
   );
+
+  for (const plugin of plugins) registry.install(plugin);
 
   const harness = await Harness.open(
     await openDurableObjectSqliteStorage(storage),
