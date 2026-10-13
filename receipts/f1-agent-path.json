@@ -1,0 +1,90 @@
+{
+  "feature": "F1 agent path",
+  "base": "https://coil.coey.dev",
+  "at": "2026-10-13T16:32:45.571Z",
+  "ms": 15258,
+  "checks": {
+    "llmsTxt": true,
+    "docsPage": true,
+    "mcpListsRunAndDescribe": true,
+    "describeDeclaresCoil": true,
+    "runOk": true,
+    "shellRan": true,
+    "browserClickedTwice": true,
+    "paused": true
+  },
+  "passed": true,
+  "mcpTools": [
+    "coil_describe",
+    "coil_run",
+    "thread_list",
+    "thread_create",
+    "thread_send",
+    "thread_status",
+    "thread_fork",
+    "thread_exec",
+    "thread_read_file",
+    "browser_open",
+    "browser_snapshot",
+    "browser_click",
+    "browser_type",
+    "browser_eval",
+    "thread_compact",
+    "thread_pause",
+    "thread_resize",
+    "base_prepare"
+  ],
+  "run": {
+    "ok": true,
+    "result": {
+      "thread": "f1-receipt-06809d",
+      "uname": "Linux",
+      "ref": "e1",
+      "clicked": "clicked e1; now at (no title)\nhttp://localhost:3000/",
+      "count": "2",
+      "paused": true
+    },
+    "calls": [
+      {
+        "capability": "thread_create",
+        "ok": true,
+        "ms": 806
+      },
+      {
+        "capability": "thread_exec",
+        "ok": true,
+        "ms": 2359
+      },
+      {
+        "capability": "browser_open",
+        "ok": true,
+        "ms": 4427
+      },
+      {
+        "capability": "browser_snapshot",
+        "ok": true,
+        "ms": 57
+      },
+      {
+        "capability": "browser_click",
+        "ok": true,
+        "ms": 539
+      },
+      {
+        "capability": "browser_click",
+        "ok": true,
+        "ms": 468
+      },
+      {
+        "capability": "browser_eval",
+        "ok": true,
+        "ms": 47
+      },
+      {
+        "capability": "thread_pause",
+        "ok": true,
+        "ms": 5510
+      }
+    ]
+  }
+}
