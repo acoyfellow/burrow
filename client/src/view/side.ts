@@ -38,6 +38,30 @@ const row = (h: H, model: Model, thread: ThreadSummary, child: boolean): Html =>
     ],
   );
 
+const CLOUDFLARE_OWNER_PREFIX = 'cf:';
+
+const isCloudflareUser = (who: string) => who.startsWith(CLOUDFLARE_OWNER_PREFIX);
+
+const signedInLabel = (who: string) => (isCloudflareUser(who) ? 'Signed in with Cloudflare' : who);
+
+const signOut = (h: H, who: string): Html[] =>
+  isCloudflareUser(who)
+    ? [
+        h.form(
+          [h.Id('sign-out'), h.Class('sign-out'), h.Method('post'), h.Action('/oauth/logout')],
+          [
+            h.button(
+              [
+                h.Type('submit'),
+                h.DataAttribute('tip', 'Sign out and remove coil access to your account'),
+              ],
+              ['Sign out'],
+            ),
+          ],
+        ),
+      ]
+    : [];
+
 const archivedToggle = (h: H, model: Model, count: number): Html[] =>
   count === 0
     ? []
@@ -192,7 +216,8 @@ export const side = (h: H, model: Model): Html =>
       h.div(
         [h.Class('who')],
         [
-          h.span([h.Id('whoami')], [model.who]),
+          h.span([h.Id('whoami')], [signedInLabel(model.who)]),
+          ...signOut(h, model.who),
           h.button(
             [
               h.Id('spend'),

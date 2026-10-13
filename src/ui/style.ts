@@ -69,6 +69,9 @@ textarea{resize:none}
 .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .who .spend{font:11.5px var(--mono);color:var(--dim);padding:2px 6px;border-radius:6px;flex:none}
 .who .spend:hover{background:var(--hover);color:var(--fg)}
+.who .sign-out{margin:0;flex:none;display:flex}
+.who .sign-out button{font-size:12px;padding:2px 8px;border:1px solid var(--line2);border-radius:6px;color:var(--dim)}
+.who .sign-out button:hover{color:var(--fg);background:var(--hover)}
 
 .main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .bar{display:flex;align-items:center;gap:4px;padding:0 10px 0 14px;border-bottom:1px solid var(--line);height:42px;flex:none}

@@ -75,11 +75,11 @@ if [ -n "${COIL_MODEL_GATEWAY_TOKEN_COMMAND:-}" ]; then
 fi
 
 if [ "$auth" = cloudflare ]; then
-  secrets=$(npx wrangler secret list -c "$COIL_WRANGLER_CONFIG" 2>/dev/null || true)
+  secrets=$(CLOUDFLARE_ACCOUNT_ID="$COIL_ACCOUNT_ID" npx wrangler secret list -c "$COIL_WRANGLER_CONFIG" 2>/dev/null || true)
   for name in OAUTH_CLIENT_SECRET SESSION_SECRET; do
     case "$secrets" in
-      *"\"$name\""*) ;;
-      *) echo "set the Worker secret $name first: npx wrangler secret put $name -c $COIL_WRANGLER_CONFIG" >&2; exit 1 ;;
+      *"\"name\": \"$name\""* | *"\"name\":\"$name\""*) ;;
+      *) echo "set the Worker secret $name first: CLOUDFLARE_ACCOUNT_ID=$COIL_ACCOUNT_ID npx wrangler secret put $name -c $COIL_WRANGLER_CONFIG" >&2; exit 1 ;;
     esac
   done
 fi

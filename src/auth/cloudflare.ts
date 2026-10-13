@@ -233,6 +233,21 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
     return redirect('/', [clearCookie(jar, jar.session)]);
   };
 
+  const me = async (request: Request) => {
+    const session = await sessionOf(request);
+
+    if (session === null) return Response.json({ signedIn: false }, { status: 401 });
+
+    const grant = await directory().grantFor(session.owner);
+
+    return Response.json({
+      signedIn: true,
+      email: grant?.email ?? null,
+      account: grant?.accountName ?? null,
+      gateway: grant?.gateway ?? null,
+    });
+  };
+
   return {
     mode: 'cloudflare',
     routes: async (request) => {
@@ -243,6 +258,8 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
       if (pathname === '/oauth/callback' && request.method === 'GET') return callback(request);
 
       if (pathname === '/oauth/logout' && request.method === 'POST') return logout(request);
+
+      if (pathname === '/oauth/me' && request.method === 'GET') return me(request);
 
       return null;
     },
