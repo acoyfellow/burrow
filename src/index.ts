@@ -1,5 +1,7 @@
 import { Context } from 'effect';
 import { AccessDenied, accessConfig, verifyAccess } from './access';
+import { CapabilityInputError, capabilityNamed } from './capabilities';
+import { docsPage, llmsText } from './docs';
 import { mcp } from './mcp';
 import { serveRest } from './rest';
 import { type Caller, handlersFor, isRpcPath, rpcHandler } from './rpc';
@@ -11,6 +13,7 @@ import { serviceWorker } from './ui/sw';
 import { TERM_JS, TERM_VERSION } from './ui/term.generated';
 
 export { Directory } from './directory';
+export { CoilBridge } from './run';
 export { Thread } from './thread';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
@@ -28,6 +31,8 @@ const UPLOAD_LIMIT = 10 * 1024 * 1024;
 const UPLOAD_NAME = /^[\w.-]{1,120}$/;
 
 const SHARED = /^\/s\/([A-Za-z0-9_-]{16,40})$/;
+
+const CAPABILITY_PATH = /^\/api\/capabilities\/([a-z_]{1,40})$/;
 
 const PAGE = /^\/(t\/[a-z0-9][a-z0-9-]{0,62})?\/?$/;
 
@@ -64,6 +69,34 @@ const receiveUpload = async (request: Request, caller: Owner, name: string): Pro
       { error: reason },
       { status: reason.startsWith('unknown thread') ? 404 : 500 },
     );
+  }
+};
+
+const bodyOf = async (request: Request): Promise<Record<string, unknown>> => {
+  const text = await request.text();
+
+  if (text.trim() === '') return {};
+
+  const parsed: unknown = JSON.parse(text);
+
+  return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+    ? Object.fromEntries(Object.entries(parsed))
+    : {};
+};
+
+const runCapability = async (request: Request, caller: Owner, name: string): Promise<Response> => {
+  const capability = capabilityNamed(name);
+
+  if (capability === undefined)
+    return Response.json({ error: `unknown capability ${name}` }, { status: 404 });
+
+  try {
+    return Response.json(await capability.run(caller.api, await bodyOf(request)));
+  } catch (cause) {
+    if (cause instanceof CapabilityInputError || cause instanceof SyntaxError)
+      return Response.json({ error: cause.message }, { status: 400 });
+
+    throw cause;
   }
 };
 
@@ -135,7 +168,23 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
 
   if (isRpcPath(pathname)) return rpcHandler(caller)(request, Context.empty());
 
-  if (pathname === '/mcp' && request.method === 'POST') return mcp(request, caller.api);
+  if (pathname === '/mcp' && request.method === 'POST')
+    return mcp(request, { env, who: caller.who, api: caller.api });
+
+  if (pathname === '/llms.txt' && request.method === 'GET')
+    return new Response(llmsText(url.origin), {
+      headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-cache' },
+    });
+
+  if (pathname === '/docs' && request.method === 'GET')
+    return new Response(docsPage(url.origin), {
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
+    });
+
+  const capability = CAPABILITY_PATH.exec(pathname);
+
+  if (capability?.[1] !== undefined && request.method === 'POST')
+    return runCapability(request, caller, capability[1]);
 
   if (pathname === `/assets/term-${TERM_VERSION}.js`)
     return script(TERM_JS, 'public, max-age=31536000, immutable');

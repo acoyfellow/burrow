@@ -1,153 +1,88 @@
+import { CAPABILITIES, capabilityNamed, inputSchema } from './capabilities';
+import { describe } from './docs';
+import { runScript } from './run';
+import { MAX_CALLS } from './run-module';
 import type { Coil } from './service';
-import { isSize, SIZES } from './size';
+import type { Env } from './thread';
 
 type Rpc = {
-  jsonrpc: '2.0';
-  id?: number | string;
-  method: string;
-  params?: { name?: string; arguments?: Record<string, unknown> };
+  readonly jsonrpc: '2.0';
+  readonly id?: number | string;
+  readonly method: string;
+  readonly params?: { readonly name?: string; readonly arguments?: Record<string, unknown> };
 };
 
-const str = (value: unknown, field: string): string => {
-  if (typeof value !== 'string' || value === '') throw new Error(`${field} is required`);
+type Caller = { readonly env: Env; readonly who: string; readonly api: Coil };
 
-  return value;
+const DESCRIBE_TOOL = {
+  name: 'coil_describe',
+  description:
+    'Return the TypeScript declaration of the `coil` object that coil_run scripts use. Read this first.',
+  inputSchema: { type: 'object', properties: {}, required: [] },
 };
 
-const opt = (value: unknown) => (typeof value === 'string' && value !== '' ? value : undefined);
-
-const obj = (
-  properties: Record<string, { type: string; description?: string }>,
-  required: string[] = [],
-) => ({
-  type: 'object',
-  properties,
-  required,
-});
-
-const NAME = { type: 'string', description: 'Thread name' };
-
-const SIZE = { type: 'string', enum: [...SIZES], description: 'Container size' };
+const RUN_TOOL = {
+  name: 'coil_run',
+  description: `Run the body of an async JavaScript function with a frozen \`coil\` object, for example \`const t = await coil.thread_create({}); return await coil.thread_exec({ name: t.name, command: "ls" });\`. Each \`coil.<capability>(input)\` is one call; at most ${MAX_CALLS} per run. The script has no network access. Returns { ok, result, calls }.`,
+  inputSchema: {
+    type: 'object',
+    properties: { code: { type: 'string', description: 'Async function body' } },
+    required: ['code'],
+  },
+};
 
 const TOOLS = [
-  {
-    name: 'thread_list',
-    description: 'List all threads, newest activity first.',
-    inputSchema: obj({}),
-  },
-  {
-    name: 'thread_create',
-    description:
-      'Create a thread: its own agent and its own Linux computer. Optional repo is a git URL; if a warm base exists for it, the computer starts from that.',
-    inputSchema: obj({
-      name: NAME,
-      repo: { type: 'string' },
-      title: { type: 'string' },
-      size: SIZE,
-    }),
-  },
-  {
-    name: 'thread_send',
-    description:
-      'Send a message to the thread agent and wait for the turn to finish. Returns its answer. Pass the same requestId to retry safely.',
-    inputSchema: obj({ name: NAME, text: { type: 'string' }, requestId: { type: 'string' } }, [
-      'name',
-      'text',
-    ]),
-  },
-  {
-    name: 'thread_exec',
-    description: 'Run a shell command in the thread computer, in /workspace.',
-    inputSchema: obj({ name: NAME, command: { type: 'string' } }, ['name', 'command']),
-  },
-  {
-    name: 'thread_read_file',
-    description: 'Read a file from the thread computer.',
-    inputSchema: obj({ name: NAME, path: { type: 'string' } }, ['name', 'path']),
-  },
-  {
-    name: 'thread_compact',
-    description: 'Compact the transcript and snapshot the disk, as one recorded pair.',
-    inputSchema: obj({ name: NAME }, ['name']),
-  },
-  {
-    name: 'thread_pause',
-    description: 'Snapshot the disk and stop the computer. The next call resumes it.',
-    inputSchema: obj({ name: NAME }, ['name']),
-  },
-  {
-    name: 'thread_resize',
-    description:
-      'Change the container size of a thread. A running computer is paused (disk saved) and restarted at the new size; a paused one uses it on its next start.',
-    inputSchema: obj({ name: NAME, size: SIZE }, ['name', 'size']),
-  },
-  {
-    name: 'thread_fork',
-    description:
-      'Start a new thread from this thread’s current disk and a summary of its conversation.',
-    inputSchema: obj({ name: NAME, forkName: { type: 'string' } }, ['name']),
-  },
-  {
-    name: 'thread_status',
-    description: 'Phase, transcript, compaction pairs, and recent commands of a thread.',
-    inputSchema: obj({ name: NAME }, ['name']),
-  },
-  {
-    name: 'base_prepare',
-    description:
-      'Clone a repo, run a setup command once, and snapshot it. New threads on that repo start from the snapshot.',
-    inputSchema: obj({ repo: { type: 'string' }, setup: { type: 'string' } }, ['repo']),
-  },
+  DESCRIBE_TOOL,
+  RUN_TOOL,
+  ...CAPABILITIES.map((capability) => ({
+    name: capability.name,
+    description: capability.summary,
+    inputSchema: inputSchema(capability),
+  })),
 ];
 
-const sizeArg = (value: unknown) => (isSize(value) ? value : undefined);
+const call = async (
+  caller: Caller,
+  tool: string,
+  args: Record<string, unknown>,
+): Promise<unknown> => {
+  if (tool === DESCRIBE_TOOL.name) return describe();
 
-const call = async (api: Coil, tool: string, args: Record<string, unknown>): Promise<unknown> => {
-  switch (tool) {
-    case 'thread_list':
-      return api.list();
-    case 'thread_create':
-      return api.create({
-        name: opt(args.name),
-        repo: opt(args.repo) ?? null,
-        title: opt(args.title),
-        createdBy: 'mcp',
-        size: sizeArg(args.size),
-      });
-    case 'thread_send':
-      return api.send(
-        str(args.name, 'name'),
-        opt(args.requestId) ?? crypto.randomUUID(),
-        str(args.text, 'text'),
-      );
-    case 'thread_exec':
-      return api.exec(str(args.name, 'name'), ['bash', '-lc', str(args.command, 'command')]);
-    case 'thread_read_file':
-      return api.read(str(args.name, 'name'), str(args.path, 'path'));
-    case 'thread_compact':
-      return api.compact(str(args.name, 'name'));
-    case 'thread_pause':
-      return api.pause(str(args.name, 'name'));
-    case 'thread_resize': {
-      const size = sizeArg(args.size);
+  if (tool === RUN_TOOL.name) {
+    const code = args.code;
 
-      if (size === undefined) throw new Error(`size must be one of ${SIZES.join(', ')}`);
+    if (typeof code !== 'string' || code.trim() === '') throw new Error('code is required');
 
-      return api.resize(str(args.name, 'name'), size);
-    }
-    case 'thread_fork':
-      return api.fork(str(args.name, 'name'), opt(args.forkName), 'mcp');
-    case 'thread_status':
-      return api.view(str(args.name, 'name'));
-    case 'base_prepare':
-      return api.prepare(str(args.repo, 'repo'), opt(args.setup) ?? '');
-    default:
-      throw new Error(`Unknown tool: ${tool}`);
+    return runScript(caller.env, caller.who, code);
   }
+
+  const capability = capabilityNamed(tool);
+
+  if (capability === undefined) throw new Error(`Unknown tool: ${tool}`);
+
+  return capability.run(caller.api, args);
 };
 
-export const mcp = async (request: Request, api: Coil): Promise<Response> => {
-  const rpc = (await request.json()) as Rpc;
+const textOf = (value: unknown) =>
+  typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+
+const isRpc = (value: unknown): value is Rpc =>
+  typeof value === 'object' &&
+  value !== null &&
+  'method' in value &&
+  typeof value.method === 'string';
+
+export const mcp = async (request: Request, caller: Caller): Promise<Response> => {
+  const body: unknown = await request.json();
+
+  if (!isRpc(body))
+    return Response.json({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32600, message: 'Invalid request' },
+    });
+
+  const rpc = body;
   const reply = (result: unknown) => Response.json({ jsonrpc: '2.0', id: rpc.id ?? null, result });
 
   if (rpc.id === undefined) return new Response(null, { status: 202 });
@@ -157,21 +92,19 @@ export const mcp = async (request: Request, api: Coil): Promise<Response> => {
       return reply({
         protocolVersion: '2025-06-18',
         capabilities: { tools: {} },
-        serverInfo: { name: 'coil', version: '0.2.0' },
+        serverInfo: { name: 'coil', version: '0.3.0' },
       });
     case 'tools/list':
       return reply({ tools: TOOLS });
     case 'tools/call':
       try {
-        const value = await call(api, str(rpc.params?.name, 'tool'), rpc.params?.arguments ?? {});
+        const value = await call(caller, rpc.params?.name ?? '', rpc.params?.arguments ?? {});
+        const failed =
+          typeof value === 'object' && value !== null && 'ok' in value && value.ok === false;
 
         return reply({
-          content: [
-            {
-              type: 'text',
-              text: typeof value === 'string' ? value : JSON.stringify(value, null, 2),
-            },
-          ],
+          content: [{ type: 'text', text: textOf(value) }],
+          ...(failed ? { isError: true } : {}),
         });
       } catch (cause) {
         return reply({

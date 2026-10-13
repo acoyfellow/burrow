@@ -96,6 +96,7 @@ export type Env = {
   readonly DIRECTORY: DurableObjectNamespace<Directory>;
   readonly AI: Ai;
   readonly ASSETS: Fetcher;
+  readonly LOADER: WorkerLoader;
   readonly MODEL: string;
   readonly AI_GATEWAY?: string;
   readonly MODEL_GATEWAY_URL?: string;
@@ -1338,6 +1339,26 @@ export class Thread extends DurableObject<Env> {
         connection: 'keep-alive',
       },
     });
+  }
+
+  browserOpen(url: string): Promise<string> {
+    return this.using(() => this.browserTools().open(url));
+  }
+
+  browserSnapshot(): Promise<string> {
+    return this.using(() => this.browserTools().snapshot());
+  }
+
+  browserClick(ref: string): Promise<string> {
+    return this.using(() => this.browserTools().click(ref));
+  }
+
+  browserType(text: string, ref?: string): Promise<string> {
+    return this.using(() => this.browserTools().type(text, ref));
+  }
+
+  browserEval(expression: string): Promise<string> {
+    return this.using(() => this.browserTools().evaluate(expression));
   }
 
   async addTerminal(): Promise<Surface[]> {

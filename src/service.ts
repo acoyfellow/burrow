@@ -75,6 +75,13 @@ export const coil = (env: Env, owner: string) => {
 
       return (await known(name)).fetch(new Request(`https://thread/${kind}${url.search}`, request));
     },
+    browserOpen: async (name: string, url: string) => (await known(name)).browserOpen(url),
+    browserSnapshot: async (name: string) => (await known(name)).browserSnapshot(),
+    browserClick: async (name: string, ref: string) => (await known(name)).browserClick(ref),
+    browserType: async (name: string, text: string, ref?: string) =>
+      (await known(name)).browserType(text, ref),
+    browserEval: async (name: string, expression: string) =>
+      (await known(name)).browserEval(expression),
     addTerminal: async (name: string) => (await known(name)).addTerminal(),
     addBrowser: async (name: string) => (await known(name)).addBrowser(),
     closeSurface: async (name: string, id: string) => (await known(name)).closeSurface(id),

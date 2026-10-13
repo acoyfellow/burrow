@@ -1,0 +1,90 @@
+{
+  "feature": "F1 agent path",
+  "base": "local dev server",
+  "at": "2026-10-13T16:28:29.774Z",
+  "ms": 18911,
+  "checks": {
+    "llmsTxt": true,
+    "docsPage": true,
+    "mcpListsRunAndDescribe": true,
+    "describeDeclaresCoil": true,
+    "runOk": true,
+    "shellRan": true,
+    "browserClickedTwice": true,
+    "paused": true
+  },
+  "passed": true,
+  "mcpTools": [
+    "coil_describe",
+    "coil_run",
+    "thread_list",
+    "thread_create",
+    "thread_send",
+    "thread_status",
+    "thread_fork",
+    "thread_exec",
+    "thread_read_file",
+    "browser_open",
+    "browser_snapshot",
+    "browser_click",
+    "browser_type",
+    "browser_eval",
+    "thread_compact",
+    "thread_pause",
+    "thread_resize",
+    "base_prepare"
+  ],
+  "run": {
+    "ok": true,
+    "result": {
+      "thread": "f1-receipt-c4d3c9",
+      "uname": "Linux",
+      "ref": "e1",
+      "clicked": "clicked e1; now at (no title)\nhttp://localhost:3000/",
+      "count": "2",
+      "paused": true
+    },
+    "calls": [
+      {
+        "capability": "thread_create",
+        "ok": true,
+        "ms": 18
+      },
+      {
+        "capability": "thread_exec",
+        "ok": true,
+        "ms": 2908
+      },
+      {
+        "capability": "browser_open",
+        "ok": true,
+        "ms": 10019
+      },
+      {
+        "capability": "browser_snapshot",
+        "ok": true,
+        "ms": 89
+      },
+      {
+        "capability": "browser_click",
+        "ok": true,
+        "ms": 496
+      },
+      {
+        "capability": "browser_click",
+        "ok": true,
+        "ms": 412
+      },
+      {
+        "capability": "browser_eval",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "capability": "thread_pause",
+        "ok": true,
+        "ms": 4918
+      }
+    ]
+  }
+}
