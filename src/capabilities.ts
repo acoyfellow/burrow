@@ -218,6 +218,16 @@ export const CAPABILITIES: readonly Capability[] = [
     run: (api, args) => api.compact(text(args, 'name')),
   },
   {
+    name: 'thread_stop',
+    group: 'threads',
+    summary:
+      'Stop the agent turn now. A running tool call ends at once and the thread stays awake.',
+    input: { name: NAME },
+    required: ['name'],
+    returns: 'null',
+    run: (api, args) => api.stop(text(args, 'name')),
+  },
+  {
     name: 'thread_pause',
     group: 'computer',
     summary: 'Save the disk and turn the computer off. The next call resumes it.',

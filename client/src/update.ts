@@ -485,7 +485,15 @@ export const update = (model: Model, message: Message): UpdateReturn =>
       }),
     }),
     ClickedOp: ({ name, op }) => ({
-      model: modifyFields(model, { modelMenuOpen: () => false, menuOpen: () => false }),
+      model: modifyFields(
+        op._tag === 'Stop' && model.name === name
+          ? withView(modifyFields(model, { live: () => null }), (view) => ({
+              ...view,
+              busy: false,
+            }))
+          : model,
+        { modelMenuOpen: () => false, menuOpen: () => false },
+      ),
       commands: [RunOp({ name, op })],
     }),
     CompletedOp: ({ name, note, gone }) => {

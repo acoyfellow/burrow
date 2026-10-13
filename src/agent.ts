@@ -16,6 +16,7 @@ import {
   Harness,
   type HarnessSettings,
   section,
+  type ToolRegistration,
   watchEvents,
 } from '@earendil-works/pi-durable';
 import { openDurableObjectSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite/cloudflare';
@@ -176,6 +177,24 @@ const text = (value: string) => ({ output: [{ type: 'text' as const, text: value
 
 const clip = (value: string, max = 12_000) =>
   value.length > max ? `${value.slice(0, max)}\n[... ${value.length - max} more chars]` : value;
+
+export const stoppable = <T extends ToolRegistration>(tool: T): T => ({
+  ...tool,
+  execute: (args, api, context) =>
+    untilAborted(tool.execute(args, api, context), context.abortSignal),
+});
+
+export const untilAborted = <T>(work: Promise<T>, signal: AbortSignal | undefined): Promise<T> => {
+  if (signal === undefined) return work;
+  if (signal.aborted) return Promise.reject(signal.reason ?? new Error('stopped'));
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason ?? new Error('stopped'));
+
+    signal.addEventListener('abort', onAbort, { once: true });
+    work.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort));
+  });
+};
 
 const tools = (
   computer: () => Promise<Computer>,
@@ -592,11 +611,12 @@ export const openAgent = async (
           { tag: false },
         ),
       ],
-      tools: tools(computer, ledger, children, browser, extras, threads),
+      tools: tools(computer, ledger, children, browser, extras, threads).map(stoppable),
     }),
   );
 
-  for (const plugin of plugins) registry.install(plugin);
+  for (const plugin of plugins)
+    registry.install({ ...plugin, tools: plugin.tools?.map(stoppable) });
 
   const harness = await Harness.open(
     await openDurableObjectSqliteStorage(storage),
