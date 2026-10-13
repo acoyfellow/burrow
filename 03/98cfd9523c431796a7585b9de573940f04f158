@@ -1,0 +1,41 @@
+client/src/meter.test.ts
+  s_231221b99fcbf7::t_f5025a09dc286b 1-22
+client/src/view/bar.ts
+  s_231221b99fcbf7::t_b69d7ac2feb824 27,45,160-163
+client/src/view/composer.ts
+  s_231221b99fcbf7::t_6f50061d788810 67
+client/src/view/feed.ts
+  s_231221b99fcbf7::t_9ca2d12406fda2 3,93,101,186-237,274-276
+client/src/view/meter.ts
+  s_231221b99fcbf7::t_46ec16ac8052c5 21-35,43-59,64,107,121,123-124,127
+client/src/view/panel.ts
+  s_231221b99fcbf7::t_d71055de6b2518 33,51
+client/src/view/side.ts
+  s_231221b99fcbf7::t_95735dd636bae6 181,209,218,226
+shared/protocol.ts
+  s_231221b99fcbf7::t_769d21109dcb78 123-124
+src/ledger.ts
+  s_231221b99fcbf7::t_8ff1e8150d600c 49-50,68-80,269,271,274-275,283
+src/thread.ts
+  s_231221b99fcbf7::t_6557ce2edb416c 783-789,795-796,798,805,816
+src/ui/style.ts
+  s_231221b99fcbf7::t_42e2cba08d23f3 24,255-274,281
+test/client.test.ts
+  s_231221b99fcbf7::t_1947cdc788cc9d 163-167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "0398cfd9523c431796a7585b9de573940f04f158",
+  "prompts": {},
+  "sessions": {
+    "s_231221b99fcbf7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1176a-4538-7369-8003-75cbe8c7d418",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
