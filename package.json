@@ -18,7 +18,8 @@
     "test": "vitest run",
     "check": "node scripts/build-term.mjs && bash scripts/check.sh",
     "build:term": "node scripts/build-term.mjs",
-    "ship": "bash scripts/ship.sh"
+    "ship": "bash scripts/ship.sh",
+    "ship:all": "bash scripts/ship-all.sh"
   },
   "dependencies": {
     "@cloudflare/sandbox": "1.0.0",

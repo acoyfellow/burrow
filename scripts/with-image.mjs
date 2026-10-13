@@ -18,4 +18,4 @@ if (withImage === source) {
   process.exit(2);
 }
 
-writeFileSync('wrangler.local.jsonc', withImage);
+writeFileSync(process.env.COIL_WRANGLER_CONFIG ?? 'wrangler.local.jsonc', withImage);

@@ -83,19 +83,23 @@ await capability('thread_write_file', {
 await capability('thread_exec', {
   name: thread,
   command:
-    'cd uploads/site && (setsid nohup python3 -m http.server 8090 </dev/null >/dev/null 2>&1 &) ; echo started',
+    'cd uploads/site && (setsid nohup python3 -m http.server 8090 --bind 127.0.0.1 </dev/null >/dev/null 2>&1 &) ; echo started',
 });
 const prepared = await capability('thread_exec', {
   name: thread,
-  command: 'sleep 1; curl -s localhost:8090 | head -c 40',
+  command:
+    'for i in 1 2 3 4 5 6 7 8 9 10; do curl -s -m 2 http://127.0.0.1:8090/ && break; sleep 1; done | head -c 40',
 });
+if (!prepared.stdout.includes('coil probe'))
+  throw new Error(`the probe page did not serve: ${JSON.stringify(prepared)}`);
+
 const loaded = await capability('thread_extensions', {
   name: thread,
   sources: ['./uploads/pi-browser'],
 });
 const { answer: turnAnswer, view } = await send(
   thread,
-  'Use the browser tool (not browser_open) to navigate to http://localhost:8090, click the button named "press", then reply with the h1 text and the new button label, nothing else.',
+  'Use the browser tool (not browser_open) to navigate to http://127.0.0.1:8090, click the button named "press", then reply with the h1 text and the new button label, nothing else.',
 );
 const turn = { answer: turnAnswer };
 const calls = view.messages

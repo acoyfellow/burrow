@@ -11,3 +11,4 @@ src/ui/app.generated.ts
 public/app/
 deploy/*.conf
 !deploy/example.conf
+wrangler.*.local.jsonc

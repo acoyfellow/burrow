@@ -33,8 +33,13 @@ esac
 export CLOUDFLARE_ACCOUNT_ID="$COIL_ACCOUNT_ID"
 export APK_PLAIN_HTTP="${COIL_APK_PLAIN_HTTP:-0}"
 
-node scripts/build-term.mjs
-bash scripts/check.sh
+instance=$(basename "$conf" .conf)
+export COIL_WRANGLER_CONFIG="wrangler.$instance.local.jsonc"
+
+if [ "${COIL_SKIP_BUILD:-0}" != 1 ]; then
+  node scripts/build-term.mjs
+  bash scripts/check.sh
+fi
 node scripts/with-image.mjs
 
 vars=(--var "ACCESS_TEAM_DOMAIN:$COIL_ACCESS_TEAM" --var "ACCESS_AUD:$COIL_ACCESS_AUD")
@@ -46,14 +51,14 @@ vars=(--var "ACCESS_TEAM_DOMAIN:$COIL_ACCESS_TEAM" --var "ACCESS_AUD:$COIL_ACCES
 )
 
 deploy() {
-  npx wrangler deploy -c wrangler.local.jsonc --domain "$COIL_DOMAIN" "${vars[@]}"
+  npx wrangler deploy -c "$COIL_WRANGLER_CONFIG" --domain "$COIL_DOMAIN" "${vars[@]}"
 }
 deploy || deploy
 
 if [ -n "${COIL_MODEL_GATEWAY_TOKEN_COMMAND:-}" ]; then
   token=$(bash -c "$COIL_MODEL_GATEWAY_TOKEN_COMMAND")
   [ -n "$token" ] || { echo "COIL_MODEL_GATEWAY_TOKEN_COMMAND printed nothing" >&2; exit 1; }
-  printf '%s' "$token" | npx wrangler secret put MODEL_GATEWAY_TOKEN -c wrangler.local.jsonc >/dev/null
+  printf '%s' "$token" | npx wrangler secret put MODEL_GATEWAY_TOKEN -c "$COIL_WRANGLER_CONFIG" >/dev/null
   echo "model gateway token stored as a Worker secret"
 fi
 

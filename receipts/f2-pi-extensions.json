@@ -1,0 +1,62 @@
+{
+  "feature": "F2 pi extensions from git and the workspace",
+  "base": "https://coil.coey.dev",
+  "at": "2026-10-13T18:01:21.037Z",
+  "ms": 44703,
+  "sources": {
+    "hello": "stock examples/extensions/hello.ts from @earendil-works/pi-coding-agent@1.2.0, copied into ./exts/hello",
+    "machine": "https://github.com/acoyfellow/pi-ext-durable#main:machine"
+  },
+  "helloSha256": "0aa4e9800c2526914d4c1edb00b2cfa9bd9dd6da5218289994cccd5f5bfa4934",
+  "checks": {
+    "helloIsStockFile": true,
+    "loadedBothTools": true,
+    "noLoadErrors": true,
+    "agentCalledHello": true,
+    "agentCalledMachineReport": true,
+    "helloRanInExtension": true,
+    "machineReportRanOnLinux": true
+  },
+  "passed": true,
+  "loaded": {
+    "tools": [
+      {
+        "name": "hello",
+        "description": "A simple greeting tool",
+        "parameters": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name to greet"
+            }
+          }
+        },
+        "extension": "/workspace/exts/hello/index.ts"
+      },
+      {
+        "name": "machine_report",
+        "description": "Report facts that only a real machine can answer: kernel, hostname, files in the working directory, and the last git commit.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        },
+        "extension": "/workspace/.coil/extensions/github-com-acoyfellow-pi-ext-durable-main/machine/index.ts"
+      }
+    ],
+    "errors": [],
+    "unsupported": []
+  },
+  "toolCalls": [
+    "hello",
+    "machine_report"
+  ],
+  "toolResults": [
+    "Hello, coil!",
+    "{\n  \"platform\": \"linux\",\n  \"kernel\": \"6.18.54-cloudflare-microvm-2026.9.16\",\n  \"hostname\": \"ef3d2e4dbcbd1ac3b14416ac57880b91086fea7f2904826affc3749ed838b823\",\n  \"uname\": \"Linux x86_64\",\n  \"files\": [\n    \"exts\"\n  ],\n  \"lastCommit\": \"(git failed: Command failed: git log --oneline -1)\"\n}"
+  ],
+  "answer": "Hello, coil!\nLinux x86_64"
+}
