@@ -41,6 +41,29 @@ const capability = async (name, input) => {
 const PAGE =
   '<title>coil probe</title><h1>Hello from the thread computer</h1><button onclick="this.textContent=`clicked`">press</button>';
 
+const settle = async (thread) => {
+  for (let tries = 0; tries < 120; tries++) {
+    const view = await capability('thread_status', { name: thread });
+    if (!view.busy) return view;
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+  throw new Error('the turn did not finish in 10 minutes');
+};
+
+const send = async (thread, text) => {
+  const answer = await capability('thread_send', { name: thread, text }).catch((error) => {
+    if (
+      !String(error.message).includes('failed:') &&
+      !String(error.cause ?? error).includes('Timeout')
+    )
+      throw error;
+    return null;
+  });
+  const view = await settle(thread);
+  const last = view.messages.filter((message) => message.role === 'assistant').at(-1);
+  return { answer: answer?.answer ?? last?.text ?? '', view };
+};
+
 const started = Date.now();
 const thread = (await capability('thread_create', { title: 'f2 pi-browser receipt' })).name;
 const upload = execFileSync(
@@ -70,11 +93,11 @@ const loaded = await capability('thread_extensions', {
   name: thread,
   sources: ['./uploads/pi-browser'],
 });
-const turn = await capability('thread_send', {
-  name: thread,
-  text: 'Use the browser tool (not browser_open) to navigate to http://localhost:8090, click the button named "press", then reply with the h1 text and the new button label, nothing else.',
-});
-const view = await capability('thread_status', { name: thread });
+const { answer: turnAnswer, view } = await send(
+  thread,
+  'Use the browser tool (not browser_open) to navigate to http://localhost:8090, click the button named "press", then reply with the h1 text and the new button label, nothing else.',
+);
+const turn = { answer: turnAnswer };
 const calls = view.messages
   .filter((message) => message.role === 'tool')
   .map((message) => ({ name: message.tool?.name, args: message.tool?.args }));
