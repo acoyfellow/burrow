@@ -138,7 +138,7 @@ const schemaOf = (parameters: JsonValue) =>
     ? Object.fromEntries(Object.entries(parameters))
     : { type: 'object', properties: {} };
 
-const ensureHost = `if ! curl -s -m 2 -o /dev/null http://127.0.0.1:${HOST_PORT}/; then (cd ${PI_HOST_DIR} && setsid nohup node pi-host.mjs serve ${HOST_PORT} </dev/null > ${PI_HOST_DIR}/host.log 2>&1 &); for i in $(seq 1 100); do curl -s -m 1 -o /dev/null http://127.0.0.1:${HOST_PORT}/ && break; sleep 0.2; done; fi`;
+const ensureHost = `if ! curl -s -m 2 -o /dev/null http://127.0.0.1:${HOST_PORT}/; then bash -c 'cd ${PI_HOST_DIR} && nohup node pi-host.mjs serve ${HOST_PORT} </dev/null >${PI_HOST_DIR}/host.log 2>&1 & disown' </dev/null >/dev/null 2>&1; for i in $(seq 1 100); do curl -s -m 1 -o /dev/null http://127.0.0.1:${HOST_PORT}/ && break; sleep 0.2; done; fi`;
 
 const postToHost = async (computer: Computer, route: string, body: unknown): Promise<unknown> => {
   const bodyPath = `${PI_HOST_DIR}/calls/${crypto.randomUUID()}.json`;
