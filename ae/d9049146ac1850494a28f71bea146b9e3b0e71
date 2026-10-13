@@ -1,0 +1,39 @@
+.gitignore
+  s_231221b99fcbf7::t_722ca3e90e9320 14
+package.json
+  s_231221b99fcbf7::t_cda218296a1ecf 21-22
+receipts/f2-pi-extensions.json
+  s_5f6d4912d3191a::t_9addbf762a65cb 1-62
+scripts/receipt-f2-pi-browser.mjs
+  s_231221b99fcbf7::t_89234f6c130685 86,90-91,93-95,102
+scripts/ship-all.sh
+  s_231221b99fcbf7::t_fac2da9d05cdd2 1-23
+scripts/ship.sh
+  s_231221b99fcbf7::t_6e36e8200f0330 36-42,54,61
+scripts/with-image.mjs
+  s_231221b99fcbf7::t_181a6cab7f1d1b 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "aed9049146ac1850494a28f71bea146b9e3b0e71",
+  "prompts": {},
+  "sessions": {
+    "s_231221b99fcbf7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1176a-4538-7369-8003-75cbe8c7d418",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    },
+    "s_5f6d4912d3191a": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115b9-60e9-71ec-8331-eb33236fb839",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
