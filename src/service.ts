@@ -1,10 +1,9 @@
+import { DIRECTORY_NAME } from './directory-name';
 import type { LoopSpec } from './loop';
 import { DEFAULT_SIZE, type Size } from './size';
 import type { Env } from './thread';
 
 const NAME = /^[a-z0-9][a-z0-9-]{0,62}$/;
-
-const DIRECTORY = 'all';
 
 export type CreateInput = {
   readonly owner: string;
@@ -26,7 +25,7 @@ const slug = (text: string) =>
     .slice(0, 24) || 'thread';
 
 export const coil = (env: Env, owner: string) => {
-  const directory = env.DIRECTORY.getByName(DIRECTORY);
+  const directory = env.DIRECTORY.getByName(DIRECTORY_NAME);
 
   const thread = (name: string) => {
     if (!NAME.test(name)) throw new Error('Thread names are lowercase letters, digits, and dashes');
@@ -228,7 +227,7 @@ export const coil = (env: Env, owner: string) => {
 export type Coil = ReturnType<typeof coil>;
 
 export const sharedView = async (env: Env, token: string) => {
-  const directory = env.DIRECTORY.getByName(DIRECTORY);
+  const directory = env.DIRECTORY.getByName(DIRECTORY_NAME);
   const share = await directory.shared(token);
 
   if (share === null) return null;

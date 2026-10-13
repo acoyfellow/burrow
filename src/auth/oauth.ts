@@ -7,7 +7,6 @@ export const CLOUDFLARE_OAUTH = {
 } as const;
 
 export const SCOPES = [
-  'openid',
   'offline_access',
   'user-details.read',
   'account-settings.read',

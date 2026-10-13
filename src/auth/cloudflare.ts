@@ -1,4 +1,5 @@
 import type { Directory } from '../directory';
+import { DIRECTORY_NAME } from '../directory-name';
 import {
   accountsOf,
   authorizeUrl,
@@ -12,11 +13,10 @@ import {
 import {
   clearCookie,
   cookie,
-  FLOW_COOKIE,
+  cookieJar,
   FLOW_TTL_MS,
   parseSession,
   readCookie,
-  SESSION_COOKIE,
   SESSION_TTL_MS,
   sessionValue,
   sign,
@@ -32,8 +32,6 @@ export type CloudflareAuthEnv = {
   readonly SESSION_SECRET?: string;
   readonly COIL_USER_GATEWAY?: string;
 };
-
-const DIRECTORY = 'main';
 
 const DEFAULT_GATEWAY = 'default';
 
@@ -92,7 +90,7 @@ const parseFlow = (raw: string | null, now = Date.now()): Flow | null => {
 };
 
 export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetch): Auth => {
-  const directory = () => env.DIRECTORY.getByName(DIRECTORY);
+  const directory = () => env.DIRECTORY.getByName(DIRECTORY_NAME);
   const secret = env.SESSION_SECRET ?? '';
   const ready =
     (env.OAUTH_CLIENT_ID ?? '') !== '' &&
@@ -105,16 +103,19 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
     redirectUri: `${new URL(request.url).origin}/oauth/callback`,
   });
 
-  const page = (error: string | undefined, status: number) =>
-    html(signInPage(error === undefined ? {} : { error }), status, {
-      'set-cookie': clearCookie(FLOW_COOKIE),
-    });
+  const page = (request: Request, error: string | undefined, status: number) => {
+    const jar = cookieJar(request.url);
 
-  const notReady = () =>
-    page('Sign in with Cloudflare is not configured on this instance yet.', 503);
+    return html(signInPage(error === undefined ? {} : { error }), status, {
+      'set-cookie': clearCookie(jar, jar.flow),
+    });
+  };
+
+  const notReady = (request: Request) =>
+    page(request, 'Sign in with Cloudflare is not configured on this instance yet.', 503);
 
   const login = async (request: Request) => {
-    if (!ready) return notReady();
+    if (!ready) return notReady(request);
 
     const flow: Flow = {
       state: randomToken(),
@@ -122,28 +123,32 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
       expires: Date.now() + FLOW_TTL_MS,
     };
 
+    const jar = cookieJar(request.url);
+
     return redirect(await authorizeUrl(clientFor(request), flow.state, flow.verifier), [
-      cookie(FLOW_COOKIE, await sign(secret, JSON.stringify(flow)), FLOW_TTL_MS),
+      cookie(jar, jar.flow, await sign(secret, JSON.stringify(flow)), FLOW_TTL_MS),
     ]);
   };
 
   const callback = async (request: Request) => {
-    if (!ready) return notReady();
+    if (!ready) return notReady(request);
 
     const url = new URL(request.url);
+    const jar = cookieJar(request.url);
     const denied = url.searchParams.get('error');
 
     if (denied !== null)
       return page(
+        request,
         `Cloudflare did not sign you in: ${url.searchParams.get('error_description') ?? denied}`,
         400,
       );
 
-    const flow = parseFlow(await unsign(secret, readCookie(request, FLOW_COOKIE)));
+    const flow = parseFlow(await unsign(secret, readCookie(request, jar.flow)));
     const code = url.searchParams.get('code');
 
     if (flow === null || code === null || url.searchParams.get('state') !== flow.state)
-      return page('That sign-in link expired or did not start here. Try again.', 400);
+      return page(request, 'That sign-in link expired or did not start here. Try again.', 400);
 
     try {
       const client = clientFor(request);
@@ -153,6 +158,7 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
 
       if (account === undefined)
         return page(
+          request,
           'You did not give coil access to any Cloudflare account. Sign in again and pick one.',
           403,
         );
@@ -174,11 +180,11 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
       await directory().openSession(session.id, owner, session.expires);
 
       return redirect('/', [
-        clearCookie(FLOW_COOKIE),
-        cookie(SESSION_COOKIE, await sign(secret, sessionValue(session)), SESSION_TTL_MS),
+        clearCookie(jar, jar.flow),
+        cookie(jar, jar.session, await sign(secret, sessionValue(session)), SESSION_TTL_MS),
       ]);
     } catch (cause) {
-      if (cause instanceof OAuthFailed) return page(cause.message, 502);
+      if (cause instanceof OAuthFailed) return page(request, cause.message, 502);
 
       throw cause;
     }
@@ -187,7 +193,9 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
   const sessionOf = async (request: Request) => {
     if (!ready) return null;
 
-    const session = parseSession(await unsign(secret, readCookie(request, SESSION_COOKIE)));
+    const session = parseSession(
+      await unsign(secret, readCookie(request, cookieJar(request.url).session)),
+    );
 
     if (session === null) return null;
 
@@ -208,7 +216,9 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
       }
     }
 
-    return redirect('/', [clearCookie(SESSION_COOKIE)]);
+    const jar = cookieJar(request.url);
+
+    return redirect('/', [clearCookie(jar, jar.session)]);
   };
 
   return {

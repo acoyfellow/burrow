@@ -32,6 +32,7 @@ import {
   WORKSPACE,
 } from './computer';
 import type { Directory, Grant, ThreadUpdate } from './directory';
+import { DIRECTORY_NAME } from './directory-name';
 import {
   describeExtensions,
   extensionTools,
@@ -146,8 +147,6 @@ export type LiveEvent =
   | { readonly type: 'page'; readonly page: PageState };
 
 const IMAGE = 'computer';
-
-const DIRECTORY = 'all';
 
 const IDLE_CHECK_MS = 1000;
 
@@ -354,7 +353,7 @@ export class Thread extends DurableObject<Env> {
   }
 
   private get directory() {
-    return this.env.DIRECTORY.getByName(DIRECTORY);
+    return this.env.DIRECTORY.getByName(DIRECTORY_NAME);
   }
 
   private async publish(update: Omit<ThreadUpdate, 'name'> = {}) {

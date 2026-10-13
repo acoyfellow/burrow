@@ -15,9 +15,18 @@ const fromHex = (value: string) => {
   return new Uint8Array(pairs.map((pair) => Number.parseInt(pair, 16)));
 };
 
-export const SESSION_COOKIE = '__Host-coil_session';
+export type CookieJar = {
+  readonly session: string;
+  readonly flow: string;
+  readonly secure: boolean;
+};
 
-export const FLOW_COOKIE = '__Host-coil_oauth';
+export const cookieJar = (requestUrl: string): CookieJar => {
+  const secure = new URL(requestUrl).protocol === 'https:';
+  const prefix = secure ? '__Host-' : '';
+
+  return { session: `${prefix}coil_session`, flow: `${prefix}coil_oauth`, secure };
+};
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -69,11 +78,14 @@ export const readCookie = (request: Request, name: string): string | null => {
   return null;
 };
 
-export const cookie = (name: string, value: string, maxAgeMs: number) =>
-  `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${Math.floor(maxAgeMs / 1000)}`;
+const attributes = (jar: CookieJar) =>
+  `Path=/; HttpOnly;${jar.secure ? ' Secure;' : ''} SameSite=Lax`;
 
-export const clearCookie = (name: string) =>
-  `${name}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+export const cookie = (jar: CookieJar, name: string, value: string, maxAgeMs: number) =>
+  `${name}=${encodeURIComponent(value)}; ${attributes(jar)}; Max-Age=${Math.floor(maxAgeMs / 1000)}`;
+
+export const clearCookie = (jar: CookieJar, name: string) =>
+  `${name}=; ${attributes(jar)}; Max-Age=0`;
 
 export type Session = { readonly owner: string; readonly expires: number; readonly id: string };
 

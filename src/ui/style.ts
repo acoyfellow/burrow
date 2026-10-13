@@ -77,7 +77,7 @@ textarea{resize:none}
 .chip.busy{background:var(--blue-soft);color:var(--blue)}
 .chip.paused{background:var(--orange-soft);color:var(--warn)}
 .chip.awake{color:var(--ok)}
-.feed{flex:1;overflow:auto;padding:16px 20px 8px}
+.feed{flex:1;overflow-x:hidden;overflow-y:auto;padding:16px 20px 8px}
 .feed-inner{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .msg{display:flex;flex-direction:column;gap:2px}
 .label{font-size:11.5px;color:var(--faint);display:flex;gap:6px;align-items:center}

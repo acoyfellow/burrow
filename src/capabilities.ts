@@ -268,6 +268,16 @@ export const CAPABILITIES: readonly Capability[] = [
     run: (api, args) => api.setContextBudget(text(args, 'name'), count(args, 'tokens', 0) || null),
   },
   {
+    name: 'thread_model',
+    group: 'threads',
+    summary:
+      'Choose the model for a thread, for example gateway/claude-opus-5-5 or a Workers AI model id. With Sign in with Cloudflare it runs on your own account.',
+    input: { name: NAME, model: { type: 'string', description: 'A model id from the model list' } },
+    required: ['name', 'model'],
+    returns: 'The usage, with the context window of the new model',
+    run: (api, args) => api.setModel(text(args, 'name'), text(args, 'model')),
+  },
+  {
     name: 'thread_stop',
     group: 'threads',
     summary:
