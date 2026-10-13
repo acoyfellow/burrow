@@ -19,8 +19,15 @@ set -a
 . "$conf"
 set +a
 
+auth="${COIL_AUTH:-access}"
+case "$auth" in
+  access) required="COIL_ACCOUNT_ID COIL_DOMAIN COIL_ACCESS_TEAM COIL_ACCESS_AUD NIX_IMAGE" ;;
+  cloudflare) required="COIL_ACCOUNT_ID COIL_DOMAIN NIX_IMAGE COIL_OAUTH_CLIENT_ID" ;;
+  *) echo "COIL_AUTH must be access or cloudflare, not $auth" >&2; exit 2 ;;
+esac
+
 missing=""
-for key in COIL_ACCOUNT_ID COIL_DOMAIN COIL_ACCESS_TEAM COIL_ACCESS_AUD NIX_IMAGE; do
+for key in $required; do
   [ -n "${!key:-}" ] || missing="$missing $key"
 done
 [ -z "$missing" ] || { echo "missing in $conf:$missing" >&2; exit 2; }
@@ -42,7 +49,12 @@ if [ "${COIL_SKIP_BUILD:-0}" != 1 ]; then
 fi
 node scripts/with-image.mjs
 
-vars=(--var "ACCESS_TEAM_DOMAIN:$COIL_ACCESS_TEAM" --var "ACCESS_AUD:$COIL_ACCESS_AUD")
+if [ "$auth" = access ]; then
+  vars=(--var "COIL_AUTH:access" --var "ACCESS_TEAM_DOMAIN:$COIL_ACCESS_TEAM" --var "ACCESS_AUD:$COIL_ACCESS_AUD")
+else
+  vars=(--var "COIL_AUTH:cloudflare" --var "OAUTH_CLIENT_ID:$COIL_OAUTH_CLIENT_ID")
+  [ -z "${COIL_USER_GATEWAY:-}" ] || vars+=(--var "COIL_USER_GATEWAY:$COIL_USER_GATEWAY")
+fi
 [ -z "${COIL_MODEL:-}" ] || vars+=(--var "MODEL:$COIL_MODEL")
 [ -z "${COIL_AI_GATEWAY:-}" ] || vars+=(--var "AI_GATEWAY:$COIL_AI_GATEWAY")
 [ -z "${COIL_MODEL_GATEWAY_URL:-}" ] || vars+=(
@@ -62,8 +74,14 @@ if [ -n "${COIL_MODEL_GATEWAY_TOKEN_COMMAND:-}" ]; then
   echo "model gateway token stored as a Worker secret"
 fi
 
-code=$(curl -s -o /dev/null -w '%{http_code}' "https://$COIL_DOMAIN/")
-case "$code" in
-  302|401|403) echo "coil is live at https://$COIL_DOMAIN and Access is in front ($code)" ;;
-  *) echo "https://$COIL_DOMAIN/ answered $code to an anonymous request; check the Access application" >&2; exit 1 ;;
-esac
+if [ "$auth" = cloudflare ]; then
+  secrets=$(npx wrangler secret list -c "$COIL_WRANGLER_CONFIG" 2>/dev/null || true)
+  for name in OAUTH_CLIENT_SECRET SESSION_SECRET; do
+    case "$secrets" in
+      *"\"$name\""*) ;;
+      *) echo "set the Worker secret $name first: npx wrangler secret put $name -c $COIL_WRANGLER_CONFIG" >&2; exit 1 ;;
+    esac
+  done
+fi
+
+bash scripts/check-edge.sh "$auth" "$COIL_DOMAIN"

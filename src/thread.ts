@@ -10,6 +10,9 @@ import {
   openAgent,
   type ThreadDirectory,
 } from './agent';
+import { type AccountCredentials, accountModel } from './auth/account-models';
+import { refreshedToken, SignedOut, TOKEN_REFRESH_MARGIN_MS } from './auth/refresh';
+import { isCloudflareOwner } from './auth/types';
 import {
   Browser,
   browserEnv,
@@ -28,7 +31,7 @@ import {
   sandboxComputer,
   WORKSPACE,
 } from './computer';
-import type { Directory, ThreadUpdate } from './directory';
+import type { Directory, Grant, ThreadUpdate } from './directory';
 import {
   describeExtensions,
   extensionTools,
@@ -112,6 +115,10 @@ export type Env = {
   readonly MODEL_GATEWAY_TOKEN?: string;
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
   readonly COIL_AUTH?: string;
+  readonly OAUTH_CLIENT_ID?: string;
+  readonly OAUTH_CLIENT_SECRET?: string;
+  readonly SESSION_SECRET?: string;
+  readonly COIL_USER_GATEWAY?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
 };
@@ -210,6 +217,8 @@ export class Thread extends DurableObject<Env> {
 
   private agent: Promise<Agent> | undefined;
 
+  private grant: Grant | null = null;
+
   private booting: Promise<Computer> | undefined;
 
   private readonly listeners = new Set<(event: LiveEvent) => void>();
@@ -276,9 +285,34 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected route(id: string): ModelChoice {
+    if (isCloudflareOwner(this.ledger.owner)) return accountModel(this.accountCredentials(), id);
+
     return isGatewayModel(id)
       ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id, this.externalGateway())
       : workersAI(this.env.AI, id);
+  }
+
+  private accountCredentials(): AccountCredentials {
+    const owner = this.ledger.owner;
+    const directory = () => this.directory;
+    const grant = this.grant;
+
+    return {
+      accountId: grant?.accountId ?? '',
+      gateway: grant?.gateway ?? 'default',
+      token: async () => {
+        const current = await directory().grantFor(owner);
+
+        if (current === null)
+          throw new SignedOut(
+            'Sign in with Cloudflare again: coil no longer has access to your account.',
+          );
+
+        if (current.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) return current.accessToken;
+
+        return refreshedToken(this.env, current, directory());
+      },
+    };
   }
 
   private externalGateway() {
@@ -626,30 +660,69 @@ export class Thread extends DurableObject<Env> {
     };
   }
 
-  private async describe(jpegBase64: string, question: string): Promise<string> {
-    const result = (await this.env.AI.run(
-      VISION_MODEL as keyof AiModels,
+  private async runVision(inputs: Record<string, unknown>): Promise<unknown> {
+    if (!isCloudflareOwner(this.ledger.owner))
+      return this.env.AI.run(VISION_MODEL as keyof AiModels, inputs as never);
+
+    const credentials = this.accountCredentials();
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/ai/run/${VISION_MODEL}`,
       {
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `This is a screenshot of a web page. ${question}\nAnswer plainly and briefly. Quote visible text exactly.`,
-              },
-              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpegBase64}` } },
-            ],
-          },
-        ],
-        max_tokens: 600,
-      } as never,
-    )) as { response?: string; choices?: { message?: { content?: string } }[] };
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${await credentials.token()}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(inputs),
+      },
+    );
+    const parsed: unknown = await response.json().catch(() => null);
+
+    if (!response.ok)
+      throw new Error(`Workers AI on your account refused the vision call: ${response.status}`);
+
+    return typeof parsed === 'object' && parsed !== null && 'result' in parsed
+      ? parsed.result
+      : parsed;
+  }
+
+  private async describe(jpegBase64: string, question: string): Promise<string> {
+    const result = (await this.runVision({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `This is a screenshot of a web page. ${question}\nAnswer plainly and briefly. Quote visible text exactly.`,
+            },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${jpegBase64}` } },
+          ],
+        },
+      ],
+      max_tokens: 600,
+    })) as { response?: string; choices?: { message?: { content?: string } }[] };
     const answer = result.response ?? result.choices?.[0]?.message?.content ?? '';
 
     if (answer.trim() === '') throw new Error('The vision model returned nothing');
 
     return answer.trim();
+  }
+
+  private async loadGrant() {
+    if (!isCloudflareOwner(this.ledger.owner)) return;
+
+    const grant = await this.directory.grantFor(this.ledger.owner);
+
+    if (grant === null)
+      throw new SignedOut(
+        'Sign in with Cloudflare again: coil no longer has access to your account.',
+      );
+
+    if (this.grant?.accountId !== grant.accountId || this.grant?.gateway !== grant.gateway) {
+      this.grant = grant;
+      await this.reopenAgent();
+    }
   }
 
   private open(): Promise<Agent> {
@@ -755,6 +828,7 @@ export class Thread extends DurableObject<Env> {
     this.inFlight += 1;
 
     try {
+      await this.loadGrant();
       const agent = await this.open();
 
       await this.markTurn(input);

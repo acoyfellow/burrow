@@ -1,7 +1,5 @@
 import { Context } from 'effect';
-import { accessAuth } from './auth/access';
-import { cloudflareAuth } from './auth/cloudflare';
-import { type Auth, authMode, type Identity } from './auth/types';
+import { gate } from './auth/gate';
 import { CapabilityInputError, capabilityNamed } from './capabilities';
 import { docsPage, llmsText } from './docs';
 import { mcp } from './mcp';
@@ -105,24 +103,15 @@ const runCapability = async (request: Request, caller: Owner, name: string): Pro
 const isLocalDev = (request: Request, env: Env) =>
   env.LOCAL_DEV_WITHOUT_ACCESS === '1' && LOCAL_HOSTS.has(new URL(request.url).hostname);
 
-const authFor = (env: Env): Auth | null => {
-  const mode = authMode(env.COIL_AUTH);
-
-  return mode === 'access' ? accessAuth(env) : mode === 'cloudflare' ? cloudflareAuth(env) : null;
-};
-
-const ownerFor = (env: Env, identity: Identity): Owner => ({
-  who: identity.who,
-  api: coil(env, identity.who),
-});
-
-const admit = async (request: Request, env: Env, auth: Auth): Promise<Admission> => {
+const admit = async (request: Request, env: Env): Promise<Admission> => {
   if (isLocalDev(request, env))
     return { caller: { who: LOCAL_OWNER, api: coil(env, LOCAL_OWNER) } };
 
-  const admission = await auth.admit(request);
+  const result = await gate(request, env);
 
-  return 'refused' in admission ? admission : { caller: ownerFor(env, admission.identity) };
+  return result.kind === 'response'
+    ? { refused: result.response }
+    : { caller: { who: result.identity.who, api: coil(env, result.identity.who) } };
 };
 
 const isCrossOriginWrite = (request: Request) => {
@@ -236,16 +225,7 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
 
 export default {
   async fetch(request, env) {
-    const auth = authFor(env);
-
-    if (auth === null)
-      return new Response(`COIL_AUTH must be access or cloudflare`, { status: 503 });
-
-    const own = await auth.routes(request);
-
-    if (own !== null) return own;
-
-    const admission = await admit(request, env, auth);
+    const admission = await admit(request, env);
 
     if ('refused' in admission) return admission.refused;
 
