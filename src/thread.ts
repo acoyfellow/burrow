@@ -111,6 +111,7 @@ export type Env = {
   readonly MODEL_GATEWAY_HEADER?: string;
   readonly MODEL_GATEWAY_TOKEN?: string;
   readonly LOCAL_DEV_WITHOUT_ACCESS?: string;
+  readonly COIL_AUTH?: string;
   readonly ACCESS_TEAM_DOMAIN?: string;
   readonly ACCESS_AUD?: string;
 };

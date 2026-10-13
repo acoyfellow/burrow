@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
-import { accessConfig, verifyAccess } from '../src/access';
+import { accessConfig, verifyAccess } from '../src/auth/access-jwt';
 
 const TEAM = 'https://coil-test.cloudflareaccess.com';
 const AUD = 'a'.repeat(64);

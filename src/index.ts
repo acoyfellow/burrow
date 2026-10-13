@@ -1,5 +1,7 @@
 import { Context } from 'effect';
-import { AccessDenied, accessConfig, verifyAccess } from './access';
+import { accessAuth } from './auth/access';
+import { cloudflareAuth } from './auth/cloudflare';
+import { type Auth, authMode, type Identity } from './auth/types';
 import { CapabilityInputError, capabilityNamed } from './capabilities';
 import { docsPage, llmsText } from './docs';
 import { mcp } from './mcp';
@@ -103,30 +105,24 @@ const runCapability = async (request: Request, caller: Owner, name: string): Pro
 const isLocalDev = (request: Request, env: Env) =>
   env.LOCAL_DEV_WITHOUT_ACCESS === '1' && LOCAL_HOSTS.has(new URL(request.url).hostname);
 
-const admit = async (request: Request, env: Env): Promise<Admission> => {
+const authFor = (env: Env): Auth | null => {
+  const mode = authMode(env.COIL_AUTH);
+
+  return mode === 'access' ? accessAuth(env) : mode === 'cloudflare' ? cloudflareAuth(env) : null;
+};
+
+const ownerFor = (env: Env, identity: Identity): Owner => ({
+  who: identity.who,
+  api: coil(env, identity.who),
+});
+
+const admit = async (request: Request, env: Env, auth: Auth): Promise<Admission> => {
   if (isLocalDev(request, env))
     return { caller: { who: LOCAL_OWNER, api: coil(env, LOCAL_OWNER) } };
 
-  const config = accessConfig(env.ACCESS_TEAM_DOMAIN, env.ACCESS_AUD);
+  const admission = await auth.admit(request);
 
-  if (config === null)
-    return { refused: new Response('Access is not configured', { status: 503 }) };
-
-  try {
-    const identity = await verifyAccess(request.headers.get('Cf-Access-Jwt-Assertion'), config);
-
-    if (identity.email === null)
-      return { refused: new Response('Forbidden: the Access token has no email', { status: 403 }) };
-
-    const who = identity.email.toLowerCase();
-
-    return { caller: { who, api: coil(env, who) } };
-  } catch (cause) {
-    if (cause instanceof AccessDenied)
-      return { refused: new Response(`Forbidden: ${cause.message}`, { status: 403 }) };
-
-    throw cause;
-  }
+  return 'refused' in admission ? admission : { caller: ownerFor(env, admission.identity) };
 };
 
 const isCrossOriginWrite = (request: Request) => {
@@ -240,7 +236,16 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
 
 export default {
   async fetch(request, env) {
-    const admission = await admit(request, env);
+    const auth = authFor(env);
+
+    if (auth === null)
+      return new Response(`COIL_AUTH must be access or cloudflare`, { status: 503 });
+
+    const own = await auth.routes(request);
+
+    if (own !== null) return own;
+
+    const admission = await admit(request, env, auth);
 
     if ('refused' in admission) return admission.refused;
 
