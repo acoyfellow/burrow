@@ -2,7 +2,7 @@ import type { Provider } from '@earendil-works/pi-ai';
 import { cloudflareAIGatewayProvider } from '@earendil-works/pi-ai/providers/cloudflare-ai-gateway';
 import { cloudflareWorkersAIProvider } from '@earendil-works/pi-ai/providers/cloudflare-workers-ai';
 import type { ModelChoice } from '../agent';
-import { isGatewayModel, upstreamId } from '../gateway';
+import { isGatewayModel, rewriteBody, upstreamId } from '../gateway';
 
 export type AccountCredentials = {
   readonly accountId: string;
@@ -29,7 +29,14 @@ const withToken =
     for (const name of STRIPPED) headers.delete(name);
     headers.set(header, `Bearer ${await credentials.token()}`);
 
-    return send(new Request(request, { headers }));
+    return send(
+      new Request(request.url, {
+        method: request.method,
+        headers,
+        body: await rewriteBody(request),
+        signal: request.signal,
+      }),
+    );
   };
 
 const filled = (url: string, credentials: AccountCredentials) =>

@@ -46,7 +46,7 @@ export const adaptiveThinking = (body: JsonBody): JsonBody => {
 
 const isAnthropicMessages = (url: string) => /\/anthropic\/v1\/messages(\?|$)/.test(url);
 
-const rewriteBody = async (request: Request): Promise<BodyInit | null> => {
+export const rewriteBody = async (request: Request): Promise<BodyInit | null> => {
   if (request.method === 'GET' || request.method === 'HEAD') return null;
 
   const text = await request.text();
