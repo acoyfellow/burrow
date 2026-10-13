@@ -2,6 +2,7 @@ import { createModels } from '@earendil-works/pi-ai';
 import { describe, expect, it } from 'vitest';
 import { GATEWAY_MODELS } from '../shared/models';
 import {
+  adaptiveThinking,
   bindingBaseUrl,
   externalBaseUrl,
   gatewayModel,
@@ -46,7 +47,7 @@ describe('AI Gateway models', () => {
   it('names gateway models with a prefix and strips it for the upstream id', () => {
     expect(isGatewayModel('gateway/claude-opus-5-5')).toBe(true);
     expect(isGatewayModel('@cf/zai-org/glm-5.3')).toBe(false);
-    expect(upstreamId('gateway/gpt-5.6-sol')).toBe('gpt-5.6-sol');
+    expect(upstreamId('gateway/gpt-6.1-sol')).toBe('gpt-6.1-sol');
   });
 
   it('routes each provider API to its gateway path on the binding', () => {
@@ -67,23 +68,40 @@ describe('AI Gateway models', () => {
   });
 
   it('sends Claude as Anthropic messages through the binding with no API key', async () => {
-    const [sent] = await runOnce('gateway/claude-sonnet-5-5');
+    const [sent] = await runOnce('gateway/claude-opus-5-5');
 
     expect(sent?.url.split('?')[0]).toBe(
       'https://workers-binding.ai/ai-gateway/gateways/my-gw/anthropic/v1/messages',
     );
-    expect(sent?.body.model).toBe('claude-sonnet-5-5');
+    expect(sent?.body.model).toBe('claude-opus-5-5');
+    expect((sent?.body.thinking as { type?: string } | undefined)?.type ?? 'adaptive').toBe(
+      'adaptive',
+    );
     expect(sent?.headers.authorization).toBeUndefined();
     expect(sent?.headers['x-api-key']).toBeUndefined();
     expect(sent?.headers['cf-aig-authorization']).toBeUndefined();
   });
 
   it('sends GPT as OpenAI responses through the binding', async () => {
-    const [sent] = await runOnce('gateway/gpt-5.6-sol');
+    const [sent] = await runOnce('gateway/gpt-6.1-sol');
 
     expect(sent?.url).toBe('https://workers-binding.ai/ai-gateway/gateways/my-gw/openai/responses');
-    expect(sent?.body.model).toBe('gpt-5.6-sol');
+    expect(sent?.body.model).toBe('gpt-6.1-sol');
     expect(sent?.headers.authorization).toBeUndefined();
+  });
+});
+
+describe('Anthropic thinking', () => {
+  it('turns disabled or enabled thinking into adaptive, which current Claude models require', () => {
+    expect(adaptiveThinking({ thinking: { type: 'disabled' } }).thinking).toEqual({
+      type: 'adaptive',
+    });
+    expect(
+      adaptiveThinking({ thinking: { type: 'enabled', budget_tokens: 1024 } }).thinking,
+    ).toEqual({
+      type: 'adaptive',
+    });
+    expect(adaptiveThinking({ model: 'x' })).toEqual({ model: 'x' });
   });
 });
 

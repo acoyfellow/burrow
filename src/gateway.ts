@@ -34,16 +34,49 @@ type BindingWithFetch = Ai & { fetch?: typeof fetch };
 
 const STRIPPED = ['cf-aig-authorization', 'authorization', 'x-api-key'];
 
+type JsonBody = Record<string, unknown>;
+
+export const adaptiveThinking = (body: JsonBody): JsonBody => {
+  const thinking = body.thinking as { type?: unknown } | undefined;
+
+  if (thinking === undefined || thinking.type === 'adaptive') return body;
+
+  return { ...body, thinking: { type: 'adaptive' } };
+};
+
+const isAnthropicMessages = (url: string) => /\/anthropic\/v1\/messages(\?|$)/.test(url);
+
+const rewriteBody = async (request: Request): Promise<BodyInit | null> => {
+  if (request.method === 'GET' || request.method === 'HEAD') return null;
+
+  const text = await request.text();
+
+  if (!isAnthropicMessages(request.url)) return text;
+
+  try {
+    return JSON.stringify(adaptiveThinking(JSON.parse(text) as JsonBody));
+  } catch {
+    return text;
+  }
+};
+
 const withHeaders =
   (send: () => typeof fetch, extra: Record<string, string>): typeof fetch =>
-  (input, init) => {
+  async (input, init) => {
     const request = new Request(input, init);
     const headers = new Headers(request.headers);
 
     for (const name of STRIPPED) headers.delete(name);
     for (const [name, value] of Object.entries(extra)) headers.set(name, value);
 
-    return send()(new Request(request, { headers }));
+    return send()(
+      new Request(request.url, {
+        method: request.method,
+        headers,
+        body: await rewriteBody(request),
+        signal: request.signal,
+      }),
+    );
   };
 
 const routedProvider = (baseUrl: (api: string) => string, send: typeof fetch): Provider => {
