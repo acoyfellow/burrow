@@ -30,7 +30,7 @@ const tab = (
             h.button(
               [
                 h.Class('tab-x'),
-                h.Title('Close'),
+                h.DataAttribute('tip', 'Close'),
                 h.AriaLabel(`Close ${label}`),
                 h.OnClick(Message.ClickedCloseSurface({ id })),
               ],
@@ -48,7 +48,7 @@ const addMenu = (h: H, model: Model, surfaces: readonly Surface[]): Html =>
       h.button(
         [
           h.Class('tab-add'),
-          h.Title('New terminal or browser'),
+          h.DataAttribute('tip', 'New terminal or browser'),
           h.AriaLabel('Add surface'),
           h.OnClick(Message.ToggledAddMenu()),
         ],

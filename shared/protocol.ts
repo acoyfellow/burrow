@@ -120,6 +120,8 @@ export const ModelOption = Schema.Struct({
 export const Turn = Schema.Struct({
   seq: Schema.Number,
   at: Schema.Number,
+  ended: Schema.Number,
+  tools: Schema.Number,
   prompt: Schema.String,
   stat: Schema.String,
   diff: Schema.String,

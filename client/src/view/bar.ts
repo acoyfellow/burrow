@@ -24,7 +24,7 @@ const actionButton = (
     [
       h.Class('act'),
       h.Id(button.key === 'size' ? 'size' : `act-${button.key}`),
-      h.Title(button.hint),
+      h.DataAttribute('tip', button.hint),
       h.AriaLabel(button.label),
       h.Disabled(locked || button.disabled),
       h.OnClick(button.message),
@@ -42,7 +42,7 @@ const opButton = (h: H, key: string, label: string, disabled: boolean, message: 
     [
       h.Class('act'),
       h.Id(`act-${key}`),
-      h.Title(label),
+      h.DataAttribute('tip', label),
       h.AriaLabel(label),
       h.Disabled(disabled),
       h.OnClick(message),
@@ -157,7 +157,10 @@ const collapse = (h: H, edge: 'side' | 'panel'): Html =>
     [
       h.Class(`collapse collapse-${edge}`),
       h.DataAttribute('collapse', edge),
-      h.Title(edge === 'side' ? 'Show or hide threads (⌘B)' : 'Show or hide the computer (⌘J)'),
+      h.DataAttribute(
+        'tip',
+        edge === 'side' ? 'Show or hide threads (⌘B)' : 'Show or hide the computer (⌘J)',
+      ),
       h.AriaLabel(edge === 'side' ? 'Toggle threads' : 'Toggle computer'),
     ],
     [

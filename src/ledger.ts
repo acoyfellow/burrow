@@ -46,6 +46,8 @@ export type Surface = {
 export type Turn = {
   readonly seq: number;
   readonly at: number;
+  readonly ended: number;
+  readonly tools: number;
   readonly prompt: string;
   readonly stat: string;
   readonly diff: string;
@@ -63,6 +65,19 @@ export class Ledger {
     sql.exec(
       `CREATE TABLE IF NOT EXISTS coil_exec (seq INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, argv TEXT NOT NULL, exit_code INTEGER NOT NULL, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL, output TEXT NOT NULL, by TEXT NOT NULL DEFAULT 'human')`,
     );
+    this.migrateTurns();
+  }
+
+  private migrateTurns() {
+    const columns = this.sql
+      .exec<{ name: string }>('PRAGMA table_info(coil_turns)')
+      .toArray()
+      .map((column) => column.name);
+
+    if (!columns.includes('ended'))
+      this.sql.exec('ALTER TABLE coil_turns ADD COLUMN ended INTEGER NOT NULL DEFAULT 0');
+    if (!columns.includes('tools'))
+      this.sql.exec('ALTER TABLE coil_turns ADD COLUMN tools INTEGER NOT NULL DEFAULT 0');
   }
 
   private get(key: string): string | null {
@@ -251,11 +266,13 @@ export class Ledger {
     );
   }
 
-  finishTurn(seq: number, stat: string, diff: string): void {
+  finishTurn(seq: number, stat: string, diff: string, tools: number): void {
     this.sql.exec(
-      'UPDATE coil_turns SET stat = ?, diff = ?, done = 1 WHERE seq = ?',
+      'UPDATE coil_turns SET stat = ?, diff = ?, done = 1, ended = ?, tools = ? WHERE seq = ?',
       stat,
       diff,
+      Date.now(),
+      tools,
       seq,
     );
   }
@@ -263,7 +280,7 @@ export class Ledger {
   turns(limit = 30): Turn[] {
     return this.sql
       .exec<Turn>(
-        'SELECT seq, at, prompt, stat, diff FROM coil_turns WHERE done = 1 ORDER BY seq DESC LIMIT ?',
+        'SELECT seq, at, ended, tools, prompt, stat, diff FROM coil_turns WHERE done = 1 ORDER BY seq DESC LIMIT ?',
         limit,
       )
       .toArray();

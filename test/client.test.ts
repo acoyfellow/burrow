@@ -160,7 +160,11 @@ describe('the foldkit client loads conversations', () => {
           '.act-group > .act > svg.icon, .act-group > .size-wrap > .act > svg.icon',
         ).length,
       ).toBe(7);
-      expect(document.querySelector('#usage')?.textContent).toContain('$');
+      const usage = document.querySelector('#usage');
+
+      expect(usage?.textContent).not.toContain('$');
+      expect(usage?.getAttribute('data-tip')).toMatch(/^Context /);
+      expect(usage?.querySelector('.ring')).not.toBeNull();
       expect(document.querySelector('#model')?.textContent).toContain('GLM');
     });
   }

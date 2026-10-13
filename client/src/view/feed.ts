@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import type { Html } from 'foldkit/html';
-import type { ChatMessage, ThreadView } from '../../../shared/protocol';
+import type { ChatMessage, ThreadView, Turn } from '../../../shared/protocol';
 import { Message } from '../message';
 import { type LiveTool, type Model, ViewState } from '../model';
 import { ScrollToEnd } from '../mount';
@@ -90,7 +90,7 @@ const message = (h: H, entry: ChatMessage, results: ReadonlyMap<string, string>)
                 h.button(
                   [
                     h.Class('edit'),
-                    h.Title('Put this text back in the box to edit it'),
+                    h.DataAttribute('tip', 'Put this text back in the box to edit it'),
                     h.OnClick(Message.ClickedEdit({ text: entry.text })),
                   ],
                   ['Edit'],
@@ -98,7 +98,7 @@ const message = (h: H, entry: ChatMessage, results: ReadonlyMap<string, string>)
                 h.button(
                   [
                     h.Class('retry'),
-                    h.Title('Send this again as a new turn'),
+                    h.DataAttribute('tip', 'Send this again as a new turn'),
                     h.OnClick(Message.ClickedRetry({ text: entry.text })),
                   ],
                   ['Retry'],
@@ -183,6 +183,58 @@ const liveItems = (h: H, model: Model): Html[] => {
   return tools;
 };
 
+export const ranFor = (ms: number): string => {
+  const seconds = Math.max(1, Math.round(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+
+  return `${seconds}s`;
+};
+
+const turnFooter = (h: H, turn: Turn): Html =>
+  h.keyed('div')(
+    `ran-${turn.seq}`,
+    [h.Class('ran'), h.DataAttribute('turn', String(turn.seq))],
+    [
+      `Ran for ${ranFor(turn.ended - turn.at)}${turn.tools > 0 ? ` · ${turn.tools} tool${turn.tools === 1 ? '' : 's'}` : ''}`,
+    ],
+  );
+
+const withTurnFooters = (
+  h: H,
+  messages: readonly ChatMessage[],
+  turns: readonly Turn[],
+  render: (entry: ChatMessage) => Html | null,
+): Html[] => {
+  const finished = [...turns].filter((turn) => turn.ended > 0).sort((a, b) => a.seq - b.seq);
+  const prompts = messages.flatMap((entry, index) => (entry.role === 'user' ? [index] : []));
+  const offset = prompts.length - finished.length;
+  const footerAfter = new Map<number, Turn>();
+
+  finished.forEach((turn, position) => {
+    const promptIndex = prompts[position + offset];
+
+    if (promptIndex === undefined) return;
+
+    const nextPrompt = prompts[position + offset + 1] ?? messages.length;
+
+    footerAfter.set(nextPrompt - 1, turn);
+  });
+
+  return messages.flatMap((entry, index) => {
+    const item = entry.role === 'toolResult' ? null : render(entry);
+    const footer = footerAfter.get(index);
+
+    return [
+      ...(item === null ? [] : [item]),
+      ...(footer === undefined ? [] : [turnFooter(h, footer)]),
+    ];
+  });
+};
+
 const welcome = (h: H): Html =>
   h.div(
     [h.Class('empty')],
@@ -219,10 +271,9 @@ const welcome = (h: H): Html =>
 
 const conversation = (h: H, model: Model, view: ThreadView): Html => {
   const results = toolResults(view.messages);
-  const items = view.messages
-    .filter((entry) => entry.role !== 'toolResult')
-    .map((entry) => message(h, entry, results))
-    .filter((item): item is Html => item !== null);
+  const items = withTurnFooters(h, view.messages, view.turns, (entry) =>
+    message(h, entry, results),
+  );
   const live = liveItems(h, model);
   const endKey = `${view.messages.length}:${model.live?.text.length ?? 0}:${model.live?.tools.length ?? 0}`;
 

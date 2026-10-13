@@ -21,6 +21,7 @@ export const STYLE = `
 :root{color-scheme:light dark;${LIGHT}
   --sans:"Google Sans Flex","Google Sans",ui-sans-serif,system-ui,sans-serif;
   --mono:"Google Sans Code",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --fg:var(--text);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;${DARK}}}
 :root[data-theme=dark]{color-scheme:dark;${DARK}}
@@ -251,14 +252,33 @@ dialog .actions .primary{padding:5px 12px}
 .pop-wrap{position:relative;display:inline-flex}
 .pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border:1px solid var(--line2);border-radius:999px;background:transparent;font:11.5px var(--mono);color:var(--dim);white-space:nowrap}
 .pill:hover{color:var(--fg);background:var(--raise)}
-.ring{width:12px;height:12px;border-radius:50%;background:conic-gradient(var(--fg) var(--share,0%),var(--line2) 0)}
+.ring{position:relative;flex:none;border-radius:50%;background:conic-gradient(var(--ring,var(--line2)) var(--share,0%),var(--line) 0)}
+.ring::after{content:"";position:absolute;border-radius:50%;background:var(--bg)}
+.ring.small{width:18px;height:18px}.ring.small::after{inset:3px}
+.ring.big{width:32px;height:32px}.ring.big::after{inset:4px}
+button.usage{display:inline-grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:7px;background:transparent}
+button.usage:hover{background:var(--hover)}
+.usage-head{display:flex;align-items:center;gap:10px;padding:2px 0 6px}
+.usage-head b{display:block;font-weight:500;font-size:13px;color:var(--fg)}
+.usage-head span{font:12px var(--mono);color:var(--dim);white-space:nowrap}
+.usage-hint{margin:6px 0 0;padding-top:6px;border-top:1px solid var(--line);font-size:12px;color:var(--dim)}
+.ran{display:flex;align-items:center;gap:10px;margin:2px 0 6px;font:12px var(--mono);color:var(--faint)}
+.ran::before,.ran::after{content:"";flex:1;height:1px;background:var(--line)}
+@media (hover:hover){
+  .bar,.tabs{position:relative;z-index:40}
+  [data-tip]{position:relative}
+  [data-tip]:hover::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;padding:5px 8px;border-radius:6px;background:var(--fg);color:var(--bg);font:400 12px/1.2 var(--sans);pointer-events:none;z-index:60}
+  .composer [data-tip]:hover::after,.meter [data-tip]:hover::after,.side .who [data-tip]:hover::after{top:auto;bottom:calc(100% + 6px)}
+  .side [data-tip]:hover::after{left:auto;right:0;transform:none}
+  .pop-wrap:has(.usage-pop:not([hidden])) [data-tip]::after,.pop-wrap:has(.model-list:not([hidden])) [data-tip]::after{display:none}
+}
 .model-list,.usage-pop{position:absolute;bottom:calc(100% + 6px);left:0;display:flex;flex-direction:column;min-width:240px;padding:4px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.15);z-index:30}
 .model-list[hidden],.usage-pop[hidden]{display:none}
 .model-list button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;border:0;border-radius:6px;background:transparent;color:var(--fg);text-align:left}
 .model-list button:hover,.model-list button.on{background:var(--raise)}
 .model-name{font-size:13px}
 .model-meta{font:11px var(--mono);color:var(--dim)}
-.usage-pop{padding:8px 10px;gap:4px;min-width:200px}
+.usage-pop{padding:10px 12px;gap:4px;min-width:230px}
 .usage-row{display:flex;justify-content:space-between;gap:16px;font:12px var(--mono);color:var(--dim)}
 .usage-row b{color:var(--fg);font-weight:500}
 #stop{display:inline-flex;align-items:center;justify-content:center}

@@ -12,14 +12,26 @@ export const tokens = (count: number): string => {
   return String(count);
 };
 
-export const money = (dollars: number): string =>
-  dollars < 0.01 ? `$${dollars.toFixed(4)}` : `$${dollars.toFixed(2)}`;
-
 export const contextShare = (usage: Usage): number =>
   usage.contextWindow === 0 ? 0 : Math.min(100, (usage.contextTokens / usage.contextWindow) * 100);
 
 const percent = (share: number): string =>
   share > 0 && share < 1 ? '<1%' : `${Math.round(share)}%`;
+
+export const ringColor = (share: number): string => {
+  if (share <= 0) return 'var(--line2)';
+  if (share < 50) return 'var(--ok)';
+  if (share < 70) return 'var(--warn)';
+  if (share < 85) return 'var(--orange)';
+
+  return 'var(--bad)';
+};
+
+const ring = (h: H, share: number, size: 'small' | 'big'): Html =>
+  h.span(
+    [h.Class(`ring ${size}`), h.Style({ '--share': `${share}%`, '--ring': ringColor(share) })],
+    [],
+  );
 
 const detailRow = (h: H, label: string, value: string): Html =>
   h.div([h.Class('usage-row')], [h.span([], [label]), h.b([], [value])]);
@@ -28,16 +40,28 @@ const usageDetail = (h: H, model: Model, view: ThreadView): Html =>
   h.div(
     [h.Class('usage-pop'), h.Id('usage-pop'), h.Role('dialog'), h.Hidden(!model.usageOpen)],
     [
-      detailRow(
-        h,
-        'Context',
-        `${tokens(view.usage.contextTokens)} / ${tokens(view.usage.contextWindow)}`,
+      h.div(
+        [h.Class('usage-head')],
+        [
+          ring(h, contextShare(view.usage), 'big'),
+          h.div(
+            [],
+            [
+              h.b([], [`${percent(contextShare(view.usage))} of context`]),
+              h.span(
+                [],
+                [
+                  `${tokens(view.usage.contextTokens)} of ${tokens(view.usage.contextWindow)} tokens`,
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
       detailRow(h, 'Tokens in', tokens(view.usage.input)),
       detailRow(h, 'Tokens out', tokens(view.usage.output)),
       detailRow(h, 'Cache read', tokens(view.usage.cacheRead)),
-      detailRow(h, 'Spend', money(view.usage.cost)),
-      detailRow(h, 'Model', modelInfo(view.model)?.label ?? view.model),
+      h.p([h.Class('usage-hint')], ['Compact when the ring turns orange.']),
     ],
   );
 
@@ -80,7 +104,7 @@ export const meter = (h: H, model: Model, view: ThreadView, name: string): Html 
             [
               h.Class('pill'),
               h.Id('model'),
-              h.Title('Choose the model for this thread'),
+              h.DataAttribute('tip', 'Choose the model for this thread'),
               h.AriaHasPopup('menu'),
               h.OnClick(Message.ToggledModelMenu()),
             ],
@@ -94,15 +118,13 @@ export const meter = (h: H, model: Model, view: ThreadView, name: string): Html 
         [
           h.button(
             [
-              h.Class('pill usage'),
+              h.Class('usage'),
               h.Id('usage'),
-              h.Title('Context used and spend for this thread'),
+              h.DataAttribute('tip', `Context ${percent(share)}`),
+              h.AriaLabel(`Context ${percent(share)} used`),
               h.OnClick(Message.ToggledUsage()),
             ],
-            [
-              h.span([h.Class('ring'), h.Style({ '--share': `${share}%` })], []),
-              `${percent(share)} · ${money(view.usage.cost)}`,
-            ],
+            [ring(h, share, 'small')],
           ),
           usageDetail(h, model, view),
         ],

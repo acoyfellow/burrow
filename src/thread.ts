@@ -780,20 +780,29 @@ export class Thread extends DurableObject<Env> {
     this.ledger.startTurn(input, await this.gitTree().catch(() => ''));
   }
 
+  private async toolsInLastTurn(): Promise<number> {
+    const all = await (await this.open()).messages().catch(() => []);
+    const lastPrompt = all.findLastIndex((entry) => entry.role === 'user');
+
+    return all.slice(lastPrompt + 1).filter((entry) => entry.role === 'tool').length;
+  }
+
   private async closeTurn() {
     const open = this.ledger.openTurn();
 
     if (open === null) return;
 
+    const tools = await this.toolsInLastTurn();
+
     if (open.base === '' || !this.computer().running()) {
-      this.ledger.finishTurn(open.seq, '', '');
+      this.ledger.finishTurn(open.seq, '', '', tools);
       return;
     }
 
     const now = await this.gitTree().catch(() => '');
 
     if (now === '' || now === open.base) {
-      this.ledger.finishTurn(open.seq, '', '');
+      this.ledger.finishTurn(open.seq, '', '', tools);
       return;
     }
 
@@ -804,6 +813,7 @@ export class Thread extends DurableObject<Env> {
       open.seq,
       stat.stdout.slice(0, 4000),
       diff.stdout.slice(0, TURN_DIFF_LIMIT),
+      tools,
     );
   }
 

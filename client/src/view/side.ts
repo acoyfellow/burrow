@@ -178,7 +178,7 @@ export const side = (h: H, model: Model): Html =>
                 [
                   h.Class('new'),
                   h.Id('new-side'),
-                  h.Title('New thread'),
+                  h.DataAttribute('tip', 'New thread'),
                   h.AriaLabel('New thread'),
                   h.OnClick(Message.ClickedNewThread()),
                 ],
@@ -206,7 +206,7 @@ export const side = (h: H, model: Model): Html =>
             [
               h.Id('notify'),
               h.Hidden(model.notify !== 'default'),
-              h.Title('Get a notification when a thread or loop finishes'),
+              h.DataAttribute('tip', 'Get a notification when a thread or loop finishes'),
               h.OnClick(Message.ClickedNotify()),
             ],
             ['Notify me'],
@@ -215,7 +215,7 @@ export const side = (h: H, model: Model): Html =>
             [
               h.Id('install'),
               h.Hidden(!model.installable),
-              h.Title('Install coil as an app'),
+              h.DataAttribute('tip', 'Install coil as an app'),
               h.OnClick(Message.ClickedInstall()),
             ],
             ['Install'],
@@ -223,7 +223,7 @@ export const side = (h: H, model: Model): Html =>
           h.button(
             [
               h.Id('theme'),
-              h.Title('Switch light or dark'),
+              h.DataAttribute('tip', 'Switch light or dark'),
               h.AriaLabel('Theme'),
               h.OnClick(Message.ClickedTheme()),
             ],

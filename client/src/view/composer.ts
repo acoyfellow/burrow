@@ -64,7 +64,7 @@ export const composer = (h: H, model: Model): Html => {
                       h.Id('stop'),
                       h.Class('stop'),
                       h.AriaLabel('Stop'),
-                      h.Title('Stop the agent'),
+                      h.DataAttribute('tip', 'Stop the agent'),
                       h.OnClick(Message.ClickedOp({ name: model.name, op: { _tag: 'Stop' } })),
                     ],
                     [icon(h, 'square')],
