@@ -2,7 +2,7 @@ import type { Coil } from './service';
 import { isSize, SIZES } from './size';
 
 export type Field = {
-  readonly type: 'string' | 'array';
+  readonly type: 'string' | 'number' | 'array';
   readonly description: string;
   readonly enum?: readonly string[];
   readonly items?: { readonly type: 'string' };
@@ -40,6 +40,19 @@ const list = (args: Readonly<Record<string, unknown>>, field: string): string[] 
 
   if (!Array.isArray(value) || !value.every((item): item is string => typeof item === 'string'))
     throw new CapabilityInputError(`${field} must be a list of strings`);
+
+  return value;
+};
+
+const count = (
+  args: Readonly<Record<string, unknown>>,
+  field: string,
+  fallback: number,
+): number => {
+  const value = args[field] ?? fallback;
+
+  if (typeof value !== 'number' || !Number.isFinite(value))
+    throw new CapabilityInputError(`${field} must be a number`);
 
   return value;
 };
@@ -216,6 +229,43 @@ export const CAPABILITIES: readonly Capability[] = [
     required: ['name'],
     returns: 'The saved pair: { at, reason, snapshot, summaryEntry }',
     run: (api, args) => api.compact(text(args, 'name')),
+  },
+  {
+    name: 'thread_message',
+    group: 'threads',
+    summary:
+      'Send a message from one thread to another. The receiver starts a turn now, or queues it until its current turn ends. Returns at once.',
+    input: {
+      from: { type: 'string', description: 'The sending thread' },
+      to: { type: 'string', description: 'The receiving thread' },
+      text: { type: 'string', description: 'The message' },
+    },
+    required: ['from', 'to', 'text'],
+    returns: '{ queued }',
+    run: (api, args) => api.message(text(args, 'from'), text(args, 'to'), text(args, 'text')),
+  },
+  {
+    name: 'thread_wait',
+    group: 'threads',
+    summary: 'Wait until a thread finishes its turn, up to seconds, and return its last answer.',
+    input: { name: NAME, seconds: { type: 'number', description: 'At most 600; default 120' } },
+    required: ['name'],
+    returns: '{ done, answer }',
+    run: (api, args) =>
+      api.wait(text(args, 'name'), Math.min(Math.max(count(args, 'seconds', 120), 1), 600)),
+  },
+  {
+    name: 'thread_context_budget',
+    group: 'threads',
+    summary:
+      'Set a smaller context window for a thread, in tokens, or 0 for the model limit. The thread compacts at 75% of it and continues from its HANDOFF: note.',
+    input: {
+      name: NAME,
+      tokens: { type: 'number', description: 'Context size in tokens; 0 clears it' },
+    },
+    required: ['name', 'tokens'],
+    returns: 'The usage, with contextWindow',
+    run: (api, args) => api.setContextBudget(text(args, 'name'), count(args, 'tokens', 0) || null),
   },
   {
     name: 'thread_stop',

@@ -19,6 +19,7 @@ import {
   VNC_PORT,
   worthRemembering,
 } from './browser';
+import { compactionPolicy } from './compaction';
 import {
   type Computer,
   type Entry,
@@ -298,10 +299,13 @@ export class Thread extends DurableObject<Env> {
 
   protected settings(): HarnessSettings {
     const ledger = this.ledger;
+    const modelWindow = () => modelInfo(this.currentModel())?.context ?? 0;
 
     return {
       get compaction() {
-        return { keepRecentTokens: ledger.compacting ? MANUAL_KEEP_TOKENS : AUTO_KEEP_TOKENS };
+        const keepRecentTokens = ledger.compacting ? MANUAL_KEEP_TOKENS : AUTO_KEEP_TOKENS;
+
+        return compactionPolicy(modelWindow(), ledger.contextBudget, keepRecentTokens);
       },
     };
   }
@@ -482,6 +486,19 @@ export class Thread extends DurableObject<Env> {
         );
 
         return `sent to ${name}`;
+      },
+      wait: async (name, seconds) => {
+        await owned(name);
+        const target = this.env.THREAD.getByName(name);
+        const answer = await Promise.race([
+          target.waitForAnswer(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), seconds * 1000)),
+        ]);
+
+        if (answer === null)
+          return `${name} is still working after ${seconds}s; call thread_wait again later.`;
+
+        return `<thread-data name="${name}" state="done">\n${answer === '' ? '(no answer)' : answer}\n</thread-data>`;
       },
       create: async (title, task) => {
         const withTask = task !== undefined && task.trim() !== '';
@@ -834,6 +851,56 @@ export class Thread extends DurableObject<Env> {
     this.ledger.busy = false;
     await this.publish({ spend: (await this.usage()).cost });
     this.state();
+    await this.deliverDone().catch(() => undefined);
+    await this.drainInbox().catch(() => undefined);
+  }
+
+  private async deliverDone() {
+    const parent = this.ledger.origin.parent;
+
+    if (parent === null) return;
+
+    const agent = await this.open();
+    const answers = (await agent.messages()).filter((m) => m.role === 'assistant' && m.text !== '');
+    const latest = answers.at(-1);
+
+    if (latest === undefined || answers.length <= this.ledger.doneDelivered) return;
+
+    const line = latest.text
+      .split('\n')
+      .map((each) => each.trim())
+      .findLast((each) => each.startsWith('DONE:'));
+
+    if (line === undefined) return;
+
+    this.ledger.doneDelivered = answers.length;
+    await this.env.THREAD.getByName(parent).receive(
+      `done-${this.ledger.name ?? 'child'}-${answers.length}`,
+      this.ledger.name ?? 'child',
+      line,
+    );
+  }
+
+  async receive(requestId: string, from: string, text: string): Promise<{ queued: boolean }> {
+    const message = `[message from thread ${from}]\n${text}`;
+
+    if (this.ledger.busy || this.pausing !== undefined) {
+      this.ledger.inbox = [...this.ledger.inbox, { requestId, message }];
+      return { queued: true };
+    }
+
+    await this.start(requestId, message);
+
+    return { queued: false };
+  }
+
+  private async drainInbox() {
+    const [next, ...rest] = this.ledger.inbox;
+
+    if (next === undefined || this.ledger.busy) return;
+
+    this.ledger.inbox = rest;
+    await this.start(next.requestId, next.message);
   }
 
   private async recordLostComputer(from: Snapshot | undefined) {
@@ -1078,6 +1145,14 @@ export class Thread extends DurableObject<Env> {
     return this.ledger.model ?? this.env.MODEL;
   }
 
+  setContextBudget(tokens: number | null): Promise<Usage> {
+    return this.using(async () => {
+      this.ledger.contextBudget = tokens === null || tokens <= 0 ? null : Math.max(1000, tokens);
+
+      return this.usage();
+    });
+  }
+
   async usage(): Promise<Usage> {
     const agent = await this.open();
     const totals = await agent.usage();
@@ -1087,7 +1162,10 @@ export class Thread extends DurableObject<Env> {
     return {
       ...totals,
       contextTokens,
-      contextWindow: modelInfo(model)?.context ?? 0,
+      contextWindow: Math.min(
+        this.ledger.contextBudget ?? Number.POSITIVE_INFINITY,
+        modelInfo(model)?.context ?? 0,
+      ),
     };
   }
 

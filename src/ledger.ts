@@ -242,6 +242,50 @@ export class Ledger {
     this.put('wake_error', next);
   }
 
+  get contextBudget(): number | null {
+    const raw = this.get('context_budget');
+
+    return raw === null ? null : Number(raw);
+  }
+
+  set contextBudget(next: number | null) {
+    if (next === null) this.sql.exec('DELETE FROM coil_kv WHERE key = ?', 'context_budget');
+    else this.put('context_budget', String(Math.round(next)));
+  }
+
+  get inbox(): { readonly requestId: string; readonly message: string }[] {
+    const raw = this.get('inbox');
+
+    if (raw === null) return [];
+
+    const parsed: unknown = JSON.parse(raw);
+
+    return Array.isArray(parsed)
+      ? parsed.flatMap((item: unknown) =>
+          typeof item === 'object' &&
+          item !== null &&
+          'requestId' in item &&
+          'message' in item &&
+          typeof item.requestId === 'string' &&
+          typeof item.message === 'string'
+            ? [{ requestId: item.requestId, message: item.message }]
+            : [],
+        )
+      : [];
+  }
+
+  set inbox(next: readonly { readonly requestId: string; readonly message: string }[]) {
+    this.put('inbox', JSON.stringify(next.slice(-50)));
+  }
+
+  get doneDelivered(): number {
+    return Number(this.get('done_delivered') ?? '0');
+  }
+
+  set doneDelivered(next: number) {
+    this.put('done_delivered', String(next));
+  }
+
   get childrenMade(): number {
     return Number(this.get('children_made') ?? '0');
   }

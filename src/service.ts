@@ -92,6 +92,21 @@ export const coil = (env: Env, owner: string) => {
     send: async (name: string, requestId: string, text: string) =>
       (await known(name)).send(requestId, text),
     exec: async (name: string, argv: string[]) => (await known(name)).exec(argv),
+    setContextBudget: async (name: string, tokens: number | null) =>
+      (await known(name)).setContextBudget(tokens),
+    wait: async (name: string, seconds: number) => {
+      const target = await known(name);
+      const answer = await Promise.race([
+        target.waitForAnswer(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), seconds * 1000)),
+      ]);
+
+      return answer === null ? { done: false, answer: null } : { done: true, answer };
+    },
+    message: async (from: string, to: string, text: string) => {
+      await known(from);
+      return (await known(to)).receive(`api-${crypto.randomUUID()}`, from, text);
+    },
     read: async (name: string, path: string) => (await known(name)).readFile(path),
     write: async (name: string, path: string, content: string) =>
       (await known(name)).writeFile(path, content),

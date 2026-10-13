@@ -14,7 +14,7 @@ const GROUPS: readonly { readonly key: Capability['group']; readonly title: stri
 const tsType = (field: Field) => {
   if (field.enum !== undefined) return field.enum.map((value) => JSON.stringify(value)).join(' | ');
 
-  return field.type === 'array' ? 'string[]' : 'string';
+  return field.type === 'array' ? 'string[]' : field.type;
 };
 
 const inputType = (capability: Capability) => {
