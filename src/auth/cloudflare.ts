@@ -4,8 +4,10 @@ import {
   accountsOf,
   authorizeUrl,
   exchangeCode,
+  gatewaysOf,
   type OAuthClient,
   OAuthFailed,
+  pickGateway,
   randomToken,
   revoke,
   userInfo,
@@ -32,8 +34,6 @@ export type CloudflareAuthEnv = {
   readonly SESSION_SECRET?: string;
   readonly COIL_USER_GATEWAY?: string;
 };
-
-const DEFAULT_GATEWAY = 'default';
 
 const html = (body: string, status = 200, headers: Record<string, string> = {}) =>
   new Response(body, {
@@ -163,6 +163,18 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
           403,
         );
 
+      const gateway = pickGateway(
+        await gatewaysOf(tokens.accessToken, account.id, send),
+        env.COIL_USER_GATEWAY,
+      );
+
+      if (gateway === null)
+        return page(
+          request,
+          `${account.name} has no AI Gateway with authentication turned on. Turn on authentication for a gateway in the Cloudflare dashboard, then sign in again.`,
+          403,
+        );
+
       const owner = `${CLOUDFLARE_OWNER_PREFIX}${user.sub}`;
       const session = { owner, id: randomToken(), expires: Date.now() + SESSION_TTL_MS };
 
@@ -171,7 +183,7 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
         email: user.email,
         accountId: account.id,
         accountName: account.name,
-        gateway: env.COIL_USER_GATEWAY ?? DEFAULT_GATEWAY,
+        gateway,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,

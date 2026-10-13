@@ -171,6 +171,39 @@ export const accountsOf = async (
   });
 };
 
+export type AccountGateway = { readonly id: string; readonly authenticated: boolean };
+
+export const gatewaysOf = async (
+  accessToken: string,
+  accountId: string,
+  send: typeof fetch = fetch,
+): Promise<AccountGateway[]> => {
+  const response = await send(
+    `${CLOUDFLARE_OAUTH.api}/accounts/${encodeURIComponent(accountId)}/ai-gateway/gateways?per_page=50`,
+    { headers: { authorization: `Bearer ${accessToken}` } },
+  );
+  const parsed: unknown = await response.json().catch(() => null);
+  const result = field(parsed, 'result');
+
+  if (!response.ok || !Array.isArray(result)) return [];
+
+  return result.flatMap((item: unknown) => {
+    const id = stringField(item, 'id');
+
+    return id === null ? [] : [{ id, authenticated: field(item, 'authentication') === true }];
+  });
+};
+
+export const pickGateway = (
+  gateways: readonly AccountGateway[],
+  preferred: string | undefined,
+): string | null => {
+  const usable = gateways.filter((gateway) => gateway.authenticated);
+  const named = (id: string | undefined) => usable.find((gateway) => gateway.id === id)?.id;
+
+  return named(preferred) ?? named('default') ?? usable[0]?.id ?? null;
+};
+
 export const revoke = async (client: OAuthClient, token: string, send: typeof fetch = fetch) => {
   await send(CLOUDFLARE_OAUTH.revoke, {
     method: 'POST',

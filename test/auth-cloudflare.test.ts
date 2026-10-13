@@ -1,12 +1,26 @@
 import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript';
 import { describe, expect, it } from 'vitest';
 import { accountModel } from '../src/auth/account-models';
-import { authorizeUrl, exchangeCode, SCOPES } from '../src/auth/oauth';
+import { authorizeUrl, exchangeCode, pickGateway, SCOPES } from '../src/auth/oauth';
 import { parseSession, readCookie, sign, unsign } from '../src/auth/session';
 
 const SECRET = 'a'.repeat(40);
 
 describe('Sign in with Cloudflare', () => {
+  it('picks only gateways that check the Cloudflare token', () => {
+    const gateways = [
+      { id: 'default', authenticated: false },
+      { id: 'team', authenticated: true },
+      { id: 'mine', authenticated: true },
+    ];
+
+    expect(pickGateway(gateways, 'mine')).toBe('mine');
+    expect(pickGateway(gateways, undefined)).toBe('team');
+    expect(pickGateway(gateways, 'default')).toBe('team');
+    expect(pickGateway([{ id: 'default', authenticated: true }], undefined)).toBe('default');
+    expect(pickGateway([{ id: 'default', authenticated: false }], undefined)).toBeNull();
+  });
+
   it('asks Cloudflare for a PKCE code with the AI scopes', async () => {
     const url = new URL(
       await authorizeUrl(
