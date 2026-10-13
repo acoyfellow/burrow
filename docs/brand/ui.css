@@ -82,3 +82,32 @@
 .part .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .rules{display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;margin:0;padding:0;list-style:none}
 .rules li{padding:8px 0;border-bottom:1px solid var(--line);color:var(--dim)} .rules b{color:var(--text);font-weight:500}
+.app{grid-template-columns:232px minmax(0,1fr) 300px}
+.u-bar{min-width:0}
+.u-bar .title{min-width:0;flex:0 1 auto}
+.ran{display:flex;align-items:center;gap:8px;color:var(--faint);font-size:12px;font-family:var(--mono)}
+.ran::before,.ran::after{content:"";flex:1;height:1px;background:var(--line)}
+.ring{--p:0;--c:var(--line2);width:22px;height:22px;border-radius:50%;flex:none;position:relative;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--line) 0)}
+.ring::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--bg)}
+.ctx{position:relative;display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 4px;border-radius:7px;color:var(--faint);font:400 12px var(--mono)}
+.ctx:hover{background:var(--hover)}
+.tip{position:relative}
+.tip[data-tip]:hover::after,.tip.show::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--btn);color:var(--btn-text);font:400 12px/1 var(--sans);padding:6px 8px;border-radius:6px;z-index:5;pointer-events:none}
+.tip[data-key]:hover::after,.tip.show[data-key]::after{content:attr(data-tip) "  " attr(data-key)}
+.tip.up::after{top:auto;bottom:calc(100% + 6px)}
+.pop{position:absolute;right:0;bottom:calc(100% + 8px);width:232px;background:var(--bg);border-radius:10px;box-shadow:0 0 0 1px var(--line2),0 8px 24px rgba(0,0,0,.12);padding:12px;display:flex;flex-direction:column;gap:10px;font:400 13px var(--sans);color:var(--text);z-index:6}
+.pop .big{display:flex;align-items:center;gap:10px}
+.pop .big .ring{width:36px;height:36px} .pop .big .ring::after{inset:4px}
+.pop .big b{font-weight:500} .pop .big span{color:var(--dim);font:400 12px var(--mono)}
+.pop dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:4px 12px;font:400 12px var(--mono);color:var(--dim)}
+.pop dd{margin:0;color:var(--text);text-align:right}
+.pop .hint{color:var(--dim);font-size:12px;border-top:1px solid var(--line);padding-top:8px}
+.ringrow{display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap}
+.ringrow figure{margin:0;display:grid;justify-items:center;gap:6px}
+.ringrow .ring{width:28px;height:28px}
+.sub svg{width:14px;height:14px;flex:none}
+.chip{white-space:nowrap;flex:none}
+.u-bar{overflow:hidden}
+.u-bar .act{padding:0 6px}
+.tipdemo{display:flex;flex-direction:column;gap:40px;padding:4px 0 34px}
+.tipdemo .tip.show::after{left:0;transform:none}
