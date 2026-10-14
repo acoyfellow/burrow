@@ -1,3 +1,4 @@
+import { playerMeta } from '../player';
 import { FONTS, THEME } from '../ui/style';
 
 const escapeHtml = (value: string) =>
@@ -122,10 +123,7 @@ export const signInPage = ({ origin, error }: SignInPage) => `<!doctype html>
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="coil: agent threads with their own computer, in the cloud.">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="coil · bring your own Cloudflare">
-<meta name="twitter:description" content="One thread, one agent, one computer. Runs on your own Cloudflare account.">
-<meta name="twitter:image" content="${escapeHtml(origin)}/brand/coil-social.png">
+${playerMeta(escapeHtml(origin))}
 <meta name="theme-color" content="#f38020">
 <link rel="icon" href="/icons/favicon.svg">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

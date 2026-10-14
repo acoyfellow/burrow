@@ -3,6 +3,7 @@ import { gate } from './auth/gate';
 import { CapabilityInputError, capabilityNamed } from './capabilities';
 import { docsPage, llmsText } from './docs';
 import { mcp } from './mcp';
+import { PLAYER_VIDEO, playerPage, withRanges } from './player';
 import { serveRest } from './rest';
 import { type Caller, handlersFor, isRpcPath, rpcHandler } from './rpc';
 import { type Coil, coil, sharedView } from './service';
@@ -218,6 +219,10 @@ const PUBLIC_PAGES: Readonly<Record<string, (origin: string) => Response>> = {
     new Response(docsPage(origin), {
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
     }),
+  '/player': (origin) =>
+    new Response(playerPage(origin), {
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
+    }),
   '/robots.txt': () =>
     new Response(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /t/\nDisallow: /oauth/\n`, {
       headers: { 'content-type': 'text/plain; charset=utf-8' },
@@ -240,6 +245,9 @@ export default {
     const open = publicPage(request);
 
     if (open !== null) return open;
+
+    if (new URL(request.url).pathname === PLAYER_VIDEO && request.method === 'GET')
+      return withRanges(request, await env.ASSETS.fetch(new URL(PLAYER_VIDEO, request.url)));
 
     const admission = await admit(request, env);
 
