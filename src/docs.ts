@@ -1,5 +1,6 @@
 import { CAPABILITIES, type Capability, type Field } from './capabilities';
 import { GUIDE } from './docs-guide';
+import { highlight } from './highlight';
 import { MAX_CALLS } from './run-module';
 import { FONTS, THEME } from './ui/style';
 
@@ -130,7 +131,7 @@ const markdownToHtml = (markdown: string): string => {
       closeList();
       if (code === null) code = [];
       else {
-        out.push(`<pre><code>${escapeHtml(code.join('\n'))}</code></pre>`);
+        out.push(`<pre data-lang="js"><code>${highlight('js', code.join('\n'))}</code></pre>`);
         code = null;
       }
     } else if (code !== null) code.push(line);
@@ -226,10 +227,12 @@ p{margin:10px 0}
 ul,ol{padding-left:22px;margin:10px 0}
 li{margin:6px 0}
 article li{color:var(--text)}
+.tok-keyword{color:#c2410c;font-weight:500}.tok-string{color:#15803d}.tok-function{color:#1d4ed8}.tok-object{color:#b45309;font-weight:500}.tok-property{color:#7c3aed}.tok-number{color:#0e7490}.tok-flag{color:#7c3aed}.tok-variable{color:#b45309}.tok-punct{color:var(--faint)}
+@media (prefers-color-scheme:dark){.tok-keyword{color:#fb923c}.tok-string{color:#86efac}.tok-function{color:#93c5fd}.tok-object{color:#fcd34d}.tok-property{color:#c4b5fd}.tok-number{color:#67e8f9}.tok-flag{color:#c4b5fd}.tok-variable{color:#fcd34d}}
 code{font:.88em var(--mono);background:var(--raise);border:1px solid var(--line);padding:1px 5px;border-radius:6px}
 pre{position:relative;background:var(--term-bg);border:1px solid var(--line2);padding:16px 18px;border-radius:14px;overflow:auto;font-size:13px;line-height:1.6;margin:16px 0}
 pre[data-lang]::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font:500 10.5px var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
-pre code{background:none;border:0;padding:0;font-size:inherit}
+pre code{background:none;border:0;padding:0;font-size:inherit;white-space:pre-wrap;overflow-wrap:anywhere}
 table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
 th,td{text-align:left;vertical-align:top;padding:12px 14px;border-top:1px solid var(--line)}
 tr:last-child th,tr:last-child td{border-bottom:1px solid var(--line)}

@@ -1,3 +1,5 @@
+import { highlight, type Language } from './highlight';
+
 export type GuideSection = {
   readonly id: string;
   readonly title: string;
@@ -6,11 +8,8 @@ export type GuideSection = {
 
 export type GuideGroup = { readonly title: string; readonly sections: readonly GuideSection[] };
 
-const code = (lang: string, body: string) =>
-  `<pre data-lang="${lang}"><code>${body
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')}</code></pre>`;
+const code = (lang: Language, body: string) =>
+  `<pre data-lang="${lang}"><code>${highlight(lang, body)}</code></pre>`;
 
 const callout = (kind: 'note' | 'tip' | 'warn', body: string) =>
   `<div class="callout ${kind}">${body}</div>`;
