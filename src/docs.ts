@@ -1,5 +1,7 @@
 import { CAPABILITIES, type Capability, type Field } from './capabilities';
+import { GUIDE } from './docs-guide';
 import { MAX_CALLS } from './run-module';
+import { FONTS, THEME } from './ui/style';
 
 const GROUPS: readonly { readonly key: Capability['group']; readonly title: string }[] = [
   { key: 'threads', title: 'Threads' },
@@ -155,27 +157,119 @@ const markdownToHtml = (markdown: string): string => {
   return out.join('\n');
 };
 
-const STYLE = `:root{color-scheme:light dark;--bg:#fff;--text:#18181b;--dim:#6b6b70;--line:#ebebe8;--raise:#f4f4f2}
-@media (prefers-color-scheme:dark){:root{--bg:#141416;--text:#ececee;--dim:#9b9ba3;--line:#26262b;--raise:#1f1f23}}
-body{margin:0;background:var(--bg);color:var(--text);font:400 14px/1.6 "Google Sans Flex",system-ui,sans-serif}
-main{max-width:760px;margin:0 auto;padding:40px 24px 80px}
-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:24px}
-header a{color:var(--dim);font-size:13px}
-h2{font-size:16px;font-weight:600;margin:32px 0 8px;padding-top:16px;border-top:1px solid var(--line)}
-h3{font-size:14px;font-weight:600;margin:20px 0 4px;font-family:"Google Sans Code",ui-monospace,monospace}
-p{margin:6px 0}.lede{color:var(--dim)}ul{margin:4px 0;padding-left:20px}li{margin:2px 0;color:var(--dim)}
-code{font:400 .9em "Google Sans Code",ui-monospace,monospace;background:var(--raise);padding:1px 4px;border-radius:4px}
-pre{background:var(--raise);padding:12px 14px;border-radius:10px;overflow:auto}pre code{background:none;padding:0}`;
+const GITHUB = '<img src="/brand/github.svg" alt="" width="20" height="20">';
+
+const referenceNav = () =>
+  GROUPS.filter((group) => CAPABILITIES.some((capability) => capability.group === group.key))
+    .map((group) => `<a href="#${slugOf(group.title)}">${escapeHtml(group.title)}</a>`)
+    .join('');
+
+const guideNav = () =>
+  GUIDE.map(
+    (group) =>
+      `<p class="nav-title">${group.title}</p>${group.sections.map((section) => `<a href="#${section.id}">${section.title}</a>`).join('')}`,
+  ).join('');
+
+const guideBody = () =>
+  GUIDE.flatMap((group) => group.sections)
+    .map(
+      (section) =>
+        `<section class="guide" id="${section.id}"><h2>${section.title}</h2>${section.html}</section>`,
+    )
+    .join('');
+
+const referenceBody = (origin: string) =>
+  markdownToHtml(
+    [
+      '## API reference',
+      '',
+      `> Every capability is an MCP tool, a \`coil_run\` call, and \`POST ${origin}/api/capabilities/<name>\`.`,
+      '',
+      ...GROUPS.flatMap(groupLines),
+    ].join('\n'),
+  );
+
+const STYLE = `${THEME}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 var(--sans);font-optical-sizing:auto;-webkit-font-smoothing:antialiased}
+a{color:var(--text);text-decoration-color:color-mix(in srgb,var(--orange) 60%,transparent);text-underline-offset:3px}
+a:hover{color:var(--orange)}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;height:64px;padding:0 28px;background:color-mix(in srgb,var(--bg) 85%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--dim);font-size:13px}
+.top .brand img{height:22px;display:block}
+.top .brand span{padding-left:12px;border-left:1px solid var(--line2)}
+.top nav{display:flex;align-items:center;gap:4px}
+.top nav a{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:13.5px;text-decoration:none;padding:7px 10px;border-radius:9px}
+.top nav a:hover{color:var(--text);background:var(--hover)}
+.top nav a.primary{background:var(--text);color:var(--bg);padding:7px 14px}
+.top nav a.primary:hover{opacity:.9}
+.top nav img{display:block}
+@media (prefers-color-scheme:dark){.top nav img[src$="github.svg"]{filter:invert(1)}}
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr);max-width:1200px;margin:0 auto}
+aside{position:sticky;top:64px;align-self:start;height:calc(100vh - 64px);overflow:auto;padding:28px 20px 40px 28px;border-right:1px solid var(--line)}
+aside a{display:block;font-size:13.5px;color:var(--dim);text-decoration:none;padding:5px 10px;border-radius:8px}
+aside a:hover{color:var(--text);background:var(--hover)}
+.nav-title{font:500 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--faint);margin:22px 10px 8px}
+.nav-title:first-child{margin-top:0}
+article{padding:44px 56px 120px;max-width:820px}
+.hero{padding-bottom:12px}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:8px;font:500 12px/1 var(--mono);color:var(--orange);background:var(--orange-soft);padding:7px 11px;border-radius:99px;margin:0 0 18px}
+.hero h1{font-size:44px;line-height:1.05;letter-spacing:-.035em;font-weight:600;margin:0 0 12px}
+.hero p{font-size:17px;color:var(--dim);margin:0}
+section.guide,article>h2{scroll-margin-top:84px}
+h2{font-size:26px;letter-spacing:-.02em;font-weight:600;margin:64px 0 14px;padding-top:28px;border-top:1px solid var(--line)}
+h3{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:32px 0 8px}
+article h3[id]{font:500 14.5px var(--mono);margin:30px 0 6px;padding:10px 12px;background:var(--raise);border-radius:10px}
+p{margin:10px 0}
+.lede{font-size:17px;color:var(--dim)}
+ul,ol{padding-left:22px;margin:10px 0}
+li{margin:6px 0}
+article li{color:var(--text)}
+code{font:.88em var(--mono);background:var(--raise);border:1px solid var(--line);padding:1px 5px;border-radius:6px}
+pre{position:relative;background:var(--term-bg);border:1px solid var(--line2);padding:16px 18px;border-radius:14px;overflow:auto;font-size:13px;line-height:1.6;margin:16px 0}
+pre[data-lang]::before{content:attr(data-lang);position:absolute;top:8px;right:12px;font:500 10.5px var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+pre code{background:none;border:0;padding:0;font-size:inherit}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:12px 14px;border-top:1px solid var(--line)}
+tr:last-child th,tr:last-child td{border-bottom:1px solid var(--line)}
+th{width:34%;font-weight:500}
+td{color:var(--dim)}
+.callout{margin:18px 0;padding:14px 16px;border-radius:12px;font-size:14px;border:1px solid var(--line2);background:var(--raise)}
+.callout.tip{border-color:color-mix(in srgb,var(--orange) 35%,transparent);background:var(--orange-soft)}
+.callout.warn{border-color:color-mix(in srgb,var(--bad) 35%,transparent)}
+ol.steps{list-style:none;padding:0;counter-reset:s}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:12px;margin:12px 0}
+ol.steps li::before{content:counter(s);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:500 12px var(--mono);background:var(--text);color:var(--bg)}
+footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:var(--faint);font-size:12.5px}
+footer .stack{font-family:var(--mono);font-size:11.5px}
+@media (max-width:900px){.layout{grid-template-columns:1fr}aside{display:none}article{padding:28px 20px 80px}.top{padding:0 16px}.hero h1{font-size:34px}.top .brand span{display:none}}`;
 
 export const docsPage = (origin: string): string => `<!doctype html>
 <html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>coil docs</title>
+<meta name="description" content="coil docs: agent threads with their own computer, built on Cloudflare Workers, Durable Objects, Containers, Workers AI, and AI Gateway.">
 <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="${FONTS}">
 <style>${STYLE}</style>
-<main>
-<header><img src="/brand/coil-wordmark.svg" alt="coil" height="22"><a href="/llms.txt">llms.txt</a></header>
-${markdownToHtml(llmsText(origin))}
-</main>
+</head>
+<body>
+<header class="top">
+<a class="brand" href="/"><img src="/brand/coil-wordmark.svg" alt="coil"><span>Docs</span></a>
+<nav><a href="/llms.txt">llms.txt</a><a href="https://github.com/acoyfellow/coil" aria-label="GitHub">${GITHUB}</a><a class="primary" href="/">Open coil</a></nav>
+</header>
+<div class="layout">
+<aside>${guideNav()}<p class="nav-title">API reference</p>${referenceNav()}</aside>
+<article>
+<div class="hero"><p class="eyebrow">Built on Cloudflare</p><h1>coil docs</h1><p>Agent threads with their own computer, running on your own Cloudflare account.</p></div>
+${guideBody()}
+${referenceBody(origin)}
+<footer><span>Open source, MIT.</span><span class="stack">Workers · Durable Objects · Containers · Workers AI · AI Gateway</span></footer>
+</article>
+</div>
+</body>
 </html>`;

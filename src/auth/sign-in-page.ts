@@ -7,7 +7,9 @@ const escapeHtml = (value: string) =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
 
-const CLOUD = `<svg class="cloud" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.5 9.6 4.5 4.5 0 0 0 7 18.5Z"/></svg>`;
+const CLOUD = '<img class="cloud" src="/brand/cloudflare-cloud.svg" alt="" width="33" height="15">';
+
+const GITHUB = '<img class="gh" src="/brand/github.svg" alt="" width="20" height="20">';
 
 type Point = { readonly icon: string; readonly title: string; readonly body: string };
 
@@ -49,7 +51,10 @@ body::after{content:'';position:fixed;width:720px;height:720px;right:-200px;top:
 header{display:flex;align-items:center;justify-content:space-between}
 header img{height:24px;display:block}
 nav{display:flex;gap:4px}
-nav a{color:var(--dim);font-size:13.5px;text-decoration:none;padding:7px 12px;border-radius:9px}
+nav{align-items:center}
+nav a{display:flex;align-items:center;color:var(--dim);font-size:13.5px;text-decoration:none;padding:7px 12px;border-radius:9px}
+.gh{display:block}
+@media (prefers-color-scheme:dark){.gh{filter:invert(1)}}
 nav a:hover{color:var(--text);background:var(--hover)}
 .hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr);gap:72px;align-items:center;padding:56px 0}
 .eyebrow{display:inline-flex;align-items:center;gap:9px;font:500 12px/1 var(--mono);letter-spacing:.01em;color:var(--orange);background:var(--orange-soft);padding:8px 12px 8px 10px;border-radius:99px;margin:0 0 26px}
@@ -73,7 +78,7 @@ li span{color:var(--dim);font-size:14px}
 .cta:hover{transform:translateY(-1px);box-shadow:0 10px 24px -10px color-mix(in srgb,var(--text) 60%,transparent)}
 .cta:active{transform:translateY(0)}
 .cta:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
-.cloud{width:22px;height:22px;flex:none;fill:#f38020;stroke:#fbad41;stroke-width:1.2}
+.cloud{width:33px;height:15px;flex:none;display:block}
 .steps{list-style:none;margin:26px 0 0;padding:22px 0 0;border-top:1px dashed var(--line2);display:grid;gap:12px;counter-reset:step;max-width:none}
 .steps li{grid-template-columns:24px 1fr;gap:12px;font-size:13.5px;color:var(--dim);counter-increment:step;align-items:center}
 .steps li::before{content:counter(step);width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:500 11.5px var(--mono);background:var(--raise);color:var(--text)}
@@ -112,7 +117,7 @@ export const signInPage = ({ error }: { readonly error?: string }) => `<!doctype
 <div class="page">
 <header>
 <img src="/brand/coil-wordmark.svg" alt="coil">
-<nav><a href="/docs">Docs</a><a href="https://github.com/acoyfellow/coil">GitHub</a></nav>
+<nav><a href="/docs">Docs</a><a href="https://github.com/acoyfellow/coil" aria-label="GitHub">${GITHUB}</a></nav>
 </header>
 <main class="hero">
 <section>
@@ -130,7 +135,7 @@ ${error === undefined ? '' : alert(error)}
 </section>
 </main>
 <footer>
-<span>Not an official Cloudflare product. Open source.</span>
+<span>A showcase of the Cloudflare Developer Platform. Open source.</span>
 <span class="stack">Workers · Durable Objects · Containers · Workers AI · AI Gateway</span>
 </footer>
 </div>

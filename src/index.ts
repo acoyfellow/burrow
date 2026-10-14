@@ -156,16 +156,6 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
   if (pathname === '/mcp' && request.method === 'POST')
     return mcp(request, { env, who: caller.who, api: caller.api });
 
-  if (pathname === '/llms.txt' && request.method === 'GET')
-    return new Response(llmsText(url.origin), {
-      headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-cache' },
-    });
-
-  if (pathname === '/docs' && request.method === 'GET')
-    return new Response(docsPage(url.origin), {
-      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
-    });
-
   const capability = CAPABILITY_PATH.exec(pathname);
 
   if (capability?.[1] !== undefined && request.method === 'POST')
@@ -223,8 +213,30 @@ const route = async (request: Request, env: Env, caller: Owner): Promise<Respons
   return env.ASSETS.fetch(request);
 };
 
+const PUBLIC_PAGES: Readonly<Record<string, (origin: string) => Response>> = {
+  '/docs': (origin) =>
+    new Response(docsPage(origin), {
+      headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
+    }),
+  '/llms.txt': (origin) =>
+    new Response(llmsText(origin), {
+      headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-cache' },
+    }),
+};
+
+const publicPage = (request: Request) => {
+  const url = new URL(request.url);
+  const page = PUBLIC_PAGES[url.pathname];
+
+  return request.method === 'GET' && page !== undefined ? page(url.origin) : null;
+};
+
 export default {
   async fetch(request, env) {
+    const open = publicPage(request);
+
+    if (open !== null) return open;
+
     const admission = await admit(request, env);
 
     if ('refused' in admission) return admission.refused;
