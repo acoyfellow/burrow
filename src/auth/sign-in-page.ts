@@ -70,6 +70,12 @@ li{display:grid;grid-template-columns:40px 1fr;gap:16px;align-items:start}
 .icon svg{width:20px;height:20px;fill:none;stroke:var(--text);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 li strong{display:block;font-weight:600;font-size:15px;letter-spacing:-.005em;margin:2px 0 3px}
 li span{color:var(--dim);font-size:14px}
+.stage{position:relative;isolation:isolate}
+.stage::before{content:'';position:absolute;inset:-90px -110px;z-index:-1;background:url(/brand/truchet-orange.svg) center/192px repeat;-webkit-mask:radial-gradient(closest-side,#000 25%,transparent 100%);mask:radial-gradient(closest-side,#000 25%,transparent 100%);opacity:.55;animation:drift 60s linear infinite}
+@keyframes drift{to{background-position:192px 192px}}
+@media (prefers-color-scheme:dark){.stage::before{opacity:.4}}
+.floor{position:fixed;left:0;right:0;bottom:0;height:46vh;z-index:-1;pointer-events:none;background:url(/brand/dots-light.svg) repeat;background-size:20px;-webkit-mask:linear-gradient(to top,#000 0%,transparent 100%);mask:linear-gradient(to top,#000 0%,transparent 100%)}
+@media (prefers-color-scheme:dark){.floor{background-image:url(/brand/dots-dark.svg)}}
 .card{position:relative;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--line2);border-radius:22px;padding:34px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 30px 60px -30px rgba(0,0,0,.25)}
 .card::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(160deg,color-mix(in srgb,var(--orange) 55%,transparent),transparent 40%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .card h2{font-size:22px;letter-spacing:-.02em;font-weight:600;margin:0 0 6px}
@@ -89,15 +95,17 @@ footer{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;al
 footer a{color:var(--dim);text-decoration:none}
 footer a:hover{color:var(--text)}
 footer .stack{font-family:var(--mono);font-size:11.5px}
-@media (max-width:900px){.page{padding:20px}.hero{grid-template-columns:1fr;gap:28px;padding:24px 0}.card{padding:24px}.lede{margin-bottom:0}.hero ul{order:3}.card{order:2}body::after{width:480px;height:480px}}
+@media (max-width:900px){.page{padding:20px}.hero{grid-template-columns:1fr;gap:28px;padding:24px 0}.card{padding:24px}.lede{margin-bottom:0}.hero ul{order:3}.stage{order:2}.stage::before{inset:-40px -20px}body::after{width:480px;height:480px}}
 @media (max-width:900px){.hero{gap:0}.hero>section:first-child{display:contents}.eyebrow{justify-self:start;margin-bottom:18px}h1{margin-bottom:14px}.lede{margin-bottom:24px;font-size:16.5px}.hero>section:first-child>*{order:1}.hero>section:first-child>ul{order:3;margin-top:36px}}
-@media (prefers-reduced-motion:reduce){.cta,.eyebrow i{transition:none;animation:none}}
+@media (prefers-reduced-motion:reduce){.cta,.eyebrow i,.stage::before{transition:none;animation:none}}
 `;
 
 const alert = (error: string) =>
   `<div class="alert" role="alert"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg><div>${escapeHtml(error)}</div></div>`;
 
-export const signInPage = ({ error }: { readonly error?: string }) => `<!doctype html>
+export type SignInPage = { readonly origin: string; readonly error?: string };
+
+export const signInPage = ({ origin, error }: SignInPage) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -106,7 +114,18 @@ export const signInPage = ({ error }: { readonly error?: string }) => `<!doctype
 <meta name="description" content="One thread, one agent, one computer. Sign in with Cloudflare and coil runs on your own Workers AI and AI Gateway.">
 <meta property="og:title" content="coil · bring your own Cloudflare">
 <meta property="og:description" content="One thread, one agent, one computer. Runs on your own Cloudflare account.">
-<meta property="og:image" content="/brand/coil-social.png">
+<link rel="canonical" href="${escapeHtml(origin)}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="coil">
+<meta property="og:url" content="${escapeHtml(origin)}/">
+<meta property="og:image" content="${escapeHtml(origin)}/brand/coil-social.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="coil: agent threads with their own computer, in the cloud.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="coil · bring your own Cloudflare">
+<meta name="twitter:description" content="One thread, one agent, one computer. Runs on your own Cloudflare account.">
+<meta name="twitter:image" content="${escapeHtml(origin)}/brand/coil-social.png">
 <meta name="theme-color" content="#f38020">
 <link rel="icon" href="/icons/favicon.svg">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -114,6 +133,7 @@ export const signInPage = ({ error }: { readonly error?: string }) => `<!doctype
 <style>${STYLE}</style>
 </head>
 <body>
+<div class="floor" aria-hidden="true"></div>
 <div class="page">
 <header>
 <img src="/brand/coil-wordmark.svg" alt="coil">
@@ -126,13 +146,13 @@ export const signInPage = ({ error }: { readonly error?: string }) => `<!doctype
 <p class="lede">coil gives every thread its own Linux machine and an agent to drive it. Sign in with Cloudflare and it runs on <b>your</b> models, in <b>your</b> account.</p>
 <ul>${POINTS.map(point).join('')}</ul>
 </section>
-<section class="card" aria-labelledby="start">
+<div class="stage"><section class="card" aria-labelledby="start">
 <h2 id="start">Start a thread</h2>
 <p>Choose the Cloudflare account coil should run on. You stay in control of it the whole time.</p>
 ${error === undefined ? '' : alert(error)}
 <a class="cta" id="sign-in" href="/oauth/login">${CLOUD}Sign in with Cloudflare</a>
 <ol class="steps">${STEPS.map((step) => `<li><span>${step}</span></li>`).join('')}</ol>
-</section>
+</section></div>
 </main>
 <footer>
 <span>A showcase of the Cloudflare Developer Platform. Open source.</span>

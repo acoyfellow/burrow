@@ -218,6 +218,10 @@ const PUBLIC_PAGES: Readonly<Record<string, (origin: string) => Response>> = {
     new Response(docsPage(origin), {
       headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' },
     }),
+  '/robots.txt': () =>
+    new Response(`User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /t/\nDisallow: /oauth/\n`, {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    }),
   '/llms.txt': (origin) =>
     new Response(llmsText(origin), {
       headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-cache' },

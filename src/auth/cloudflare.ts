@@ -106,9 +106,16 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
   const page = (request: Request, error: string | undefined, status: number) => {
     const jar = cookieJar(request.url);
 
-    return html(signInPage(error === undefined ? {} : { error }), status, {
-      'set-cookie': clearCookie(jar, jar.flow),
-    });
+    return html(
+      signInPage({
+        origin: new URL(request.url).origin,
+        ...(error === undefined ? {} : { error }),
+      }),
+      status,
+      {
+        'set-cookie': clearCookie(jar, jar.flow),
+      },
+    );
   };
 
   const notReady = (request: Request) =>
@@ -276,7 +283,9 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
           ),
         };
 
-      return { refused: html(signInPage({}), ready ? 200 : 503) };
+      return {
+        refused: html(signInPage({ origin: new URL(request.url).origin }), ready ? 200 : 503),
+      };
     },
   };
 };
