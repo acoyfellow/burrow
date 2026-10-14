@@ -44,10 +44,7 @@ ${rows([
     '<a href="https://developers.cloudflare.com/ai-gateway/">AI Gateway</a>',
     'Frontier models such as Claude, with the account&rsquo;s logs, limits, and billing.',
   ],
-  [
-    'Sign in with Cloudflare',
-    'OAuth, so each person brings their own account.',
-  ],
+  ['Sign in with Cloudflare', 'OAuth, so each person brings their own account.'],
 ])}`,
 };
 
