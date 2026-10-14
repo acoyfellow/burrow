@@ -284,10 +284,15 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected route(id: string): ModelChoice {
+    const external = this.externalGateway();
+
+    if (isGatewayModel(id) && external !== null)
+      return gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id, external);
+
     if (isCloudflareOwner(this.ledger.owner)) return accountModel(this.accountCredentials(), id);
 
     return isGatewayModel(id)
-      ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id, this.externalGateway())
+      ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id, external)
       : workersAI(this.env.AI, id);
   }
 
