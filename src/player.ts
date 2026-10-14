@@ -22,18 +22,6 @@ export const playerPage = (origin: string): string => `<!doctype html>
 </body>
 </html>`;
 
-export const playerMeta = (origin: string): string => `<meta name="twitter:card" content="player">
-<meta name="twitter:site" content="@acoyfellow">
-<meta name="twitter:title" content="coil · bring your own Cloudflare">
-<meta name="twitter:description" content="One thread, one agent, one computer. Runs on your own Cloudflare account.">
-<meta name="twitter:image" content="${origin}${PLAYER_POSTER}">
-<meta name="twitter:image:alt" content="coil demo: an agent thread with its own computer on Cloudflare.">
-<meta name="twitter:player" content="${origin}/player">
-<meta name="twitter:player:width" content="${PLAYER_WIDTH}">
-<meta name="twitter:player:height" content="${PLAYER_HEIGHT}">
-<meta name="twitter:player:stream" content="${origin}${PLAYER_VIDEO}">
-<meta name="twitter:player:stream:content_type" content="video/mp4">`;
-
 const RANGE = /^bytes=(\d*)-(\d*)$/u;
 
 type ByteSpan = { readonly start: number; readonly end: number };
