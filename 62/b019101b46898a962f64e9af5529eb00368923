@@ -1,0 +1,29 @@
+public/brand/dots-dark.svg
+  s_231221b99fcbf7::t_0339c04979102c 1
+public/brand/dots-light.svg
+  s_231221b99fcbf7::t_21e7471b5f42f1 1
+public/brand/truchet-orange.svg
+  s_231221b99fcbf7::t_dfd3e55c353895 1
+src/auth/cloudflare.ts
+  s_231221b99fcbf7::t_87832d15d6f9f3 109-118,286-288
+src/auth/sign-in-page.ts
+  s_231221b99fcbf7::t_a293a4cf6de3af 73-78,98,100,106-108,117-128,136,149,155
+src/index.ts
+  s_231221b99fcbf7::t_d6863d2257f530 221-224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "62b019101b46898a962f64e9af5529eb00368923",
+  "prompts": {},
+  "sessions": {
+    "s_231221b99fcbf7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1176a-4538-7369-8003-75cbe8c7d418",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
