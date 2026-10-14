@@ -17,6 +17,12 @@ const DARK = `
   --you:#16243d;--you-line:#22385c;--term-bg:#101012;--term-fg:#e4e4e7;
 `;
 
+export const THEME = `:root{color-scheme:light dark;${LIGHT}
+  --sans:"Google Sans Flex","Google Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"Google Sans Code",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;${DARK}}}`;
+
 export const STYLE = `
 :root{color-scheme:light dark;${LIGHT}
   --sans:"Google Sans Flex","Google Sans",ui-sans-serif,system-ui,sans-serif;
