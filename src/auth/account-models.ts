@@ -4,10 +4,14 @@ import { cloudflareWorkersAIProvider } from '@earendil-works/pi-ai/providers/clo
 import type { ModelChoice } from '../agent';
 import { isGatewayModel, rewriteBody, upstreamId } from '../gateway';
 
-export type AccountCredentials = {
+export type AccountRoute = {
   readonly accountId: string;
   readonly gateway: string;
-  readonly token: () => Promise<string>;
+  readonly token: string;
+};
+
+export type AccountCredentials = {
+  readonly route: () => Promise<AccountRoute>;
 };
 
 const STRIPPED = ['cf-aig-authorization', 'authorization', 'x-api-key'];
@@ -15,6 +19,13 @@ const STRIPPED = ['cf-aig-authorization', 'authorization', 'x-api-key'];
 const ACCOUNT_SLOT = '{CLOUDFLARE_ACCOUNT_ID}';
 
 const GATEWAY_SLOT = '{CLOUDFLARE_GATEWAY_ID}';
+
+const filled = (url: string, route: Pick<AccountRoute, 'accountId' | 'gateway'>) =>
+  url
+    .replaceAll(encodeURIComponent(ACCOUNT_SLOT), encodeURIComponent(route.accountId))
+    .replaceAll(encodeURIComponent(GATEWAY_SLOT), encodeURIComponent(route.gateway))
+    .replaceAll(ACCOUNT_SLOT, encodeURIComponent(route.accountId))
+    .replaceAll(GATEWAY_SLOT, encodeURIComponent(route.gateway));
 
 const withToken =
   (
@@ -24,13 +35,14 @@ const withToken =
   ): typeof fetch =>
   async (input, init) => {
     const request = new Request(input, init);
+    const route = await credentials.route();
     const headers = new Headers(request.headers);
 
     for (const name of STRIPPED) headers.delete(name);
-    headers.set(header, `Bearer ${await credentials.token()}`);
+    headers.set(header, `Bearer ${route.token}`);
 
     return send(
-      new Request(request.url, {
+      new Request(filled(request.url, route), {
         method: request.method,
         headers,
         body: await rewriteBody(request),
@@ -39,20 +51,13 @@ const withToken =
     );
   };
 
-const filled = (url: string, credentials: AccountCredentials) =>
-  url
-    .replaceAll(ACCOUNT_SLOT, encodeURIComponent(credentials.accountId))
-    .replaceAll(GATEWAY_SLOT, encodeURIComponent(credentials.gateway));
-
 const accountProvider = (
   stock: Provider,
   credentials: AccountCredentials,
   header: 'authorization' | 'cf-aig-authorization',
   send: typeof fetch,
 ): Provider => {
-  const models = stock
-    .getModels()
-    .map((model) => ({ ...model, baseUrl: filled(model.baseUrl, credentials) }));
+  const models = stock.getModels();
   const routed = withToken(credentials, header, send);
 
   return {

@@ -47,6 +47,15 @@ const signedInLabel = (who: string) => (isCloudflareUser(who) ? 'Signed in with 
 const signOut = (h: H, who: string): Html[] =>
   isCloudflareUser(who)
     ? [
+        h.a(
+          [
+            h.Id('gateway-link'),
+            h.Class('sign-out gateway-link'),
+            h.Href('/oauth/gateway'),
+            h.DataAttribute('tip', 'Pick which AI Gateway on your account runs model calls'),
+          ],
+          ['Gateway'],
+        ),
         h.form(
           [h.Id('sign-out'), h.Class('sign-out'), h.Method('post'), h.Action('/oauth/logout')],
           [

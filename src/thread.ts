@@ -294,12 +294,9 @@ export class Thread extends DurableObject<Env> {
   private accountCredentials(): AccountCredentials {
     const owner = this.ledger.owner;
     const directory = () => this.directory;
-    const grant = this.grant;
 
     return {
-      accountId: grant?.accountId ?? '',
-      gateway: grant?.gateway ?? 'default',
-      token: async () => {
+      route: async () => {
         const current = await directory().grantFor(owner);
 
         if (current === null)
@@ -307,9 +304,12 @@ export class Thread extends DurableObject<Env> {
             'Sign in with Cloudflare again: coil no longer has access to your account.',
           );
 
-        if (current.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS) return current.accessToken;
+        const token =
+          current.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS
+            ? current.accessToken
+            : await refreshedToken(this.env, current, directory());
 
-        return refreshedToken(this.env, current, directory());
+        return { accountId: current.accountId, gateway: current.gateway, token };
       },
     };
   }
@@ -663,13 +663,13 @@ export class Thread extends DurableObject<Env> {
     if (!isCloudflareOwner(this.ledger.owner))
       return this.env.AI.run(VISION_MODEL as keyof AiModels, inputs as never);
 
-    const credentials = this.accountCredentials();
+    const route = await this.accountCredentials().route();
     const response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/ai/run/${VISION_MODEL}`,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(route.accountId)}/ai/run/${VISION_MODEL}`,
       {
         method: 'POST',
         headers: {
-          authorization: `Bearer ${await credentials.token()}`,
+          authorization: `Bearer ${route.token}`,
           'content-type': 'application/json',
         },
         body: JSON.stringify(inputs),

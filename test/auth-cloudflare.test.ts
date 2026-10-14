@@ -98,7 +98,9 @@ describe('Sign in with Cloudflare', () => {
 });
 
 describe('models for a signed-in Cloudflare account', () => {
-  const credentials = { accountId: 'acct-123', gateway: 'gw', token: async () => 'user-token' };
+  const credentials = {
+    route: async () => ({ accountId: 'acct-123', gateway: 'gw', token: 'user-token' }),
+  };
 
   const captured = async (id: string) => {
     const seen: Request[] = [];
