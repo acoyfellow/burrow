@@ -85,7 +85,7 @@ describe('Workers AI catalog', () => {
     await fetchCatalog('acct-a', 'user-token', async (input, init) => {
       request = { url: String(input), auth: new Headers(init?.headers).get('authorization') };
 
-      return Response.json({ result: [] });
+      return Response.json({ result: [searchResult('@cf/a/b')] });
     });
 
     expect(request).toEqual({
@@ -112,10 +112,15 @@ describe('Workers AI catalog', () => {
 describe('catalog cache', () => {
   const stored: StoredCatalog = { entries: [], fetchedAt: 1_000 };
 
+  const filled: StoredCatalog = {
+    entries: [catalogEntry(searchResult('@cf/a/b'))].flatMap((each) => (each ? [each] : [])),
+    fetchedAt: 1_000,
+  };
+
   it('uses a fresh stored catalog without fetching', async () => {
     let fetched = 0;
     const result = await loadCatalog({
-      stored: async () => stored,
+      stored: async () => filled,
       save: async () => undefined,
       fetchLive: async () => {
         fetched++;
@@ -125,7 +130,7 @@ describe('catalog cache', () => {
     });
 
     expect(fetched).toBe(0);
-    expect(result).toBe(stored);
+    expect(result).toBe(filled);
   });
 
   it('refetches and saves once the hour is up', async () => {
@@ -143,7 +148,7 @@ describe('catalog cache', () => {
 
   it('serves the stale catalog when Cloudflare fails', async () => {
     const result = await loadCatalog({
-      stored: async () => stored,
+      stored: async () => filled,
       save: async () => undefined,
       fetchLive: async () => {
         throw new Error('503');
@@ -151,7 +156,7 @@ describe('catalog cache', () => {
       now: () => 1_000 + CATALOG_TTL_MS * 5,
     });
 
-    expect(result).toBe(stored);
+    expect(result).toBe(filled);
   });
 
   it('fails when there is nothing stored and Cloudflare fails', async () => {
@@ -165,5 +170,27 @@ describe('catalog cache', () => {
         now: () => 0,
       }),
     ).rejects.toThrow('503');
+  });
+});
+
+describe('empty catalogs', () => {
+  it('never treats an empty stored catalog as fresh', async () => {
+    let fetched = 0;
+
+    await loadCatalog({
+      stored: async () => ({ entries: [], fetchedAt: 0 }),
+      save: async () => undefined,
+      fetchLive: async () => {
+        fetched++;
+        return [catalogEntry(searchResult('@cf/a/b'))].flatMap((each) => (each ? [each] : []));
+      },
+      now: () => 1,
+    });
+
+    expect(fetched).toBe(1);
+  });
+
+  it('refuses to cache a catalog with no tool models', async () => {
+    await expect(fetchCatalog('acct', 'token', pages([[]]))).rejects.toThrow('no models');
   });
 });

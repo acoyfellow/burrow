@@ -130,7 +130,11 @@ export const fetchCatalog = async (
     if (!response.ok) throw new Error(`Workers AI catalog returned ${response.status}`);
 
     const body: unknown = await response.json();
-    const results = isRecord(body) && Array.isArray(body.result) ? body.result : [];
+
+    if (!isRecord(body) || !Array.isArray(body.result))
+      throw new Error(`Workers AI catalog returned no result list (${response.status})`);
+
+    const results = body.result;
 
     for (const result of results) {
       const entry = isRecord(result) ? catalogEntry(result) : null;
@@ -141,11 +145,13 @@ export const fetchCatalog = async (
     if (results.length < PAGE_SIZE) break;
   }
 
+  if (entries.length === 0) throw new Error('Workers AI catalog returned no models with tool use');
+
   return entries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 };
 
 export const isFresh = (stored: StoredCatalog | null, now: number): stored is StoredCatalog =>
-  stored !== null && now - stored.fetchedAt < CATALOG_TTL_MS;
+  stored !== null && stored.entries.length > 0 && now - stored.fetchedAt < CATALOG_TTL_MS;
 
 export const mergeCatalog = (
   pinned: readonly ModelInfo[],
@@ -176,7 +182,7 @@ export const loadCatalog = async (source: CatalogSource): Promise<StoredCatalog>
 
     return fresh;
   } catch (cause) {
-    if (stored !== null) return stored;
+    if (stored !== null && stored.entries.length > 0) return stored;
 
     throw cause;
   }
