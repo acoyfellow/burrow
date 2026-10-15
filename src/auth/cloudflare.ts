@@ -6,6 +6,7 @@ import {
   authorizeUrl,
   exchangeCode,
   gatewaysOf,
+  listGateways,
   type OAuthClient,
   OAuthFailed,
   pickGateway,
@@ -279,13 +280,15 @@ export const cloudflareAuth = (env: CloudflareAuthEnv, send: typeof fetch = fetc
 
     if (fresh === null) return redirect('/');
 
-    const gateways = await gatewaysOf(fresh.token, fresh.grant.accountId, send);
+    const { gateways, problem } = await listGateways(fresh.token, fresh.grant.accountId, send);
+    if (problem !== null) console.warn('gateway list failed', { problem });
     const view = (error?: string, current = fresh.grant.gateway, status = 200) =>
       html(
         gatewayPage({
           accountName: fresh.grant.accountName,
           current,
           gateways,
+          problem,
           ...(error === undefined ? {} : { error }),
         }),
         status,

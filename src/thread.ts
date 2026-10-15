@@ -12,7 +12,7 @@ import {
 } from './agent';
 import { type AccountCredentials, accountModel } from './auth/account-models';
 import { refreshedToken, SignedOut, TOKEN_REFRESH_MARGIN_MS } from './auth/refresh';
-import { isCloudflareOwner } from './auth/types';
+import { isCloudflareOwner, mayUseHostInference } from './auth/types';
 import {
   Browser,
   browserEnv,
@@ -283,8 +283,15 @@ export class Thread extends DurableObject<Env> {
     return this.route(this.currentModel());
   }
 
+  private requireHostInference(): void {
+    if (!mayUseHostInference(this.env.COIL_AUTH, this.ledger.owner))
+      throw new SignedOut('Sign in with Cloudflare: coil only runs models on your own account.');
+  }
+
   protected route(id: string): ModelChoice {
     if (isCloudflareOwner(this.ledger.owner)) return accountModel(this.accountCredentials(), id);
+
+    this.requireHostInference();
 
     return isGatewayModel(id)
       ? gatewayModel(this.env.AI, this.env.AI_GATEWAY ?? 'default', id, this.externalGateway())
@@ -660,8 +667,10 @@ export class Thread extends DurableObject<Env> {
   }
 
   private async runVision(inputs: Record<string, unknown>): Promise<unknown> {
-    if (!isCloudflareOwner(this.ledger.owner))
+    if (!isCloudflareOwner(this.ledger.owner)) {
+      this.requireHostInference();
       return this.env.AI.run(VISION_MODEL as keyof AiModels, inputs as never);
+    }
 
     const route = await this.accountCredentials().route();
     const response = await fetch(

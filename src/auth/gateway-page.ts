@@ -29,6 +29,7 @@ export type GatewayPage = {
   readonly accountName: string;
   readonly current: string | null;
   readonly gateways: readonly AccountGateway[];
+  readonly problem?: string | null;
   readonly error?: string;
 };
 
@@ -41,6 +42,7 @@ export const gatewayPage = ({
   accountName,
   current,
   gateways,
+  problem = null,
   error,
 }: GatewayPage) => `<!doctype html>
 <html lang="en">
@@ -58,7 +60,7 @@ export const gatewayPage = ({
 <p>coil sends every model call from your threads through this gateway on <strong>${escapeHtml(accountName)}</strong>. Its credits and logs are used.</p>
 ${error === undefined ? '' : `<div class="alert" role="alert">${escapeHtml(error)}</div>`}
 <form method="post" action="/oauth/gateway">
-${gateways.length === 0 ? '<p>This account has no AI Gateways.</p>' : gateways.map((gateway) => row(gateway, current)).join('\n')}
+${gateways.length > 0 ? gateways.map((gateway) => row(gateway, current)).join('\n') : problem !== null ? `<div class="alert" role="alert">coil could not list AI Gateways on ${escapeHtml(accountName)}. ${escapeHtml(problem)}</div>` : `<p>${escapeHtml(accountName)} has no AI Gateways. Create one in the dashboard with authentication on, then come back.</p>`}
 <div class="actions"><button type="submit">Use this gateway</button><a class="cancel" href="/">Cancel</a></div>
 </form>
 </main>

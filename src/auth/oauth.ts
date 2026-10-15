@@ -173,11 +173,26 @@ export const accountsOf = async (
 
 export type AccountGateway = { readonly id: string; readonly authenticated: boolean };
 
-export const gatewaysOf = async (
+export type GatewayListing = {
+  readonly gateways: AccountGateway[];
+  readonly problem: string | null;
+};
+
+const listingProblem = (status: number, parsed: unknown): string => {
+  const errors = field(parsed, 'errors');
+  const first = Array.isArray(errors) ? stringField(errors[0], 'message') : null;
+
+  return `Cloudflare returned ${status}${first === null ? '' : `: ${first}`}`;
+};
+
+export const listGateways = async (
   accessToken: string,
   accountId: string,
   send: typeof fetch = fetch,
-): Promise<AccountGateway[]> => {
+): Promise<GatewayListing> => {
+  if (accountId === '')
+    return { gateways: [], problem: 'This sign-in has no account. Sign out and sign in again.' };
+
   const response = await send(
     `${CLOUDFLARE_OAUTH.api}/accounts/${encodeURIComponent(accountId)}/ai-gateway/gateways?per_page=50`,
     { headers: { authorization: `Bearer ${accessToken}` } },
@@ -185,14 +200,24 @@ export const gatewaysOf = async (
   const parsed: unknown = await response.json().catch(() => null);
   const result = field(parsed, 'result');
 
-  if (!response.ok || !Array.isArray(result)) return [];
+  if (!response.ok || !Array.isArray(result))
+    return { gateways: [], problem: listingProblem(response.status, parsed) };
 
-  return result.flatMap((item: unknown) => {
-    const id = stringField(item, 'id');
+  return {
+    gateways: result.flatMap((item: unknown) => {
+      const id = stringField(item, 'id');
 
-    return id === null ? [] : [{ id, authenticated: field(item, 'authentication') === true }];
-  });
+      return id === null ? [] : [{ id, authenticated: field(item, 'authentication') === true }];
+    }),
+    problem: null,
+  };
 };
+
+export const gatewaysOf = async (
+  accessToken: string,
+  accountId: string,
+  send: typeof fetch = fetch,
+): Promise<AccountGateway[]> => (await listGateways(accessToken, accountId, send)).gateways;
 
 export const pickGateway = (
   gateways: readonly AccountGateway[],

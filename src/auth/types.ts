@@ -19,3 +19,6 @@ export const authMode = (raw: string | undefined): AuthMode | null => {
 
   return raw === 'cloudflare' ? 'cloudflare' : null;
 };
+
+export const mayUseHostInference = (rawAuthMode: string | undefined, owner: string): boolean =>
+  authMode(rawAuthMode) === 'access' && !isCloudflareOwner(owner);
