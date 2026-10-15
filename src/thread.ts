@@ -1428,10 +1428,28 @@ export class Thread extends DurableObject<Env> {
         .exec(['bash', '-c', 'pkill -TERM -f "^timeout --kill-after=5" || true'], '/')
         .catch(() => undefined);
 
-    await Promise.race([aborting, new Promise((resolve) => setTimeout(resolve, STOP_WAIT_MS))]);
+    const stopped = await Promise.race([
+      aborting.then(
+        () => true,
+        () => false,
+      ),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), STOP_WAIT_MS)),
+    ]);
+
+    if (!stopped) await this.forceSettle();
     this.ctx.waitUntil(aborting.catch(() => undefined));
 
     return null;
+  }
+
+  private async forceSettle() {
+    await this.closeTurn().catch(() => undefined);
+
+    if (!this.ledger.busy) return;
+
+    this.ledger.busy = false;
+    await this.publish({});
+    this.state();
   }
 
   async setModel(id: string, details: ModelInfo | null = null): Promise<Usage> {

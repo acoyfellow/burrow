@@ -542,6 +542,43 @@ const toolCallsOf = (content: unknown) =>
       })
     : [];
 
+export type ChatEntry = {
+  readonly id: string | number;
+  readonly kind: string;
+  readonly model?: readonly { readonly role: string; readonly content?: unknown }[];
+};
+
+export const entriesToMessages = (entries: readonly ChatEntry[]): Message[] =>
+  entries.flatMap((entry) =>
+    (entry.model ?? []).flatMap((message) => {
+      const content = (message as { content?: unknown }).content;
+      const callId = (message as { toolCallId?: string }).toolCallId;
+      const base = {
+        id: String(entry.id),
+        kind: entry.kind,
+        role: message.role,
+        ...(callId === undefined ? {} : { toolCallId: callId }),
+      };
+      const calls = message.role === 'assistant' ? toolCallsOf(content) : [];
+      const failure = (message as { errorMessage?: string }).errorMessage;
+      const said =
+        textOf(content) === '' && failure !== undefined && failure !== ''
+          ? `The model call failed: ${failure}`
+          : textOf(content);
+
+      return [
+        ...(said === '' && calls.length > 0 ? [] : [{ ...base, text: said }]),
+        ...calls.map((tool) => ({
+          ...base,
+          id: `${base.id}:${tool.id}`,
+          role: 'tool',
+          text: '',
+          tool,
+        })),
+      ];
+    }),
+  );
+
 export type Agent = {
   readonly conversation: Conversation;
   readonly send: (requestId: string, input: string) => Promise<string>;
@@ -651,29 +688,7 @@ export const openAgent = async (
   const messages = async (): Promise<Message[]> => {
     const page = await conversation.entries({}, 500, undefined, CONTEXT);
 
-    return [...page.items].reverse().flatMap((entry) =>
-      (entry.model ?? []).flatMap((message) => {
-        const content = (message as { content?: unknown }).content;
-        const callId = (message as { toolCallId?: string }).toolCallId;
-        const base = {
-          id: String(entry.id),
-          kind: entry.kind,
-          role: message.role,
-          ...(callId === undefined ? {} : { toolCallId: callId }),
-        };
-        const calls = message.role === 'assistant' ? toolCallsOf(content) : [];
-        const failure = (message as { errorMessage?: string }).errorMessage;
-        const said =
-          textOf(content) === '' && failure !== undefined && failure !== ''
-            ? `The model call failed: ${failure}`
-            : textOf(content);
-
-        return [
-          ...(said === '' && calls.length > 0 ? [] : [{ ...base, text: said }]),
-          ...calls.map((tool) => ({ ...base, role: 'tool', text: '', tool })),
-        ];
-      }),
-    );
+    return entriesToMessages([...page.items].reverse());
   };
 
   return {
