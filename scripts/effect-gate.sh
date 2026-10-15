@@ -28,9 +28,11 @@ bash scripts/check.sh > /tmp/coil-effect-gate-check.log 2>&1 || { tail -30 /tmp/
 pass "check: strict types on worker and client, lint, story and boot tests"
 
 if [ -n "${COIL_URL:-}" ]; then
-  code=$(curl -s -o /dev/null -w '%{http_code}' "$COIL_URL/")
-  [ "$code" = "302" ] || fail "$COIL_URL/ returned $code, expected 302 to Access"
-  pass "$COIL_URL is behind Access"
+  code=$(curl -s -o /dev/null -w '%{http_code}' "$COIL_URL/api/threads")
+  case "$code" in
+    302|401) pass "$COIL_URL refuses the API without sign-in ($code)" ;;
+    *) fail "$COIL_URL/api/threads returned $code without sign-in" ;;
+  esac
 fi
 
 [ -f receipts/live-effect.json ] || fail "receipts/live-effect.json is missing"
