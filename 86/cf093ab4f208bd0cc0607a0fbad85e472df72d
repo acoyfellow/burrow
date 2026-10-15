@@ -1,0 +1,27 @@
+README.md
+  s_d58794dec92dc7::t_b457d20a2ed180 23-32,42-43,46,50-56,58-60,70-72,76-77,91-92,103-112,114,131,137-138,141-143,159,166-168,181-183
+docs/brand/README.md
+  s_d58794dec92dc7::t_66f5a3b03c21ee 53
+scripts/gate.sh
+  s_d58794dec92dc7::t_9fd8df8061cfc6 14-15,27
+src/docs-guide.ts
+  s_d58794dec92dc7::t_314a58968cc96b 173-174,229-230,232
+src/docs.ts
+  s_d58794dec92dc7::t_b61d51be4639bc 85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "86cf093ab4f208bd0cc0607a0fbad85e472df72d",
+  "prompts": {},
+  "sessions": {
+    "s_d58794dec92dc7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a115e6-5bb3-75ac-b511-2988f1aebfad",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Jordan Coeyman <jcoeyman@cloudflare.com>"
+    }
+  }
+}
