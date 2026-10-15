@@ -1447,7 +1447,9 @@ export class Thread extends DurableObject<Env> {
   }
 
   private async forceSettle() {
-    await this.closeTurn().catch(() => undefined);
+    const open = this.ledger.openTurn();
+
+    if (open !== null) this.ledger.finishTurn(open.seq, '', '', 0);
 
     if (!this.ledger.busy) return;
 
