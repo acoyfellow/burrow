@@ -10,6 +10,8 @@ import {
   EditSpendLimit,
   ExpireToast,
   FocusComposer,
+  FocusModelSearch,
+  RevealModelOption,
   FocusPalette,
   Install,
   KillLoops,
@@ -41,6 +43,7 @@ import {
   ViewState,
 } from './model';
 import { finishedThreads } from './notify';
+import { moveIndex, pickerOptions } from './model-picker';
 import { paletteItems } from './palette';
 import { pathForThread } from './route';
 import type { CoilClient } from './rpc';
@@ -508,7 +511,40 @@ export const update = (model: Model, message: Message): UpdateReturn =>
     },
     FailedOp: ({ reason }) => toast(model, `Failed: ${reason}`, true),
     ToggledModelMenu: () => ({
-      model: modifyFields(model, { modelMenuOpen: (open) => !open, usageOpen: () => false }),
+      model: modifyFields(model, {
+        modelMenuOpen: (open) => !open,
+        usageOpen: () => false,
+        modelQuery: () => '',
+        modelIndex: () => 0,
+      }),
+      commands: model.modelMenuOpen ? [] : [FocusModelSearch()],
+    }),
+    LoadedModels: ({ models }) => ({
+      model: modifyFields(model, { models: () => models }),
+    }),
+    UpdatedModelQuery: ({ query }) => ({
+      model: modifyFields(model, { modelQuery: () => query, modelIndex: () => 0 }),
+    }),
+    MovedModelIndex: ({ delta }) => ({
+      model: modifyFields(model, {
+        modelIndex: (index) =>
+          moveIndex(index, delta, pickerOptions(model.models, model.modelQuery).length),
+      }),
+      commands: [RevealModelOption()],
+    }),
+    ChoseModel: ({ name, index }) => {
+      const chosen = pickerOptions(model.models, model.modelQuery)[index];
+      const closed = modifyFields(model, { modelMenuOpen: () => false, modelQuery: () => '' });
+
+      return chosen === undefined
+        ? { model: closed }
+        : {
+            model: closed,
+            commands: [RunOp({ name, op: { _tag: 'SetModel', model: chosen.id } })],
+          };
+    },
+    ClosedModelMenu: () => ({
+      model: modifyFields(model, { modelMenuOpen: () => false, modelQuery: () => '' }),
     }),
     ToggledUsage: () => ({
       model: modifyFields(model, { usageOpen: (open) => !open, modelMenuOpen: () => false }),

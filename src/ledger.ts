@@ -1,3 +1,4 @@
+import { type ModelInfo, parseModelInfo } from '../shared/models';
 import type { Snapshot } from './computer';
 import type { LoopState } from './loop';
 import { type Size, sizeOrDefault } from './size';
@@ -221,6 +222,17 @@ export class Ledger {
 
   set model(id: string) {
     this.put('model', id);
+  }
+
+  get modelDetails(): ModelInfo | null {
+    const raw = this.get('model_details');
+
+    return raw === null ? null : parseModelInfo(raw);
+  }
+
+  set modelDetails(next: ModelInfo | null) {
+    if (next === null) this.sql.exec('DELETE FROM coil_kv WHERE key = ?', 'model_details');
+    else this.put('model_details', JSON.stringify(next));
   }
 
   get loop(): LoopState | null {

@@ -1,8 +1,35 @@
-import type { Provider } from '@earendil-works/pi-ai';
+import type { Model, Provider } from '@earendil-works/pi-ai';
 import { cloudflareAIGatewayProvider } from '@earendil-works/pi-ai/providers/cloudflare-ai-gateway';
 import { cloudflareWorkersAIProvider } from '@earendil-works/pi-ai/providers/cloudflare-workers-ai';
 import type { ModelChoice } from '../agent';
 import { isGatewayModel, rewriteBody, upstreamId } from '../gateway';
+import type { ModelInfo } from '../../shared/models';
+
+const WORKERS_AI_CHAT_URL =
+  'https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1';
+
+export const liveWorkersAIModel = (details: ModelInfo): Model<'openai-completions'> => ({
+  id: details.id,
+  name: details.label,
+  api: 'openai-completions',
+  provider: 'cloudflare-workers-ai',
+  baseUrl: WORKERS_AI_CHAT_URL,
+  reasoning: false,
+  input: details.vision ? ['text', 'image'] : ['text'],
+  cost: {
+    input: details.inputPerMtok,
+    output: details.outputPerMtok,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  contextWindow: details.context,
+  maxTokens: Math.min(details.context, 32_768),
+  compat: {
+    supportsStore: false,
+    supportsDeveloperRole: false,
+    sendSessionAffinityHeaders: true,
+  },
+});
 
 export type AccountRoute = {
   readonly accountId: string;
@@ -56,8 +83,10 @@ const accountProvider = (
   credentials: AccountCredentials,
   header: 'authorization' | 'cf-aig-authorization',
   send: typeof fetch,
+  extra: readonly Model<'openai-completions'>[] = [],
 ): Provider => {
-  const models = stock.getModels();
+  const builtin = stock.getModels();
+  const models = [...builtin, ...extra.filter((each) => !builtin.some((m) => m.id === each.id))];
   const routed = withToken(credentials, header, send);
 
   return {
@@ -85,6 +114,7 @@ export const accountModel = (
   credentials: AccountCredentials,
   id: string,
   send: typeof fetch = (input, init) => globalThis.fetch(input, init),
+  live: ModelInfo | null = null,
 ): ModelChoice =>
   isGatewayModel(id)
     ? {
@@ -103,6 +133,7 @@ export const accountModel = (
           credentials,
           'authorization',
           send,
+          live?.id === id ? [liveWorkersAIModel(live)] : [],
         ),
         modelId: id,
         options: {},

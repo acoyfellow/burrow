@@ -28,6 +28,37 @@ export const LoadWho = Command.define('LoadWho', {
   }).pipe(Effect.orElseSucceed(() => Message.LoadedWho({ who: '' }))),
 });
 
+export const LoadModels = Command.define('LoadModels', {
+  messages: [Message.LoadedModels, Message.CompletedEffect],
+  execute: Effect.gen(function* () {
+    const client = yield* CoilClient;
+
+    return Message.LoadedModels({ models: yield* client.Models() });
+  }).pipe(Effect.orElseSucceed(() => Message.CompletedEffect())),
+});
+
+export const FocusModelSearch = Command.define('FocusModelSearch', {
+  messages: [Message.CompletedEffect],
+  execute: Effect.sync(() => {
+    requestAnimationFrame(() => document.querySelector<HTMLInputElement>('#model-search')?.focus());
+
+    return Message.CompletedEffect();
+  }),
+});
+
+export const RevealModelOption = Command.define('RevealModelOption', {
+  messages: [Message.CompletedEffect],
+  execute: Effect.sync(() => {
+    requestAnimationFrame(() =>
+      document
+        .querySelector('#model-options [aria-selected="true"]')
+        ?.scrollIntoView({ block: 'nearest' }),
+    );
+
+    return Message.CompletedEffect();
+  }),
+});
+
 export const LoadSpend = Command.define('LoadSpend', {
   messages: [Message.LoadedSpend, Message.CompletedEffect],
   execute: Effect.gen(function* () {

@@ -1,4 +1,8 @@
+import { refreshedToken, TOKEN_REFRESH_MARGIN_MS } from './auth/refresh';
+import { isCloudflareOwner } from './auth/types';
+import { type CatalogEntry, fetchCatalog, loadCatalog, mergeCatalog } from './catalog';
 import { DIRECTORY_NAME } from './directory-name';
+import { GATEWAY_MODELS, MODELS, type ModelInfo } from '../shared/models';
 import type { LoopSpec } from './loop';
 import { DEFAULT_SIZE, type Size } from './size';
 import type { Env } from './thread';
@@ -63,7 +67,42 @@ export const coil = (env: Env, owner: string) => {
     });
   };
 
+  const accountRoute = async () => {
+    const grant = await directory.grantFor(owner);
+
+    if (grant === null) return null;
+
+    const token =
+      grant.expiresAt > Date.now() + TOKEN_REFRESH_MARGIN_MS
+        ? grant.accessToken
+        : await refreshedToken(env, grant, directory);
+
+    return { accountId: grant.accountId, token };
+  };
+
+  const liveCatalog = async (): Promise<readonly CatalogEntry[]> => {
+    const route = isCloudflareOwner(owner) ? await accountRoute() : null;
+
+    if (route === null) return [];
+
+    const catalog = await loadCatalog({
+      stored: () => directory.catalogFor(route.accountId),
+      save: (fresh) => directory.saveCatalog(route.accountId, fresh),
+      fetchLive: () => fetchCatalog(route.accountId, route.token),
+      now: () => Date.now(),
+    });
+
+    return catalog.entries;
+  };
+
+  const models = async (): Promise<readonly ModelInfo[]> => {
+    const live = await liveCatalog().catch(() => []);
+
+    return live.length === 0 ? MODELS : mergeCatalog(GATEWAY_MODELS, live);
+  };
+
   return {
+    models,
     list: () => directory.list(owner),
     create,
     view: async (name: string) => (await known(name)).view(),
@@ -174,7 +213,13 @@ export const coil = (env: Env, owner: string) => {
       return null;
     },
     stop: async (name: string) => (await known(name)).stop(),
-    setModel: async (name: string, model: string) => (await known(name)).setModel(model),
+    setModel: async (name: string, model: string) => {
+      const details = (await models()).find((each) => each.id === model);
+
+      if (details === undefined) throw new Error(`Invalid model ${model}`);
+
+      return (await known(name)).setModel(model, { ...details });
+    },
     rename: async (name: string, title: string) => {
       await known(name);
       const clean = title.trim().slice(0, 120);

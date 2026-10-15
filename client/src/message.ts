@@ -8,6 +8,7 @@ import {
   Surface,
   SurfaceKind,
   ThreadSummary,
+  ModelOption,
   ThreadView,
 } from '../../shared/protocol';
 import { Action, Theme, ThreadOp } from './model';
@@ -58,6 +59,11 @@ export const Message = defineMessageUnion({
   CompletedOp: { name: Schema.String, note: Schema.String, gone: Schema.Boolean },
   FailedOp: { name: Schema.String, reason: Schema.String },
   ToggledModelMenu: {},
+  LoadedModels: { models: Schema.Array(ModelOption) },
+  UpdatedModelQuery: { query: Schema.String },
+  MovedModelIndex: { delta: Schema.Number },
+  ChoseModel: { name: Schema.String, index: Schema.Number },
+  ClosedModelMenu: {},
   ToggledUsage: {},
   ToggledArchived: {},
   ClickedKillLoops: {},

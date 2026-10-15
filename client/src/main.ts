@@ -2,7 +2,8 @@ import { Schema } from 'effect';
 import type { Update } from 'foldkit';
 import type { Url } from 'foldkit/url';
 import { DEFAULT_SIZE } from '../../shared/protocol';
-import { LoadSpend, LoadThreads, LoadView, LoadWho, notifyPermission } from './command';
+import { MODELS } from '../../shared/models';
+import { LoadModels, LoadSpend, LoadThreads, LoadView, LoadWho, notifyPermission } from './command';
 import type { Message } from './message';
 import { FileView, type Model, Theme, ThreadsState, ViewState } from './model';
 import { threadFromPath } from './route';
@@ -38,6 +39,9 @@ export const initialModel = (flags: Flags): Model => ({
   menuOpen: false,
   sizeMenuOpen: false,
   modelMenuOpen: false,
+  models: MODELS.map((each) => ({ ...each })),
+  modelQuery: '',
+  modelIndex: 0,
   usageOpen: false,
   showArchived: false,
   notify: notifyPermission(),
@@ -59,6 +63,7 @@ export const init = (flags: Flags, url: Url): Update.Return<Model, Message, Coil
   commands: [
     LoadWho(),
     LoadSpend(),
+    LoadModels(),
     LoadThreads(),
     ...(flags.name === null ? [] : [LoadView({ name: flags.name, refresh: false })]),
   ],

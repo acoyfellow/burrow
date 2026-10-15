@@ -1,6 +1,13 @@
 import { Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
-import { DirEntry, type LiveEvent, Size, ThreadSummary, ThreadView } from '../../shared/protocol';
+import {
+  DirEntry,
+  type LiveEvent,
+  ModelOption,
+  Size,
+  ThreadSummary,
+  ThreadView,
+} from '../../shared/protocol';
 
 export const Remote = <A extends Schema.Top>(value: A) =>
   defineTaggedUnion({
@@ -102,6 +109,9 @@ export const Model = Schema.Struct({
   menuOpen: Schema.Boolean,
   sizeMenuOpen: Schema.Boolean,
   modelMenuOpen: Schema.Boolean,
+  models: Schema.Array(ModelOption),
+  modelQuery: Schema.String,
+  modelIndex: Schema.Number,
   usageOpen: Schema.Boolean,
   showArchived: Schema.Boolean,
   notify: Schema.Literals(['unsupported', 'default', 'granted', 'denied']),

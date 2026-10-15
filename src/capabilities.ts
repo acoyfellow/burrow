@@ -268,6 +268,16 @@ export const CAPABILITIES: readonly Capability[] = [
     run: (api, args) => api.setContextBudget(text(args, 'name'), count(args, 'tokens', 0) || null),
   },
   {
+    name: 'model_list',
+    group: 'threads',
+    summary:
+      'List the models you can pick: the gateway models plus every Workers AI text model with tool use on your account, newest first. Refreshed from Cloudflare every hour.',
+    input: {},
+    required: [],
+    returns: 'Model ids with label, context window, price per million tokens, and vision support',
+    run: (api) => api.models(),
+  },
+  {
     name: 'thread_model',
     group: 'threads',
     summary:

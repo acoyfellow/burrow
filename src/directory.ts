@@ -1,3 +1,4 @@
+import { parseStoredEntries, type StoredCatalog } from './catalog';
 import { DurableObject } from 'cloudflare:workers';
 
 export type ThreadSummary = {
@@ -93,6 +94,9 @@ export class Directory extends DurableObject {
     this.ctx.storage.sql.exec(
       `CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, owner TEXT NOT NULL, expires_at INTEGER NOT NULL)`,
     );
+    this.ctx.storage.sql.exec(
+      `CREATE TABLE IF NOT EXISTS catalogs (account_id TEXT PRIMARY KEY, entries TEXT NOT NULL, fetched_at INTEGER NOT NULL)`,
+    );
     this.migrate();
   }
 
@@ -109,6 +113,28 @@ export class Directory extends DurableObject {
       grant.expiresAt,
       grant.scope,
       Date.now(),
+    );
+  }
+
+  catalogFor(accountId: string): StoredCatalog | null {
+    const row = this.ctx.storage.sql
+      .exec<{ entries: string; fetched_at: number }>(
+        'SELECT entries, fetched_at FROM catalogs WHERE account_id = ?',
+        accountId,
+      )
+      .toArray()[0];
+
+    return row === undefined
+      ? null
+      : { entries: parseStoredEntries(row.entries), fetchedAt: row.fetched_at };
+  }
+
+  saveCatalog(accountId: string, catalog: StoredCatalog): void {
+    this.ctx.storage.sql.exec(
+      'INSERT INTO catalogs (account_id, entries, fetched_at) VALUES (?, ?, ?) ON CONFLICT(account_id) DO UPDATE SET entries = excluded.entries, fetched_at = excluded.fetched_at',
+      accountId,
+      JSON.stringify(catalog.entries),
+      catalog.fetchedAt,
     );
   }
 

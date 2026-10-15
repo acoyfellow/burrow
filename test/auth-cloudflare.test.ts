@@ -1,3 +1,4 @@
+import type { ModelInfo } from '../shared/models';
 import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript';
 import { describe, expect, it } from 'vitest';
 import { accountModel } from '../src/auth/account-models';
@@ -102,12 +103,17 @@ describe('models for a signed-in Cloudflare account', () => {
     route: async () => ({ accountId: 'acct-123', gateway: 'gw', token: 'user-token' }),
   };
 
-  const captured = async (id: string) => {
+  const captured = async (id: string, live: ModelInfo | null = null) => {
     const seen: Request[] = [];
-    const model = accountModel(credentials, id, async (input, init) => {
-      seen.push(new Request(input, init));
-      return new Response('{}', { status: 500 });
-    });
+    const model = accountModel(
+      credentials,
+      id,
+      async (input, init) => {
+        seen.push(new Request(input, init));
+        return new Response('{}', { status: 500 });
+      },
+      live,
+    );
     const resolved = model.provider.getModels().find((each) => each.id === model.modelId);
 
     const stream = model.provider.streamSimple(
@@ -139,5 +145,24 @@ describe('models for a signed-in Cloudflare account', () => {
       seen[0]?.url.startsWith('https://api.cloudflare.com/client/v4/accounts/acct-123/ai/v1'),
     ).toBe(true);
     expect(seen[0]?.headers.get('authorization')).toBe('Bearer user-token');
+  });
+
+  it('runs a live catalog model coil does not ship, on the user account with their token', async () => {
+    const live = {
+      id: '@cf/moonshotai/kimi-k3',
+      label: 'Kimi K3',
+      context: 262144,
+      inputPerMtok: 0.95,
+      outputPerMtok: 4,
+      vision: true,
+    };
+    const { model, seen } = await captured(live.id, live);
+
+    expect(model.provider.getModels().some((each) => each.id === live.id)).toBe(true);
+    expect(seen[0]?.url).toBe(
+      'https://api.cloudflare.com/client/v4/accounts/acct-123/ai/v1/chat/completions',
+    );
+    expect(seen[0]?.headers.get('authorization')).toBe('Bearer user-token');
+    expect(JSON.parse(await (seen[0]?.text() ?? '{}')).model).toBe(live.id);
   });
 });

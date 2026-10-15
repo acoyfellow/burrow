@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import type { AgentEvent, Extension, HarnessSettings } from '@earendil-works/pi-durable';
-import { GATEWAY_MODELS, modelInfo } from '../shared/models';
+import { GATEWAY_MODELS, type ModelInfo, modelInfo as pinnedModelInfo } from '../shared/models';
 import {
   type Agent,
   type BrowserTools,
@@ -289,7 +289,8 @@ export class Thread extends DurableObject<Env> {
   }
 
   protected route(id: string): ModelChoice {
-    if (isCloudflareOwner(this.ledger.owner)) return accountModel(this.accountCredentials(), id);
+    if (isCloudflareOwner(this.ledger.owner))
+      return accountModel(this.accountCredentials(), id, undefined, this.ledger.modelDetails);
 
     this.requireHostInference();
 
@@ -340,7 +341,7 @@ export class Thread extends DurableObject<Env> {
 
   protected settings(): HarnessSettings {
     const ledger = this.ledger;
-    const modelWindow = () => modelInfo(this.currentModel())?.context ?? 0;
+    const modelWindow = () => this.modelInfo(this.currentModel())?.context ?? 0;
 
     return {
       get compaction() {
@@ -1224,6 +1225,12 @@ export class Thread extends DurableObject<Env> {
       .join('\n\n');
   }
 
+  private modelInfo(id: string): ModelInfo | undefined {
+    const saved = this.ledger.modelDetails;
+
+    return pinnedModelInfo(id) ?? (saved?.id === id ? saved : undefined);
+  }
+
   private currentModel(): string {
     return this.ledger.model ?? this.env.MODEL;
   }
@@ -1247,7 +1254,7 @@ export class Thread extends DurableObject<Env> {
       contextTokens,
       contextWindow: Math.min(
         this.ledger.contextBudget ?? Number.POSITIVE_INFINITY,
-        modelInfo(model)?.context ?? 0,
+        this.modelInfo(model)?.context ?? 0,
       ),
     };
   }
@@ -1427,14 +1434,17 @@ export class Thread extends DurableObject<Env> {
     return null;
   }
 
-  async setModel(id: string): Promise<Usage> {
-    if (modelInfo(id) === undefined) throw new Error(`Invalid model ${id}`);
+  async setModel(id: string, details: ModelInfo | null = null): Promise<Usage> {
+    const known = pinnedModelInfo(id) ?? (details?.id === id ? details : undefined);
+
+    if (known === undefined) throw new Error(`Invalid model ${id}`);
 
     if (this.ledger.busy)
       throw new ThreadBusy('The agent is working. Change the model after the turn ends.');
 
     const agent = await this.open();
 
+    this.ledger.modelDetails = known;
     await agent.setModel(id);
     this.ledger.model = id;
     await this.publish({ model: id });

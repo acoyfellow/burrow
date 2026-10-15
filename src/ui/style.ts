@@ -286,7 +286,16 @@ button.usage:hover{background:var(--hover)}
 .model-list,.usage-pop{position:absolute;bottom:calc(100% + 6px);left:0;display:flex;flex-direction:column;min-width:240px;padding:4px;background:var(--bg);border:1px solid var(--line2);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.15);z-index:30}
 .model-list[hidden],.usage-pop[hidden]{display:none}
 .model-list button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;border:0;border-radius:6px;background:transparent;color:var(--fg);text-align:left}
-.model-list button:hover,.model-list button.on{background:var(--raise)}
+.model-list button:hover,.model-list button.on,.model-list button.active{background:var(--raise)}
+.model-list{width:min(380px,calc(100vw - 32px));max-height:min(480px,70vh)}
+.model-search{margin:2px 2px 6px;padding:7px 10px;border:1px solid var(--line2);border-radius:7px;background:var(--raise);color:var(--fg);font:inherit;font-size:13px;outline:none}
+.model-search:focus{border-color:var(--orange)}
+.model-options{overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:1px}
+.model-group{padding:8px 10px 3px;font:600 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.model-list button.active{outline:1px solid var(--line2)}
+.model-list button.on .model-name::after{content:" ✓";color:var(--orange)}
+.model-id{font:11px var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.model-empty,.model-more{padding:10px;color:var(--dim);font-size:12px}
 .model-name{font-size:13px}
 .model-meta{font:11px var(--mono);color:var(--dim)}
 .usage-pop{padding:10px 12px;gap:4px;min-width:230px}

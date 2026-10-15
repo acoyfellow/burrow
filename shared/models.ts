@@ -112,3 +112,27 @@ export const MODELS: readonly ModelInfo[] = [...GATEWAY_MODELS, ...WORKERS_AI_MO
 export const modelInfo = (id: string): ModelInfo | undefined => MODELS.find((m) => m.id === id);
 
 export const isKnownModel = (id: string): boolean => modelInfo(id) !== undefined;
+
+const isModelInfo = (value: unknown): value is ModelInfo =>
+  typeof value === 'object' &&
+  value !== null &&
+  'id' in value &&
+  typeof value.id === 'string' &&
+  'label' in value &&
+  typeof value.label === 'string' &&
+  'context' in value &&
+  typeof value.context === 'number' &&
+  'inputPerMtok' in value &&
+  typeof value.inputPerMtok === 'number' &&
+  'outputPerMtok' in value &&
+  typeof value.outputPerMtok === 'number' &&
+  'vision' in value &&
+  typeof value.vision === 'boolean';
+
+export const parseModelInfo = (raw: string): ModelInfo | null => {
+  const parsed: unknown = JSON.parse(raw);
+
+  return isModelInfo(parsed) ? parsed : null;
+};
+
+export const isWorkersAIModel = (id: string): boolean => id.startsWith('@cf/');

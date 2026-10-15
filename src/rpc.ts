@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema } from 'effect';
 import { HttpRouter } from 'effect/http';
 import { RpcSerialization, RpcServer } from 'effect/rpc';
-import { MODELS } from '../shared/models';
+import type { ModelInfo } from '../shared/models';
 import {
   type Base,
   type CoilError,
@@ -131,6 +131,7 @@ export type CoilApi = {
   readonly unshare: (name: string) => Promise<null>;
   readonly stop: (name: string) => Promise<null>;
   readonly setModel: (name: string, model: string) => Out<typeof Usage>;
+  readonly models: () => Promise<readonly ModelInfo[]>;
   readonly rename: (name: string, title: string) => Out<typeof ThreadSummary>;
   readonly archive: (name: string, archived: boolean) => Out<typeof ThreadSummary>;
   readonly remove: (name: string) => Promise<null>;
@@ -185,7 +186,7 @@ export const handlersFor = (caller: Caller) => {
     Share: ({ name }) => attempt(() => api.share(name)),
     Unshare: ({ name }) => attempt(() => api.unshare(name)),
     Stop: ({ name }) => attempt(() => api.stop(name)),
-    Models: () => Effect.succeed(MODELS.map((m) => ({ ...m }))),
+    Models: () => attempt(() => api.models()),
     SetModel: ({ name, model }) => attempt(() => api.setModel(name, model)),
     Rename: ({ name, title }) => attempt(() => api.rename(name, title)),
     Archive: ({ name, archived }) => attempt(() => api.archive(name, archived)),

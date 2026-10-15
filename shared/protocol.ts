@@ -115,6 +115,9 @@ export const ModelOption = Schema.Struct({
   inputPerMtok: Schema.Number,
   outputPerMtok: Schema.Number,
   vision: Schema.Boolean,
+  gateway: Schema.optional(Schema.Boolean),
+  reasoning: Schema.optional(Schema.Boolean),
+  createdAt: Schema.optional(Schema.String),
 });
 
 export const Turn = Schema.Struct({
