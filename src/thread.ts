@@ -1420,13 +1420,17 @@ export class Thread extends DurableObject<Env> {
   async stop(): Promise<null> {
     if (this.ledger.loop?.enabled === true) await this.stopLoop('stopped by the owner');
 
-    const agent = await this.open();
-    const aborting = agent.stop().then(() => this.settle());
+    const aborting = this.open().then(async (agent) => {
+      await agent.stop();
+      await this.settle();
+    });
 
     if (this.computer().running())
-      await this.computer()
-        .exec(['bash', '-c', 'pkill -TERM -f "^timeout --kill-after=5" || true'], '/')
-        .catch(() => undefined);
+      this.ctx.waitUntil(
+        this.computer()
+          .exec(['bash', '-c', 'pkill -TERM -f "^timeout --kill-after=5" || true'], '/')
+          .catch(() => undefined),
+      );
 
     const stopped = await Promise.race([
       aborting.then(
