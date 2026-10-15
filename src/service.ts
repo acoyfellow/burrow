@@ -96,7 +96,13 @@ export const coil = (env: Env, owner: string) => {
   };
 
   const models = async (): Promise<readonly ModelInfo[]> => {
-    const live = await liveCatalog().catch(() => []);
+    const live = await liveCatalog().catch((cause: unknown) => {
+      console.warn('model catalog unavailable', {
+        reason: cause instanceof Error ? cause.message : String(cause),
+      });
+
+      return [];
+    });
 
     return live.length === 0 ? MODELS : mergeCatalog(GATEWAY_MODELS, live);
   };

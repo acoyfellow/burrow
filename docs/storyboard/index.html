@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coil video storyboard</title>
+<link rel="icon" href="coil-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,300..700&family=Google+Sans+Code:wght@400;500&display=swap">
+<style>
+  :root { color-scheme: dark; --bg:#141416; --panel:#18181b; --line:#26262b; --ink:#ececee; --dim:#9b9ba3; --accent:#F38020; --sans:"Google Sans Flex",system-ui,sans-serif; --mono:"Google Sans Code",ui-monospace,monospace; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:400 14px/1.5 var(--sans); }
+  header { max-width:1100px; margin:0 auto; padding:40px 24px 8px; }
+  h1 { margin:0 0 6px; font-size:26px; letter-spacing:-0.02em; }
+  header p { margin:0; color:var(--dim); max-width:62ch; }
+  .idea { margin-top:18px; padding:12px 16px; border-left:3px solid var(--accent); background:var(--panel); border-radius:6px; }
+  main { max-width:1100px; margin:0 auto; padding:24px; display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:20px; }
+  .shot { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; display:grid; grid-template-rows:auto 1fr; }
+  .shot.key { border-color:var(--accent); }
+  .frame { aspect-ratio:2/1; background:#000; position:relative; overflow:hidden; }
+  .frame img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+  .frame .cap { position:absolute; left:0; right:0; bottom:0; padding:22px 14px 10px; background:linear-gradient(transparent, rgba(0,0,0,.85)); font-size:14px; font-weight:600; }
+  .frame .tag { position:absolute; top:8px; left:8px; font:600 11px var(--mono); background:rgba(0,0,0,.7); padding:2px 6px; border-radius:4px; color:var(--accent); }
+  .frame .ring { position:absolute; border:3px solid var(--accent); border-radius:10px; box-shadow:0 0 0 9999px rgba(0,0,0,.18); }
+  .card { display:grid; place-content:center; justify-items:center; height:100%; text-align:center; gap:12px; background:#141416 url(loops-dark.svg); }
+  .card img { width:38%; max-width:260px; height:auto; }
+  .card b { font-weight:500; font-size:16px; } .card span { color:var(--dim); font:12px var(--mono); }
+  .body { padding:12px 14px 14px; display:grid; gap:6px; }
+  .meta { display:flex; gap:10px; font:12px var(--mono); color:var(--dim); }
+  .meta b { color:var(--accent); }
+  .body p { margin:0; font-size:14px; }
+  .note { color:var(--dim); font-size:13px; }
+  .mock { font:12px var(--mono); color:var(--dim); }
+  footer { max-width:1100px; margin:0 auto; padding:8px 24px 48px; color:var(--dim); font-size:13px; }
+  footer h2 { color:var(--ink); font-size:15px; margin:18px 0 6px; }
+  footer ul { margin:0; padding-left:18px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>coil: video storyboard</h1>
+  <p>About 75 seconds, a 2:1 frame, no voiceover. Frames use existing coil screenshots as stand-ins. The real recording will be a new run.</p>
+  <div class="idea"><b>The one idea:</b> you and the agent use the same computer. You type in its terminal and click in its browser while it works.</div>
+</header>
+<main>
+  <section class="shot">
+    <div class="frame"><div class="card"><img src="coil-wordmark.svg" alt="coil"></div><span class="tag">0:00–0:03</span></div>
+    <div class="body"><div class="meta"><b>1</b> Title card</div><p>The wordmark on the dark tile with the faint loops pattern. Hold for 3 seconds, no motion.</p><p class="note">Files: <span class="mock">docs/brand/coil-wordmark.svg</span> and <span class="mock">docs/brand/patterns/loops-dark.svg</span>.</p></div>
+  </section>
+
+  <section class="shot">
+    <div class="frame"><img src="effect-desktop.png" alt=""><div class="ring" style="left:25%;top:5%;width:42%;height:13%"></div><div class="cap">Every thread gets its own computer.</div><span class="tag">0:03–0:10</span></div>
+    <div class="body"><div class="meta"><b>2</b> The prompt</div><p>A new thread. Type "Build a counter page with a + button, serve it on localhost:3000, and commit it," then send it.</p><p class="note">Use a fresh thread name so the sidebar is nearly empty.</p></div>
+  </section>
+
+  <section class="shot">
+    <div class="frame"><img src="effect-desktop.png" alt=""><div class="ring" style="left:17%;top:18%;width:50%;height:28%"></div><div class="cap">The agent works in a real shell.</div><span class="tag">0:10–0:22 · 2×</span></div>
+    <div class="body"><div class="meta"><b>3</b> The agent works</div><p>Tool calls stream in: <span class="mock">write_file</span>, the server starting, <span class="mock">git commit</span>.</p><p class="note">Sped up 2×. A "2×" label stays in the corner for the whole section.</p></div>
+  </section>
+
+  <section class="shot key">
+    <div class="frame"><img src="v3-desktop-terminal.png" alt=""><div class="ring" style="left:68%;top:4%;width:31.5%;height:15%"></div><div class="cap">You get a terminal on the same machine.</div><span class="tag">0:22–0:32</span></div>
+    <div class="body"><div class="meta"><b>4</b> You join the shell</div><p>Click <b>+</b> to open a terminal. Type <span class="mock">ls</span> and <span class="mock">git log --oneline -1</span>. The agent's file and commit are there.</p></div>
+  </section>
+
+  <section class="shot key">
+    <div class="frame"><img src="v3-desktop-browser.png" alt=""><div class="ring" style="left:68%;top:6%;width:31.5%;height:22%"></div><div class="cap">Its browser opens its localhost.</div><span class="tag">0:32–0:45</span></div>
+    <div class="body"><div class="meta"><b>5</b> You click the page</div><p>Open the browser tab at <span class="mock">localhost:3000</span>. The counter loads. You click <b>+</b> twice and it shows <b>2</b>.</p><p class="note">Turn on a cursor highlight so your clicks are easy to see.</p></div>
+  </section>
+
+  <section class="shot key">
+    <div class="frame"><img src="hero-dark.png" alt=""><div class="ring" style="left:73%;top:8%;width:26%;height:58%"></div><div class="cap">You both drive the same page.</div><span class="tag">0:45–0:55</span></div>
+    <div class="body"><div class="meta"><b>6</b> The agent clicks too</div><p>Send "Click + three more times and tell me the number." Its clicks show on the same live page. It replies <b>5</b>.</p><p class="note">The most important shot. If the agent says the wrong number, record it again. Never edit the number.</p></div>
+  </section>
+
+  <section class="shot">
+    <div class="frame"><img src="effect-desktop.png" alt=""><div class="ring" style="left:59%;top:1%;width:3.5%;height:5%"></div><div class="cap">Pause saves the disk. The next message brings it back.</div><span class="tag">0:55–1:05</span></div>
+    <div class="body"><div class="meta"><b>7</b> Pause, then resume</div><p>Press <b>Pause</b>. Then send "What's in the repo?" The computer starts again and the agent lists the files.</p></div>
+  </section>
+
+  <section class="shot">
+    <div class="frame"><img src="effect-desktop.png" alt=""><div class="ring" style="left:63%;top:1%;width:3.5%;height:5%"></div><div class="cap">Fork starts a new thread from this disk.</div><span class="tag">1:05–1:10</span></div>
+    <div class="body"><div class="meta"><b>8</b> Fork</div><p>Press <b>Fork</b>. The new thread reads the same file.</p><p class="note">Cut this shot first if the video runs long.</p></div>
+  </section>
+
+  <section class="shot">
+    <div class="frame"><div class="card"><img src="coil-wordmark.svg" alt="coil"><b>Deploy your own on Cloudflare</b><span>github.com/acoyfellow/coil</span></div><span class="tag">1:10–1:15</span></div>
+    <div class="body"><div class="meta"><b>9</b> End card</div><p>The wordmark, one line of text and the repo link, on the same background as shot 1.</p></div>
+  </section>
+</main>
+<footer>
+  <h2>Why this order</h2>
+  <ul>
+    <li>Shots 2 and 3 show the agent working, which every demo shows.</li>
+    <li>Shots 4 to 6 (orange border) are the part only coil does. The counter going from 2 to 5 shows that you share one browser, which a screenshot cannot show.</li>
+    <li>Shots 7 and 8 answer "what happens to the computer". Keep them short.</li>
+  </ul>
+  <h2>Look</h2>
+  <ul>
+    <li>Use the brand kit in <span class="mock">docs/brand/</span>. Orange <span class="mock">#F38020</span> on <span class="mock">#141416</span>, Google Sans Flex for captions, and 600 weight, never bold.</li>
+    <li>Captions are sentence case, one line, with no full stop unless there are two sentences.</li>
+    <li>Use the app's dark theme in every recorded shot so the cuts to the title and end cards match.</li>
+  </ul>
+  <h2>Still to do</h2>
+  <ul>
+    <li>Shots 2 to 8 use old screenshots as stand-ins. Replace them with frames from the real recording after the app ships the new icons.</li>
+    <li>Check that the tab favicon and app header show the new mark in those frames.</li>
+  </ul>
+  <h2>Not in the video</h2>
+  <ul>
+    <li>The model picker, usage meter, rename, archive, child threads, warm bases, MCP, and the phone layout. Mention them in the post text instead.</li>
+  </ul>
+</footer>
+</body>
+</html>
