@@ -1,6 +1,6 @@
-import type { ModelInfo } from '../shared/models';
 import { normalizeContext } from '@earendil-works/pi-ai/utils/transcript';
 import { describe, expect, it } from 'vitest';
+import type { ModelInfo } from '../shared/models';
 import { accountModel } from '../src/auth/account-models';
 import { authorizeUrl, exchangeCode, pickGateway, SCOPES } from '../src/auth/oauth';
 import { parseSession, readCookie, sign, unsign } from '../src/auth/session';

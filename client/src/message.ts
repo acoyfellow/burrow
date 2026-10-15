@@ -3,12 +3,12 @@ import { defineMessageUnion } from 'foldkit/message';
 import {
   DirEntry,
   LiveEvent,
+  ModelOption,
   Pair,
   Size,
   Surface,
   SurfaceKind,
   ThreadSummary,
-  ModelOption,
   ThreadView,
 } from '../../shared/protocol';
 import { Action, Theme, ThreadOp } from './model';

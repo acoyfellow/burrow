@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GATEWAY_MODELS } from '../shared/models';
 import {
   CATALOG_TTL_MS,
   catalogEntry,
@@ -8,7 +9,6 @@ import {
   parseStoredEntries,
   type StoredCatalog,
 } from '../src/catalog';
-import { GATEWAY_MODELS } from '../shared/models';
 
 const searchResult = (name: string, extra: Record<string, unknown> = {}) => ({
   name,

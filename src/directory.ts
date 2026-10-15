@@ -1,5 +1,5 @@
-import { parseStoredEntries, type StoredCatalog } from './catalog';
 import { DurableObject } from 'cloudflare:workers';
+import { parseStoredEntries, type StoredCatalog } from './catalog';
 
 export type ThreadSummary = {
   readonly name: string;

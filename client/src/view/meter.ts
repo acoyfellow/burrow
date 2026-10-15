@@ -1,6 +1,9 @@
-import type { Html } from 'foldkit/html';
 import { Option } from 'effect';
+import type { Html } from 'foldkit/html';
 import { modelInfo } from '../../../shared/models';
+import type { ThreadView, Usage } from '../../../shared/protocol';
+import { Message } from '../message';
+import type { Model } from '../model';
 import {
   groupLabel,
   matchesQuery,
@@ -8,9 +11,6 @@ import {
   pickerOptions,
   startsGroup,
 } from '../model-picker';
-import type { ThreadView, Usage } from '../../../shared/protocol';
-import { Message } from '../message';
-import type { Model } from '../model';
 import type { H } from './parts';
 
 export const tokens = (count: number): string => {

@@ -1,8 +1,8 @@
 import { Schema } from 'effect';
 import type { Update } from 'foldkit';
 import type { Url } from 'foldkit/url';
-import { DEFAULT_SIZE } from '../../shared/protocol';
 import { MODELS } from '../../shared/models';
+import { DEFAULT_SIZE } from '../../shared/protocol';
 import { LoadModels, LoadSpend, LoadThreads, LoadView, LoadWho, notifyPermission } from './command';
 import type { Message } from './message';
 import { FileView, type Model, Theme, ThreadsState, ViewState } from './model';

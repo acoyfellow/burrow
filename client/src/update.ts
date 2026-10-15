@@ -11,7 +11,6 @@ import {
   ExpireToast,
   FocusComposer,
   FocusModelSearch,
-  RevealModelOption,
   FocusPalette,
   Install,
   KillLoops,
@@ -23,6 +22,7 @@ import {
   PushUrl,
   RefreshViewSoon,
   Resize,
+  RevealModelOption,
   RunAction,
   RunOp,
   SaveTheme,
@@ -42,8 +42,8 @@ import {
   ThreadsState,
   ViewState,
 } from './model';
-import { finishedThreads } from './notify';
 import { moveIndex, pickerOptions } from './model-picker';
+import { finishedThreads } from './notify';
 import { paletteItems } from './palette';
 import { pathForThread } from './route';
 import type { CoilClient } from './rpc';

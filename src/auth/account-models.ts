@@ -1,9 +1,9 @@
 import type { Model, Provider } from '@earendil-works/pi-ai';
 import { cloudflareAIGatewayProvider } from '@earendil-works/pi-ai/providers/cloudflare-ai-gateway';
 import { cloudflareWorkersAIProvider } from '@earendil-works/pi-ai/providers/cloudflare-workers-ai';
+import type { ModelInfo } from '../../shared/models';
 import type { ModelChoice } from '../agent';
 import { isGatewayModel, rewriteBody, upstreamId } from '../gateway';
-import type { ModelInfo } from '../../shared/models';
 
 const WORKERS_AI_CHAT_URL =
   'https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1';

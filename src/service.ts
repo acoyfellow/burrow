@@ -1,8 +1,8 @@
+import { GATEWAY_MODELS, MODELS, type ModelInfo } from '../shared/models';
 import { refreshedToken, TOKEN_REFRESH_MARGIN_MS } from './auth/refresh';
 import { isCloudflareOwner } from './auth/types';
 import { type CatalogEntry, fetchCatalog, loadCatalog, mergeCatalog } from './catalog';
 import { DIRECTORY_NAME } from './directory-name';
-import { GATEWAY_MODELS, MODELS, type ModelInfo } from '../shared/models';
 import type { LoopSpec } from './loop';
 import { DEFAULT_SIZE, type Size } from './size';
 import type { Env } from './thread';
