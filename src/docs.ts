@@ -82,7 +82,7 @@ export const llmsText = (origin: string): string =>
     '',
     '## How an agent uses coil',
     '',
-    `Connect an MCP client to \`${origin}/mcp\`. Every request needs a Cloudflare Access token in the \`cf-access-token\` header.`,
+    `Connect an MCP client to \`${origin}/mcp\`. Every request must be signed in. On an instance behind Cloudflare Access, send an Access token in the \`cf-access-token\` header. On an instance with Sign in with Cloudflare, send the session cookie from \`${origin}/oauth/login\`; without it the answer is 401.`,
     '',
     '1. Call `coil_describe` to get the TypeScript declaration of the `coil` object.',
     `2. Call \`coil_run\` with the body of an async function. Each \`await coil.<capability>(input)\` is one call, at most ${MAX_CALLS} per run. The script has no network access of its own.`,

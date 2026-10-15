@@ -50,6 +50,6 @@ The patterns are made from the mark's own parts: the centre line, the 36.87° di
 - Do not stretch, rotate, outline or add effects to the logo.
 - Do not draw the C and O as two separate shapes.
 - Do not set "coil" in a font in place of the wordmark.
-- Never put the mark next to "coil" typed in a font. That is the old logo, and production still uses it. The wordmark already spells "coil" with the mark as its C and O. Use the wordmark on its own, or the mark on its own.
+- Never put the mark next to "coil" typed in a font. That was the old logo. The wordmark already spells "coil" with the mark as its C and O. Use the wordmark on its own, or the mark on its own.
 - Do not put the orange mark on a background that is close to orange.
 - Do not use the mark smaller than 16px. Below 24px, use `favicon.svg`.

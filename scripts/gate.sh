@@ -11,7 +11,8 @@ git ls-files --error-unmatch receipts/live-ui.json >/dev/null 2>&1 || fail "rece
 node scripts/verify-receipts.mjs || fail "receipts do not prove the goal"
 
 [ "$(gh repo view acoyfellow/coil --json visibility -q .visibility)" = PUBLIC ] || fail "repo is not public"
-[ "$(curl -s -o /dev/null -w '%{http_code}' https://coil.coey.dev/)" = 302 ] || fail "deployed URL does not redirect to Access"
+bash scripts/check-edge.sh cloudflare coil.coey.dev >/dev/null || fail "coil.coey.dev does not show Sign in with Cloudflare"
+[ "$(curl -s -o /dev/null -w '%{http_code}' https://coil.coey.dev/api/threads)" = 401 ] || fail "the API answers without a session"
 
 git diff --quiet HEAD -- receipts src || fail "uncommitted changes in receipts or src"
 [ "$(git rev-parse HEAD)" = "$(gh api repos/acoyfellow/coil/commits/main -q .sha)" ] || fail "HEAD is not pushed"
@@ -23,7 +24,7 @@ git ls-files --error-unmatch receipts/owner-ok-v3 >/dev/null 2>&1 || fail "recei
 [ -f public/manifest.webmanifest ] || fail "PWA manifest missing"
 for icon in icon-192.png icon-512.png maskable-192.png maskable-512.png coil.svg; do [ -f "public/icons/$icon" ] || fail "icon $icon missing"; done
 grep -q "ui.test.ts" /tmp/coil-gate-check.log || fail "PWA tests did not run"
-[ "$(curl -s -o /dev/null -w '%{http_code}' https://coil.coey.dev/manifest.webmanifest)" = 302 ] || fail "production manifest is not behind Access"
+[ "$(curl -s -o /dev/null -w '%{http_code}' https://coil.coey.dev/manifest.webmanifest)" = 200 ] || fail "production manifest is not served"
 node -e '
 const r = require("./receipts/lighthouse.json");
 const low = r.runs.flatMap((run) => Object.entries(run.scores)).filter(([, v]) => v < 90);

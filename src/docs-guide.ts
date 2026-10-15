@@ -170,6 +170,8 @@ ${code(
   -H 'content-type: application/json' \\
   -d '{"name":"thread-abc123","text":"run the tests"}'`,
 )}
+<h3>Signing in</h3>
+<p>Every call must be signed in. Behind Cloudflare Access, send an Access token in the <code>cf-access-token</code> header. With Sign in with Cloudflare, send the session cookie from <code>/oauth/login</code>. Without it, the API and <code>/mcp</code> answer 401.</p>
 <p>Plain text for agents is at <a href="/llms.txt"><code>/llms.txt</code></a>.</p>`,
 };
 
@@ -224,8 +226,10 @@ const LIMITS: GuideSection = {
   title: 'Limits',
   html: `<ul>
 <li><b>Passkeys and security keys do not work in the cloud browser.</b> Password and TOTP logins work and stay logged in.</li>
-<li><b>A resumed computer gets its disk back, not its processes.</b> Terminals reopen in the same folders; Chrome reopens with its cookies.</li>
+<li><b>A resumed computer gets its disk back, not its processes.</b> Terminals reopen in the same folders. Servers the agent started are gone until something starts them again.</li>
+<li><b>The browser comes back on its last page, not its state.</b> Chrome reopens the last web page it had open, with its cookies. The page reloads, so anything held only in the page starts over.</li>
 <li><b>Agent commands stop after 120 seconds.</b> Start servers in the background. API and MCP commands stop after 10 minutes.</li>
+<li><b>A Pi extension tool call stops after about 280 seconds.</b> Only tools load; extension commands and shortcuts are reported as unsupported.</li>
 <li><b>Computers have internet access.</b> coil is not a sandbox for hostile code.</li>
 <li><b>The browser view is 1280&times;800</b>, scaled to fit.</li>
 </ul>`,
